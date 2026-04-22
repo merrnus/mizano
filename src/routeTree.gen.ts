@@ -9,8 +9,74 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as TakvimRouteImport } from './routes/takvim'
+import { Route as TablolarRouteImport } from './routes/tablolar'
+import { Route as PomodoroRouteImport } from './routes/pomodoro'
+import { Route as NotlarRouteImport } from './routes/notlar'
+import { Route as ManeviyatRouteImport } from './routes/maneviyat'
+import { Route as KardeslerRouteImport } from './routes/kardesler'
+import { Route as IstatistikRouteImport } from './routes/istatistik'
+import { Route as HedeflerRouteImport } from './routes/hedefler'
+import { Route as GundemlerRouteImport } from './routes/gundemler'
+import { Route as AkademiRouteImport } from './routes/akademi'
 import { Route as IndexRouteImport } from './routes/index'
 
+const TasksRoute = TasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TakvimRoute = TakvimRouteImport.update({
+  id: '/takvim',
+  path: '/takvim',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TablolarRoute = TablolarRouteImport.update({
+  id: '/tablolar',
+  path: '/tablolar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PomodoroRoute = PomodoroRouteImport.update({
+  id: '/pomodoro',
+  path: '/pomodoro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotlarRoute = NotlarRouteImport.update({
+  id: '/notlar',
+  path: '/notlar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManeviyatRoute = ManeviyatRouteImport.update({
+  id: '/maneviyat',
+  path: '/maneviyat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KardeslerRoute = KardeslerRouteImport.update({
+  id: '/kardesler',
+  path: '/kardesler',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IstatistikRoute = IstatistikRouteImport.update({
+  id: '/istatistik',
+  path: '/istatistik',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HedeflerRoute = HedeflerRouteImport.update({
+  id: '/hedefler',
+  path: '/hedefler',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GundemlerRoute = GundemlerRouteImport.update({
+  id: '/gundemler',
+  path: '/gundemler',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AkademiRoute = AkademiRouteImport.update({
+  id: '/akademi',
+  path: '/akademi',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +85,186 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/akademi': typeof AkademiRoute
+  '/gundemler': typeof GundemlerRoute
+  '/hedefler': typeof HedeflerRoute
+  '/istatistik': typeof IstatistikRoute
+  '/kardesler': typeof KardeslerRoute
+  '/maneviyat': typeof ManeviyatRoute
+  '/notlar': typeof NotlarRoute
+  '/pomodoro': typeof PomodoroRoute
+  '/tablolar': typeof TablolarRoute
+  '/takvim': typeof TakvimRoute
+  '/tasks': typeof TasksRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/akademi': typeof AkademiRoute
+  '/gundemler': typeof GundemlerRoute
+  '/hedefler': typeof HedeflerRoute
+  '/istatistik': typeof IstatistikRoute
+  '/kardesler': typeof KardeslerRoute
+  '/maneviyat': typeof ManeviyatRoute
+  '/notlar': typeof NotlarRoute
+  '/pomodoro': typeof PomodoroRoute
+  '/tablolar': typeof TablolarRoute
+  '/takvim': typeof TakvimRoute
+  '/tasks': typeof TasksRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/akademi': typeof AkademiRoute
+  '/gundemler': typeof GundemlerRoute
+  '/hedefler': typeof HedeflerRoute
+  '/istatistik': typeof IstatistikRoute
+  '/kardesler': typeof KardeslerRoute
+  '/maneviyat': typeof ManeviyatRoute
+  '/notlar': typeof NotlarRoute
+  '/pomodoro': typeof PomodoroRoute
+  '/tablolar': typeof TablolarRoute
+  '/takvim': typeof TakvimRoute
+  '/tasks': typeof TasksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/akademi'
+    | '/gundemler'
+    | '/hedefler'
+    | '/istatistik'
+    | '/kardesler'
+    | '/maneviyat'
+    | '/notlar'
+    | '/pomodoro'
+    | '/tablolar'
+    | '/takvim'
+    | '/tasks'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/akademi'
+    | '/gundemler'
+    | '/hedefler'
+    | '/istatistik'
+    | '/kardesler'
+    | '/maneviyat'
+    | '/notlar'
+    | '/pomodoro'
+    | '/tablolar'
+    | '/takvim'
+    | '/tasks'
+  id:
+    | '__root__'
+    | '/'
+    | '/akademi'
+    | '/gundemler'
+    | '/hedefler'
+    | '/istatistik'
+    | '/kardesler'
+    | '/maneviyat'
+    | '/notlar'
+    | '/pomodoro'
+    | '/tablolar'
+    | '/takvim'
+    | '/tasks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AkademiRoute: typeof AkademiRoute
+  GundemlerRoute: typeof GundemlerRoute
+  HedeflerRoute: typeof HedeflerRoute
+  IstatistikRoute: typeof IstatistikRoute
+  KardeslerRoute: typeof KardeslerRoute
+  ManeviyatRoute: typeof ManeviyatRoute
+  NotlarRoute: typeof NotlarRoute
+  PomodoroRoute: typeof PomodoroRoute
+  TablolarRoute: typeof TablolarRoute
+  TakvimRoute: typeof TakvimRoute
+  TasksRoute: typeof TasksRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tasks': {
+      id: '/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof TasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/takvim': {
+      id: '/takvim'
+      path: '/takvim'
+      fullPath: '/takvim'
+      preLoaderRoute: typeof TakvimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tablolar': {
+      id: '/tablolar'
+      path: '/tablolar'
+      fullPath: '/tablolar'
+      preLoaderRoute: typeof TablolarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pomodoro': {
+      id: '/pomodoro'
+      path: '/pomodoro'
+      fullPath: '/pomodoro'
+      preLoaderRoute: typeof PomodoroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notlar': {
+      id: '/notlar'
+      path: '/notlar'
+      fullPath: '/notlar'
+      preLoaderRoute: typeof NotlarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/maneviyat': {
+      id: '/maneviyat'
+      path: '/maneviyat'
+      fullPath: '/maneviyat'
+      preLoaderRoute: typeof ManeviyatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kardesler': {
+      id: '/kardesler'
+      path: '/kardesler'
+      fullPath: '/kardesler'
+      preLoaderRoute: typeof KardeslerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/istatistik': {
+      id: '/istatistik'
+      path: '/istatistik'
+      fullPath: '/istatistik'
+      preLoaderRoute: typeof IstatistikRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hedefler': {
+      id: '/hedefler'
+      path: '/hedefler'
+      fullPath: '/hedefler'
+      preLoaderRoute: typeof HedeflerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gundemler': {
+      id: '/gundemler'
+      path: '/gundemler'
+      fullPath: '/gundemler'
+      preLoaderRoute: typeof GundemlerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/akademi': {
+      id: '/akademi'
+      path: '/akademi'
+      fullPath: '/akademi'
+      preLoaderRoute: typeof AkademiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +277,17 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AkademiRoute: AkademiRoute,
+  GundemlerRoute: GundemlerRoute,
+  HedeflerRoute: HedeflerRoute,
+  IstatistikRoute: IstatistikRoute,
+  KardeslerRoute: KardeslerRoute,
+  ManeviyatRoute: ManeviyatRoute,
+  NotlarRoute: NotlarRoute,
+  PomodoroRoute: PomodoroRoute,
+  TablolarRoute: TablolarRoute,
+  TakvimRoute: TakvimRoute,
+  TasksRoute: TasksRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
