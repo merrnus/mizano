@@ -1,6 +1,9 @@
 import * as React from "react";
 
-const MOBILE_BREAKPOINT = 768;
+// Sidebar overlay davranışı için breakpoint:
+// Bu eşiğin altında sidebar Sheet (overlay) olarak açılır — içeriği itmez.
+// Üzerinde push layout (normal sidebar) çalışır.
+const MOBILE_BREAKPOINT = 1280;
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
