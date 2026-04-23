@@ -6,6 +6,7 @@ import { SolSidebar } from "./sol-sidebar";
 import { Topbar } from "./topbar";
 import { useAuth } from "@/lib/auth-context";
 import { MizanLogo } from "./mizan-logo";
+import { IconRail } from "./icon-rail";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -38,7 +39,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <SidebarProvider>
         <SolSidebar />
-        <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background">
+        <IconRail />
+        <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background md:pl-12">
           <Topbar />
           <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
         </SidebarInset>
