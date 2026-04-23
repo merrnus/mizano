@@ -15,6 +15,8 @@ import { Route as MizanRouteImport } from './routes/mizan'
 import { Route as GundemlerRouteImport } from './routes/gundemler'
 import { Route as GirisRouteImport } from './routes/giris'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MizanDunyeviRouteImport } from './routes/mizan.dunyevi'
+import { Route as MizanAkademiRouteImport } from './routes/mizan.akademi'
 
 const WorkspaceRoute = WorkspaceRouteImport.update({
   id: '/workspace',
@@ -46,31 +48,47 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MizanDunyeviRoute = MizanDunyeviRouteImport.update({
+  id: '/dunyevi',
+  path: '/dunyevi',
+  getParentRoute: () => MizanRoute,
+} as any)
+const MizanAkademiRoute = MizanAkademiRouteImport.update({
+  id: '/akademi',
+  path: '/akademi',
+  getParentRoute: () => MizanRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/giris': typeof GirisRoute
   '/gundemler': typeof GundemlerRoute
-  '/mizan': typeof MizanRoute
+  '/mizan': typeof MizanRouteWithChildren
   '/network': typeof NetworkRoute
   '/workspace': typeof WorkspaceRoute
+  '/mizan/akademi': typeof MizanAkademiRoute
+  '/mizan/dunyevi': typeof MizanDunyeviRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/giris': typeof GirisRoute
   '/gundemler': typeof GundemlerRoute
-  '/mizan': typeof MizanRoute
+  '/mizan': typeof MizanRouteWithChildren
   '/network': typeof NetworkRoute
   '/workspace': typeof WorkspaceRoute
+  '/mizan/akademi': typeof MizanAkademiRoute
+  '/mizan/dunyevi': typeof MizanDunyeviRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/giris': typeof GirisRoute
   '/gundemler': typeof GundemlerRoute
-  '/mizan': typeof MizanRoute
+  '/mizan': typeof MizanRouteWithChildren
   '/network': typeof NetworkRoute
   '/workspace': typeof WorkspaceRoute
+  '/mizan/akademi': typeof MizanAkademiRoute
+  '/mizan/dunyevi': typeof MizanDunyeviRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,8 +99,18 @@ export interface FileRouteTypes {
     | '/mizan'
     | '/network'
     | '/workspace'
+    | '/mizan/akademi'
+    | '/mizan/dunyevi'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/giris' | '/gundemler' | '/mizan' | '/network' | '/workspace'
+  to:
+    | '/'
+    | '/giris'
+    | '/gundemler'
+    | '/mizan'
+    | '/network'
+    | '/workspace'
+    | '/mizan/akademi'
+    | '/mizan/dunyevi'
   id:
     | '__root__'
     | '/'
@@ -91,13 +119,15 @@ export interface FileRouteTypes {
     | '/mizan'
     | '/network'
     | '/workspace'
+    | '/mizan/akademi'
+    | '/mizan/dunyevi'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GirisRoute: typeof GirisRoute
   GundemlerRoute: typeof GundemlerRoute
-  MizanRoute: typeof MizanRoute
+  MizanRoute: typeof MizanRouteWithChildren
   NetworkRoute: typeof NetworkRoute
   WorkspaceRoute: typeof WorkspaceRoute
 }
@@ -146,14 +176,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mizan/dunyevi': {
+      id: '/mizan/dunyevi'
+      path: '/dunyevi'
+      fullPath: '/mizan/dunyevi'
+      preLoaderRoute: typeof MizanDunyeviRouteImport
+      parentRoute: typeof MizanRoute
+    }
+    '/mizan/akademi': {
+      id: '/mizan/akademi'
+      path: '/akademi'
+      fullPath: '/mizan/akademi'
+      preLoaderRoute: typeof MizanAkademiRouteImport
+      parentRoute: typeof MizanRoute
+    }
   }
 }
+
+interface MizanRouteChildren {
+  MizanAkademiRoute: typeof MizanAkademiRoute
+  MizanDunyeviRoute: typeof MizanDunyeviRoute
+}
+
+const MizanRouteChildren: MizanRouteChildren = {
+  MizanAkademiRoute: MizanAkademiRoute,
+  MizanDunyeviRoute: MizanDunyeviRoute,
+}
+
+const MizanRouteWithChildren = MizanRoute._addFileChildren(MizanRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GirisRoute: GirisRoute,
   GundemlerRoute: GundemlerRoute,
-  MizanRoute: MizanRoute,
+  MizanRoute: MizanRouteWithChildren,
   NetworkRoute: NetworkRoute,
   WorkspaceRoute: WorkspaceRoute,
 }
