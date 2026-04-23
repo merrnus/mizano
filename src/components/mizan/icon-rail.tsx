@@ -23,7 +23,7 @@ export function IconRail() {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-12 flex-col items-center gap-1 border-r border-border bg-sidebar py-2 md:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 flex w-12 flex-col items-center gap-1 border-r border-border bg-sidebar py-2">
         <Tooltip>
           <TooltipTrigger asChild>
             <button
