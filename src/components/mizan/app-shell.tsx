@@ -40,7 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SidebarProvider>
         <SolSidebar />
         <IconRail />
-        <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background md:pl-12">
+        <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background pl-12">
           <Topbar />
           <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
         </SidebarInset>
