@@ -28,11 +28,48 @@ const kategoriler = [
 
 const haftaGunleri = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 
+const yaklasanGunler = [
+  {
+    gun: "Bugün — 23 Nis Per",
+    olaylar: [
+      { ad: "BIL 305 — Ağ Yönetimi", tip: "akademi", saat: "10:00" },
+      { ad: "Akşam programı — Risale", tip: "maneviyat", saat: "20:00" },
+    ],
+  },
+  {
+    gun: "Yarın — 24 Nis Cum",
+    olaylar: [
+      { ad: "BIL 311 — Veri Tabanı", tip: "akademi", saat: "13:00" },
+      { ad: "Cuma sohbeti", tip: "sohbet", saat: "19:00" },
+    ],
+  },
+  {
+    gun: "25 Nis Cmt",
+    olaylar: [
+      { ad: "Spor — futbol", tip: "spor", saat: "11:00" },
+      { ad: "Ahmet ile teke tek", tip: "istisare", saat: "16:00" },
+    ],
+  },
+  {
+    gun: "26 Nis Paz",
+    olaylar: [{ ad: "Kandil programı", tip: "kandil", saat: "20:30" }],
+  },
+];
+
+const olayRengi: Record<string, string> = {
+  akademi: "border-l-[var(--akademi)]",
+  maneviyat: "border-l-[var(--maneviyat)]",
+  sohbet: "border-l-[var(--turquoise)]",
+  istisare: "border-l-[var(--gold)]",
+  spor: "border-l-emerald-500",
+  kandil: "border-l-amber-400",
+};
+
 function TakvimPage() {
   return (
     <div>
       <SayfaBasligi baslik="Takvim" aciklama="Aylık + haftalık görünüm, renkli kategoriler." />
-      <div className="px-6 py-5">
+      <div className="px-4 py-5 md:px-6">
         <div className="mb-4 flex flex-wrap gap-2">
           {kategoriler.map((k) => (
             <span
@@ -44,7 +81,36 @@ function TakvimPage() {
             </span>
           ))}
         </div>
-        <Tabs defaultValue="ay" className="w-full">
+
+        {/* Mobil — yaklaşan günler listesi */}
+        <div className="md:hidden">
+          <div className="space-y-4">
+            {yaklasanGunler.map((g) => (
+              <div key={g.gun} className="rounded-xl border border-border bg-card p-4">
+                <h3 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {g.gun}
+                </h3>
+                <ul className="space-y-2">
+                  {g.olaylar.map((o) => (
+                    <li
+                      key={o.ad}
+                      className={cn(
+                        "flex items-center justify-between rounded-md border-l-2 bg-background/40 px-3 py-2 text-sm",
+                        olayRengi[o.tip] ?? "border-l-border",
+                      )}
+                    >
+                      <span className="text-foreground">{o.ad}</span>
+                      <span className="text-xs text-muted-foreground">{o.saat}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop / tablet — sekmeli aylık + haftalık */}
+        <Tabs defaultValue="ay" className="hidden w-full md:block">
           <TabsList>
             <TabsTrigger value="ay">Aylık</TabsTrigger>
             <TabsTrigger value="hafta">Haftalık</TabsTrigger>
