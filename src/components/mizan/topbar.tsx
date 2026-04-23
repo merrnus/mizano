@@ -1,7 +1,6 @@
 import { LogOut, Moon, Plus, Search, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useTheme } from "./theme-provider";
 import { useAuth } from "@/lib/auth-context";
 import { useNavigate } from "@tanstack/react-router";
@@ -12,8 +11,7 @@ export function Topbar() {
   const navigate = useNavigate();
   return (
     <header className="sticky top-0 z-20 flex h-12 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur">
-      <SidebarTrigger className="h-8 w-8" />
-      <div className="relative ml-1 hidden min-w-0 flex-1 max-w-md md:block">
+      <div className="relative hidden min-w-0 flex-1 max-w-md md:block">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Ara: ders, gündem, kişi, not…"
