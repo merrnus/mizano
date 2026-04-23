@@ -13,7 +13,7 @@ import {
   Target,
   Plus,
 } from "lucide-react";
-import { DengeHalkalari, DengeLegend } from "@/components/mizan/denge-halkalari";
+import { DengeHalkalari } from "@/components/mizan/denge-halkalari";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
