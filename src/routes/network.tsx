@@ -132,6 +132,16 @@ const etiketRenk: Record<Etiket, string> = {
 };
 
 function Network() {
+  const search = useSearch({ from: "/network" });
+  const [tab, setTab] = React.useState<"kisiler" | "gundemler">(
+    search.tab ?? "kisiler",
+  );
+  React.useEffect(() => {
+    if (search.tab && search.tab !== tab) setTab(search.tab);
+    // sadece URL değişimini dinler
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.tab]);
+
   const [aktif, setAktif] = React.useState<Etiket | "tumu">("tumu");
   const [arama, setArama] = React.useState("");
   const [secili, setSecili] = React.useState<Kisi | null>(null);
@@ -154,98 +164,33 @@ function Network() {
           </h1>
         </div>
         <Button size="sm" className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Kişi ekle</span>
+          <Plus className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">
+            {tab === "kisiler" ? "Kişi ekle" : "Gündem ekle"}
+          </span>
         </Button>
       </header>
 
-      {/* Arama + filtre */}
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Kişi ara…"
-            value={arama}
-            onChange={(e) => setArama(e.target.value)}
-            className="h-9 pl-8 text-sm"
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "kisiler" | "gundemler")}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="kisiler">Kişiler</TabsTrigger>
+          <TabsTrigger value="gundemler">Gündemler</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="kisiler">
+          <KisilerIcerigi
+            aktif={aktif}
+            setAktif={setAktif}
+            arama={arama}
+            setArama={setArama}
+            filtreli={filtreli}
+            setSecili={setSecili}
           />
-        </div>
-      </div>
-
-      <div className="-mx-4 mb-5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-        <div className="flex items-center gap-2 pb-1">
-          <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <button
-            onClick={() => setAktif("tumu")}
-            className={cn(
-              "rounded-full border px-3 py-1 text-xs transition-colors",
-              aktif === "tumu"
-                ? "border-primary/60 bg-primary/15 text-foreground"
-                : "border-border bg-background text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Tümü ({kisiler.length})
-          </button>
-          {tumEtiketler.map((e) => {
-            const sayi = kisiler.filter((k) => k.etiketler.includes(e)).length;
-            return (
-              <button
-                key={e}
-                onClick={() => setAktif(e)}
-                className={cn(
-                  "shrink-0 rounded-full border px-3 py-1 text-xs transition-colors",
-                  aktif === e
-                    ? "border-primary/60 bg-primary/15 text-foreground"
-                    : "border-border bg-background text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {e} ({sayi})
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Kart grid */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {filtreli.map((k) => (
-          <button
-            key={k.ad}
-            onClick={() => setSecili(k)}
-            className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40"
-          >
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 border border-border">
-                <AvatarFallback className="bg-muted text-xs">
-                  {k.ad.split(" ").map((p) => p[0]).join("")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-foreground">
-                  {k.ad}
-                </div>
-                <div className="mt-0.5 flex flex-wrap gap-1">
-                  {k.etiketler.map((e) => (
-                    <Badge
-                      key={e}
-                      variant="outline"
-                      className={cn("text-[9px]", etiketRenk[e])}
-                    >
-                      {e}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <MiniBars
-              items={[
-                { ad: "Akd", val: k.akademi, renk: "--akademi" },
-                { ad: "Mnv", val: k.maneviyat, renk: "--maneviyat" },
-                { ad: "Sos", val: k.sosyal, renk: "--dunyevi" },
-              ]}
-            />
-          </button>
-        ))}
-      </div>
+        </TabsContent>
+        <TabsContent value="gundemler">
+          <GundemlerTab />
+        </TabsContent>
+      </Tabs>
 
       {/* Detay drawer (mobile + desktop) */}
       <Drawer open={!!secili} onOpenChange={(o) => !o && setSecili(null)}>
@@ -313,6 +258,115 @@ function Network() {
         </DrawerContent>
       </Drawer>
     </div>
+  );
+}
+
+function KisilerIcerigi({
+  aktif,
+  setAktif,
+  arama,
+  setArama,
+  filtreli,
+  setSecili,
+}: {
+  aktif: Etiket | "tumu";
+  setAktif: (a: Etiket | "tumu") => void;
+  arama: string;
+  setArama: (a: string) => void;
+  filtreli: Kisi[];
+  setSecili: (k: Kisi) => void;
+}) {
+  return (
+    <>
+      {/* Arama + filtre */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Kişi ara…"
+            value={arama}
+            onChange={(e) => setArama(e.target.value)}
+            className="h-9 pl-8 text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="-mx-4 mb-5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="flex items-center gap-2 pb-1">
+          <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <button
+            onClick={() => setAktif("tumu")}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs transition-colors",
+              aktif === "tumu"
+                ? "border-primary/60 bg-primary/15 text-foreground"
+                : "border-border bg-background text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Tümü ({filtreli.length})
+          </button>
+          {tumEtiketler.map((e) => {
+            const sayi = filtreli.filter((k) => k.etiketler.includes(e)).length;
+            return (
+              <button
+                key={e}
+                onClick={() => setAktif(e)}
+                className={cn(
+                  "shrink-0 rounded-full border px-3 py-1 text-xs transition-colors",
+                  aktif === e
+                    ? "border-primary/60 bg-primary/15 text-foreground"
+                    : "border-border bg-background text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {e} ({sayi})
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Kart grid */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {filtreli.map((k) => (
+          <button
+            key={k.ad}
+            onClick={() => setSecili(k)}
+            className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40"
+          >
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 border border-border">
+                <AvatarFallback className="bg-muted text-xs">
+                  {k.ad.split(" ").map((p) => p[0]).join("")}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-foreground">
+                  {k.ad}
+                </div>
+                <div className="mt-0.5 flex flex-wrap gap-1">
+                  {k.etiketler.map((e) => (
+                    <Badge
+                      key={e}
+                      variant="outline"
+                      className={cn("text-[9px]", etiketRenk[e])}
+                    >
+                      {e}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <MiniBars
+              items={[
+                { ad: "Akd", val: k.akademi, renk: "--akademi" },
+                { ad: "Mnv", val: k.maneviyat, renk: "--maneviyat" },
+                { ad: "Sos", val: k.sosyal, renk: "--dunyevi" },
+              ]}
+            />
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 
