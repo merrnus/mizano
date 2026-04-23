@@ -165,3 +165,22 @@
     color: var(--color-foreground);
   }
 }
+
+/*
+ * Sidebar overlay davranışı (md+):
+ * Sidebar açıldığında ana içeriği itmesin, üstüne bindirsin.
+ * Spacer'ı her zaman icon genişliğinde tutarız; sidebar paneli zaten fixed,
+ * sadece z-index + shadow ekleyip üste bindiririz.
+ */
+@media (min-width: 768px) {
+  /* Spacer (Sidebar'ın ilk div'i) her zaman icon genişliğinde kalır */
+  .group\/sidebar-wrapper .group.peer > div:first-child,
+  [data-slot="sidebar-wrapper"] .group.peer > div:first-child {
+    width: calc(var(--sidebar-width-icon) + theme(spacing.4)) !important;
+  }
+  /* Açık sidebar paneli içeriğin üstüne bindirilir */
+  .group.peer[data-state="expanded"] > div:last-child {
+    z-index: 40;
+    box-shadow: 0 10px 40px -10px rgb(0 0 0 / 0.5);
+  }
+}
