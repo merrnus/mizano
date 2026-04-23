@@ -145,11 +145,11 @@ function ManeviyatSayfasi() {
             </Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="-mx-4 overflow-x-auto sm:-mx-5">
             <table className="w-full min-w-[640px] border-separate border-spacing-y-1">
               <thead>
                 <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th className="w-[180px] px-2 text-left font-normal">Evrad</th>
+                  <th className="sticky left-0 z-20 w-[160px] bg-card px-2 pl-4 text-left font-normal sm:pl-5">Evrad</th>
                   {gunler.map((g, i) => (
                     <th key={i} className="px-1 text-center font-normal">
                       {tarihFormat(g) === bugunStr ? (
@@ -174,7 +174,7 @@ function ManeviyatSayfasi() {
                   const haftaSum = haftaToplami(kayitlar, s.id);
                   return (
                     <tr key={s.id} className="text-xs">
-                      <td className="px-2 align-middle">
+                      <td className="sticky left-0 z-10 w-[160px] bg-card px-2 pl-4 align-middle shadow-[1px_0_0_0_hsl(var(--border))] sm:pl-5">
                         <div className="font-medium">{s.ad}</div>
                         {s.notlar ? (
                           <div className="text-[10px] text-muted-foreground line-clamp-2">
