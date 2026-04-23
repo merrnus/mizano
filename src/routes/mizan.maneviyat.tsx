@@ -132,9 +132,15 @@ function ManeviyatSayfasi() {
                     <tr key={s.id} className="text-xs">
                       <td className="px-2 align-middle">
                         <div className="font-medium">{s.ad}</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {s.birim !== "ikili" && s.birim}
-                        </div>
+                        {s.notlar ? (
+                          <div className="text-[10px] text-muted-foreground line-clamp-2">
+                            {s.notlar}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-muted-foreground/60">
+                            {s.birim !== "ikili" && s.birim}
+                          </div>
+                        )}
                       </td>
                       {gunler.map((g) => {
                         const ts = tarihFormat(g);
@@ -165,15 +171,18 @@ function ManeviyatSayfasi() {
                         </div>
                       </td>
                       <td className="align-middle">
-                        <button
-                          onClick={() => {
-                            if (confirm(`"${s.ad}" şablonunu kaldır?`)) sil.mutate(s.id);
-                          }}
-                          className="text-muted-foreground/40 hover:text-destructive"
-                          aria-label="Sil"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2 pr-1">
+                          <SablonForm duzenle={s} />
+                          <button
+                            onClick={() => {
+                              if (confirm(`"${s.ad}" şablonunu kaldır?`)) sil.mutate(s.id);
+                            }}
+                            className="text-muted-foreground/40 hover:text-destructive"
+                            aria-label="Sil"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
