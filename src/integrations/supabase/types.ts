@@ -14,7 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cetele_kayit: {
+        Row: {
+          created_at: string
+          id: string
+          miktar: number
+          not_metni: string | null
+          sablon_id: string
+          tarih: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          miktar?: number
+          not_metni?: string | null
+          sablon_id: string
+          tarih: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          miktar?: number
+          not_metni?: string | null
+          sablon_id?: string
+          tarih?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cetele_kayit_sablon_id_fkey"
+            columns: ["sablon_id"]
+            isOneToOne: false
+            referencedRelation: "cetele_sablon"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cetele_sablon: {
+        Row: {
+          ad: string
+          aktif: boolean
+          alan: Database["public"]["Enums"]["cetele_alan"]
+          birim: Database["public"]["Enums"]["cetele_birim"]
+          created_at: string
+          hedef_deger: number
+          hedef_tipi: Database["public"]["Enums"]["cetele_hedef_tipi"]
+          id: string
+          notlar: string | null
+          siralama: number
+          uc_aylik_baslangic: string | null
+          uc_aylik_hedef: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad: string
+          aktif?: boolean
+          alan?: Database["public"]["Enums"]["cetele_alan"]
+          birim: Database["public"]["Enums"]["cetele_birim"]
+          created_at?: string
+          hedef_deger?: number
+          hedef_tipi?: Database["public"]["Enums"]["cetele_hedef_tipi"]
+          id?: string
+          notlar?: string | null
+          siralama?: number
+          uc_aylik_baslangic?: string | null
+          uc_aylik_hedef?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad?: string
+          aktif?: boolean
+          alan?: Database["public"]["Enums"]["cetele_alan"]
+          birim?: Database["public"]["Enums"]["cetele_birim"]
+          created_at?: string
+          hedef_deger?: number
+          hedef_tipi?: Database["public"]["Enums"]["cetele_hedef_tipi"]
+          id?: string
+          notlar?: string | null
+          siralama?: number
+          uc_aylik_baslangic?: string | null
+          uc_aylik_hedef?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +111,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      cetele_alan: "maneviyat" | "akademi" | "dunyevi"
+      cetele_birim: "sayfa" | "adet" | "dakika" | "ikili"
+      cetele_hedef_tipi: "gunluk" | "haftalik" | "esnek"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +240,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      cetele_alan: ["maneviyat", "akademi", "dunyevi"],
+      cetele_birim: ["sayfa", "adet", "dakika", "ikili"],
+      cetele_hedef_tipi: ["gunluk", "haftalik", "esnek"],
+    },
   },
 } as const
