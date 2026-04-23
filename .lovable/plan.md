@@ -1,113 +1,155 @@
-# Mizan — Denge Sistemi (v1: Görünüm Katmanı)
 
-Bu plan **sadece frontend / görünüm**. Backend (veri saklama, auth, gerçek takip) ikinci aşamada. Şimdi tüm modüllerin iskeletini, navigasyonunu ve örnek (mock) içeriklerle çalışan halini kuracağız. Yerine oturduğunda backend'e geçeriz.
 
-## Genel Mimari
+# Çetele Sistemi — Plan (Güncel)
 
-**Çift sidebar düzeni (Vercel tarzı, ama Mizan ruhuyla):**
+## Ana Karar: `/mizan` Hub'a Dönüşüyor
 
-- **Sol sidebar — Workspace Araçları:** Tablolar, Takvim, Notlar, Tasks, Pomodoro
-- **Sağ sidebar — Kişisel Hayat Alanları:** Akademi, Maneviyat, Hedefler, Kardeşler & Gündemler, İstatistik
-- Her iki sidebar daraltılabilir (icon-only mod). Mobilde drawer olarak açılır.
-- Üstte ince bir topbar: Mizan logosu (ortada hat ilhamlı), arama, tema toggle, hızlı + butonu.
+`/mizan` artık **3 büyük kart hub'ı** olur. Tab yapısı kalkar. Her alan kendi sayfasına sahip — şimdilik sadece Maneviyat detaylanır, Akademi/Dünyevi karttan tam sayfaya tıklanır ama içerikleri mevcut haliyle taşınır.
 
-**Stil dili:**
+**Sebep:** Tab içinde çetele sıkışır. Üç alan eşit görsel ağırlık almalı — Mizan = denge demek. Hub yapısı bu felsefeyle uyumlu.
 
-- Linear/Notion temeli: yumuşak kartlar, ince border, sakin tipografi (Inter)
-- Mizan kimliği: ince altın aksan (#C9A961 tonu) + turkuaz vurgu (denge sembolü için)
-- Açık + koyu tema, varsayılan koyu
-- Bol boşluk, hızlı geçişler, mobil-uyumlu
+```text
+/mizan                  → Hub: Akademi / Dünyevi / Maneviyat (3 büyük kart)
+  └─ /mizan/maneviyat   → Tam çetele sayfası (yeni, zengin)
+  └─ /mizan/akademi     → Mevcut ders listesi (taşınır)
+  └─ /mizan/dunyevi     → Mevcut hedef listesi (taşınır)
+```
 
-## Sayfalar / Rotalar
+Sidebar'da tek "Mizan" linki. Alt sayfalar hub kartlarından açılır.
 
-### 1. `/` — Ana Sayfa (Mizan Merkez) — Hibrit düzen
+## Hub Kartı (her alan için)
 
-- **Üst şerit:** Bugünün zaman çizelgesi (sabah/öğle/akşam) — üniversite dersleri, akşam programları, sohbetler tek satırda
-- **Orta blok — Bugünün Dengesi (3 kart):** Akademi (bugünkü ders/görev), Maneviyat (bugünkü evrad), Dünyevi Hedef (bugünkü adım) — her kart "tamamlandı" işaretlenir
-- **Alt blok — Haftalık Denge Isı Haritası:** 7 gün × 3 alan (maneviyat / dünyevi / akademi) renk yoğunluğuyla — bir haftaya tek bakışta dengeyi görürsün
-- **Yan kolon (sağda, ana içerik içinde):** Hızlı not ekle + Pomodoro mini timer + Bugünün gündem hatırlatması
+```text
+┌────────────────────────────┐
+│ 📖 Maneviyat               │
+│                            │
+│ Bu hafta: 78%              │
+│ ●●●●●●●●○○ (10 evrad)      │
+│                            │
+│ Bugün: Kuran 2/3 sf        │
+│ Sıradaki: Cevşen           │
+│                            │
+│           [ Detay → ]      │
+└────────────────────────────┘
+```
 
-### 2. `/akademi`
+Akademi kartında: aktif ders sayısı + yaklaşan sınav. Dünyevi kartında: aktif hedef sayısı + en yakın milestone.
 
-- Aktif dönem dersleri + 7 borç dersi ayrı sekmeler
-- Her ders kartı: ad, hoca, sınav tarihi, proje durumu, ilerleme barı
-- Ders detayında: notlar, sınav takvimi, proje görevleri (mini todo)
+## Veri Modeli (Çetele)
 
-### 3. `/maneviyat`
+**Şablon:**
+- `ad`, `birim` (sayfa/adet/dakika/ikili), `hedef_tipi` (gunluk/haftalik), `hedef_deger`, `alan`, `aktif`, `siralama`
+- Opsiyonel: `3aylik_hedef: { deger, baslangic }`
 
-- **3 Aylık Müfredat sekmesi:** Hedefler (kitaplar, hatim, hıfz vb.) ilerleme barı ile
-- **Haftalık Evrad-ı Ezkâr (Çetele) sekmesi:** 7 gün × ezkâr matrisi, tıklayıp işaretleme
-- İkisi otomatik bağlı: müfredattaki "okunan kitap" haftalık çeteleye düşer
-- Detayları sonra dolduracağın yerler placeholder olarak hazır
+**Kayıt:**
+- `sablon_id`, `tarih`, `miktar`, `not`, `olusturuldu_at`
+- Aynı gün birden fazla kayıt → toplam = sum
 
-### 4. `/hedefler`
+**Renk:** Yeşil (≥min) / Sarı (yapıldı ama altı) / Kırmızı (geçmiş, hiç) / Boş (bugün/gelecek).
+İkili evradlar: yeşil veya boş, kırmızı yok (opsiyonel ibadet).
 
-- Dünyevi hedefler (Networking/CCNA, Linux, vb.)
-- 3 aylık + haftalık görünüm (maneviyat ile aynı yapı)
-- İlerleme barı, mini günlük adımlar
+## `/mizan/maneviyat` Sayfası
 
-### 5. `/kardesler` (Talebeler)
+```text
+┌──────────────────────────────────────────────────┐
+│ Haftalık Çetele    [< 21-27 Nis >]  [+ Evrad]   │
+├──────────────────────────────────────────────────┤
+│                Pzt Sal Çar Per Cum Cmt Paz  Hed  │
+│ Kuran (sf)      3   4   2   3   -   1   -   3/g │
+│ Cevşen (ad)     3   5   3   -   -   -   -   3/g │
+│ Risale (sf)    10   -  15  20   -   -   -  10/g │
+│ Pırlanta (sf)   5   5   -   -   -   -   -   5/g │
+│ Kitap (sf)      -   -  10   -   -   -   -   5/g │
+│ mp3 (dk)       20  30   -  20   -   -   -  20/g │
+│ Evvâbîn         ✓   ✓   ✓   -   -   ✓   -  her  │
+│ Virdler         ✓   ✓   ✓   ✓   ✓   ✓   -   1/g │
+│ Oruç            -   ✓   -   ✓   -   -   -   2/h │
+│ Teheccüd        ✓   -   ✓   -   -   ✓   -   3/h │
+├──────────────────────────────────────────────────┤
+│ + Plan dışı evrad (bu hafta)                    │
+└──────────────────────────────────────────────────┘
 
-- 3 grup sekmesi: **Ev**, **GG (eve gelenler)**, **OMM (eve gelmeyenler)**
-- Ek: **Kuran Dersi / Online Rehberlik** alt sekmesi
-- Her kişi kartı: profil (akademik durum, ilgi alanları, insani notlar), faaliyet özeti, maneviyat takip durumu
-- Kişi detay sayfası: Profil / Faaliyet / Maneviyat / Notlar tabları
+3 Aylık Bağlı Hedefler
+┌──────────────────────────────────────────────────┐
+│ Risale — Sözler        ████░░░░░░  240/600 sf   │
+│ Pırlanta — Asrın...    ██████░░░░  180/300 sf   │
+│ Manevi kitap (1 adet)  █░░░░░░░░░  Başlandı     │
+│ mp3 toplam             ███░░░░░░░  9/30 saat    │
+│ Ezber (sure/dua)       ██░░░░░░░░  3/10 adet    │
+└──────────────────────────────────────────────────┘
+```
 
-### 6. `/gundemler`
+**Hücre etkileşimi:**
+- Sayısal: tek tık → popover `[- 3 +]` + not + "Yeni giriş ekle" (gün içi 2. kayıt)
+- İkili: tek tık → toggle
+- Geçmiş gün: hafta navigasyonu ile geri git, normal yaz
 
-- Gündem havuzu (kart listesi) — her gündem hangi gruba/kişiye uygulanacak işaretlenir
-- Filtreler: hafta, grup, durum
-- "Bu gündemi şu kişilere uygula" hızlı aksiyonu
+**Plan dışı evrad:** Sayfa altında "+" → şablon seç ya da tek seferlik satır (`aktif: false`, sadece bu hafta).
 
-### 7. `/takvim`
+**3 aylık ↔ haftalık bağ:** Risale satırına yazılan her sayfa otomatik 3 aylık ilerlemeye eklenir. Tek kayıt, çift görünüm.
 
-- Aylık + haftalık görünüm
-- Kategoriler: Üniversite, Akşam programı, Sohbet, İstişare, Kandil, Spor, Doğum günü, Kamp
-- Renkli olaylar, tıklayınca detay panel
+## Başlangıç Şablonları (Senin Verdiğin Liste)
 
-### 8. `/notlar`
+| # | Ad | Birim | Hedef | 3 aylık |
+|---|---|---|---|---|
+| 1 | Kuran-ı Kerim | sayfa | 3/gün | — |
+| 2 | Cevşen | adet | 3/gün | — |
+| 3 | Risale | sayfa | 10/gün | 600 sf |
+| 4 | Pırlanta | sayfa | 5/gün | 300 sf |
+| 5 | Manevi kitap | sayfa | 5/gün | 1 kitap |
+| 6 | mp3 dinleme | dakika | 20/gün | 30 saat |
+| 7 | Evvâbîn | ikili | her gün | — |
+| 8 | Virdler | adet | 1/gün (min) | — |
+| 9 | Oruç | ikili | 2/hafta | — |
+| 10 | Teheccüd | ikili | 3/hafta | — |
+| 11 | Ezber | adet | esnek | 10 adet |
 
-- Keep tarzı kart ızgarası, hızlı ekleme
-- Etiketler, arama, sabitleme
+İlk açılışta "Başlangıç paketini yükle" butonu → bu 11 şablon eklenir, sen üstüne düzenlersin.
 
-### 9. `/tablolar`
+## Dashboard (`/`) — Çetele Bağlantısı
 
-- Sheets tarzı esnek tablo aracı (v1'de basit: ad ver, sütun ekle, satır ekle)
-- Listeleme + tek tablo görünümü
+Mevcut "Günlük Çetele" bölümü gerçek veriden okur:
+- Bugünün şablonları + haftalık hedefliler (oruç gibi)
+- Tek tık → ikili toggle, sayısal +1 (uzun bas → custom)
+- "Tümünü gör →" `/mizan/maneviyat`
 
-### 10. `/tasks`
+## Veri Saklama
 
-- Klasik görev listesi — bağlam atanabilir (akademi/maneviyat/kardeş/gündem)
+İki seçenek — onaydan sonra ilk soru:
+- **Lovable Cloud (önerilen):** Kalıcı, çoklu cihaz, geriye dönük analiz. Tablolar: `cetele_sablon`, `cetele_kayit`.
+- **localStorage:** Tek cihaz, tarayıcı temizlenince kaybolur. Bu kadar değerli veri için riskli.
 
-### 11. `/pomodoro`
+## Build Adımları
 
-- Tam ekran pomodoro + günlük seans sayacı
+1. Veri modeli + storage adapter (`src/lib/cetele-store.ts`, `src/lib/cetele-tipleri.ts`)
+2. `/mizan` hub: 3 kart yapısı (`mizan.tsx` yeniden yazılır)
+3. `/mizan/maneviyat`: çetele tablosu + hücre popover + hafta navigasyonu
+4. `/mizan/akademi` ve `/mizan/dunyevi`: mevcut içerikler taşınır
+5. Şablon yönetimi modal (`+ Evrad`)
+6. Plan dışı evrad ekleme
+7. 3 aylık ilerleme bloğu
+8. Dashboard çetele bağlantısı
+9. Başlangıç paketi seed butonu
 
-### 12. `/istatistik`
+## Teknik Dosyalar
 
-- Haftalık/aylık denge grafikleri (recharts), boş durumlar şimdilik mock veri
+**Yeni:**
+- `src/routes/mizan.maneviyat.tsx`
+- `src/routes/mizan.akademi.tsx`
+- `src/routes/mizan.dunyevi.tsx`
+- `src/components/mizan/cetele-tablosu.tsx`
+- `src/components/mizan/cetele-hucre-popover.tsx`
+- `src/components/mizan/sablon-form.tsx`
+- `src/components/mizan/uc-aylik-ilerleme.tsx`
+- `src/lib/cetele-store.ts`
+- `src/lib/cetele-tipleri.ts`
 
-## Ortak UI Bileşenleri
+**Değişen:**
+- `src/routes/mizan.tsx` → tab yerine 3 kart hub
+- `src/routes/index.tsx` → çetele bölümü gerçek veri
+- `src/components/mizan/sol-sidebar.tsx` → "Mizan" tek link kalır (alt sayfalar hub'dan)
 
-- **AppShell:** çift sidebar + topbar
-- **DengeKarti:** alan özet kartı (ilerleme + mini metrik)
-- **IsiHaritasi:** haftalık 7×N matris
-- **HizliEkle:** her yerden + ile not/görev/hedef ekleme
-- **BosDurum:** "Henüz veri yok" için sade illustrasyon + CTA
+## Onaydan Sonraki İlk Soru
 
-## Teknik Notlar
+**Lovable Cloud mu, localStorage mı?** (Önerim: Cloud — bu veri çok değerli, tek cihaza bağlamamak gerekir.)
 
-- TanStack Start + Tailwind v4 + shadcn (mevcut stack)
-- Her modül ayrı route dosyası (SSR + SEO uygun)
-- Tüm veriler v1'de mock (frontend state). Backend v2'de Lovable Cloud + RLS
-- Tema: koyu varsayılan, açık opsiyonel; renk sistemi `oklch` ile altın/turkuaz aksan
-
-## v1 Sonrası Yol Haritası (sadece referans)
-
-1. **v2 — Backend:** Lovable Cloud, auth, gerçek veri katmanı, RLS
-2. **v3 — Alışkanlık & Rutin:** önceki projeden taşıma
-3. **v4 — Yapay zeka:** günlük denge önerisi, gündem üretici, özet asistanı
-
----
-
-**"Implement plan" tuşuna bastığında:** Tüm route iskeletini, çift sidebar AppShell'i, ana sayfanın hibrit düzenini ve modüllerin görünür mock halini kuracağım. Sonra tek tek "şu modülü daha derin yapalım" diyerek ilerleriz.
