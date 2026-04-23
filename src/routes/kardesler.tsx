@@ -42,8 +42,12 @@ const gruplar: Record<string, Kardes[]> = {
     { ad: "İbrahim D.", bolum: "Mimarlık 2", ilgi: "Çizim", faaliyet: "Telefon takip", maneviyat: 25 },
   ],
   kuran: [
-    { ad: "Bilal (Online)", bolum: "Lise 3", ilgi: "Kuran tilaveti", faaliyet: "Pazartesi 19:00", maneviyat: 65 },
-    { ad: "Salih (Yüz yüze)", bolum: "Üniv. hazırlık", ilgi: "Tecvid", faaliyet: "Çarşamba 20:00", maneviyat: 50 },
+    { ad: "Salih T.", bolum: "Üniv. hazırlık", ilgi: "Tecvid", faaliyet: "Çarşamba 20:00 — yüz yüze", maneviyat: 50 },
+    { ad: "Mustafa A.", bolum: "Lise 4", ilgi: "Hıfz", faaliyet: "Cumartesi 17:00 — yüz yüze", maneviyat: 60 },
+  ],
+  online: [
+    { ad: "Bilal K.", bolum: "Lise 3", ilgi: "Kuran tilaveti", faaliyet: "Pazartesi 19:00 — Zoom", maneviyat: 65 },
+    { ad: "Furkan E.", bolum: "Üniv. 1", ilgi: "Akademik rehberlik", faaliyet: "Perşembe 21:00 — Zoom", maneviyat: 40 },
   ],
 };
 
@@ -102,13 +106,14 @@ function KardeslerPage() {
       />
       <div className="px-6 py-5">
         <Tabs defaultValue="ev" className="w-full">
-          <TabsList>
+          <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="ev">Ev</TabsTrigger>
             <TabsTrigger value="gg">GG</TabsTrigger>
             <TabsTrigger value="omm">OMM</TabsTrigger>
-            <TabsTrigger value="kuran">Kuran / Online</TabsTrigger>
+            <TabsTrigger value="kuran">Kuran Dersi</TabsTrigger>
+            <TabsTrigger value="online">Online Rehberlik</TabsTrigger>
           </TabsList>
-          {(["ev", "gg", "omm", "kuran"] as const).map((g) => (
+          {(["ev", "gg", "omm", "kuran", "online"] as const).map((g) => (
             <TabsContent key={g} value={g} className="mt-4">
               <KardesGrid liste={gruplar[g]} />
             </TabsContent>
