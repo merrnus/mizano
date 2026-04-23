@@ -13,7 +13,7 @@ import {
   Target,
   Plus,
 } from "lucide-react";
-import { DengeHalkalari, DengeLegend } from "@/components/mizan/denge-halkalari";
+import { DengeHalkalari } from "@/components/mizan/denge-halkalari";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -145,14 +145,39 @@ function Dashboard() {
             </Link>
           </Button>
         </div>
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-around">
-          <DengeHalkalari halkalar={[halkalar[0], halkalar[1], halkalar[2]]} />
-          <div className="flex flex-col gap-3 sm:max-w-xs">
-            <DengeLegend halkalar={[...halkalar]} />
-            <p className="text-center text-xs leading-relaxed text-muted-foreground sm:text-left">
-              Bu hafta maneviyat tarafın güçlü. Dünyevi adımlarda biraz daha
-              tutarlı olmak dengeyi tamamlar.
-            </p>
+        <div className="flex flex-col items-center gap-6 md:flex-row md:items-center md:justify-between md:gap-8">
+          <div className="shrink-0">
+            <DengeHalkalari halkalar={[halkalar[0], halkalar[1], halkalar[2]]} />
+          </div>
+          <div className="grid w-full grid-cols-1 gap-2.5 sm:grid-cols-3 md:max-w-md md:flex-1">
+            {[
+              { ad: "Maneviyat", yuzde: halkalar[0].yuzde, renkVar: "--maneviyat", ikon: Heart, to: "/mizan/maneviyat" as const },
+              { ad: "Akademi", yuzde: halkalar[1].yuzde, renkVar: "--akademi", ikon: GraduationCap, to: "/mizan/akademi" as const },
+              { ad: "Dünyevi", yuzde: halkalar[2].yuzde, renkVar: "--dunyevi", ikon: Target, to: "/mizan/dunyevi" as const },
+            ].map((a) => (
+              <Link
+                key={a.ad}
+                to={a.to}
+                className="group flex items-center justify-between gap-3 rounded-xl border border-border bg-background/40 p-3 transition-colors hover:border-[color:var(--border)] sm:flex-col sm:items-start sm:gap-2"
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className="flex h-7 w-7 items-center justify-center rounded-lg"
+                    style={{
+                      backgroundColor: `color-mix(in oklab, var(${a.renkVar}) 18%, transparent)`,
+                      color: `var(${a.renkVar})`,
+                    }}
+                  >
+                    <a.ikon className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-xs font-medium text-foreground">{a.ad}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-lg font-semibold tracking-tight text-foreground">{a.yuzde}%</span>
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
