@@ -11,10 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkspaceRouteImport } from './routes/workspace'
 import { Route as NetworkRouteImport } from './routes/network'
-import { Route as MizanRouteImport } from './routes/mizan'
 import { Route as GundemlerRouteImport } from './routes/gundemler'
 import { Route as GirisRouteImport } from './routes/giris'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MizanIndexRouteImport } from './routes/mizan.index'
+import { Route as MizanManeviyatRouteImport } from './routes/mizan.maneviyat'
 import { Route as MizanDunyeviRouteImport } from './routes/mizan.dunyevi'
 import { Route as MizanAkademiRouteImport } from './routes/mizan.akademi'
 
@@ -26,11 +27,6 @@ const WorkspaceRoute = WorkspaceRouteImport.update({
 const NetworkRoute = NetworkRouteImport.update({
   id: '/network',
   path: '/network',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MizanRoute = MizanRouteImport.update({
-  id: '/mizan',
-  path: '/mizan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GundemlerRoute = GundemlerRouteImport.update({
@@ -48,6 +44,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MizanIndexRoute = MizanIndexRouteImport.update({
+  id: '/mizan/',
+  path: '/mizan/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MizanManeviyatRoute = MizanManeviyatRouteImport.update({
+  id: '/maneviyat',
+  path: '/maneviyat',
+  getParentRoute: () => MizanRoute,
+} as any)
 const MizanDunyeviRoute = MizanDunyeviRouteImport.update({
   id: '/dunyevi',
   path: '/dunyevi',
@@ -63,32 +69,35 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/giris': typeof GirisRoute
   '/gundemler': typeof GundemlerRoute
-  '/mizan': typeof MizanRouteWithChildren
   '/network': typeof NetworkRoute
   '/workspace': typeof WorkspaceRoute
   '/mizan/akademi': typeof MizanAkademiRoute
   '/mizan/dunyevi': typeof MizanDunyeviRoute
+  '/mizan/maneviyat': typeof MizanManeviyatRoute
+  '/mizan/': typeof MizanIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/giris': typeof GirisRoute
   '/gundemler': typeof GundemlerRoute
-  '/mizan': typeof MizanRouteWithChildren
   '/network': typeof NetworkRoute
   '/workspace': typeof WorkspaceRoute
   '/mizan/akademi': typeof MizanAkademiRoute
   '/mizan/dunyevi': typeof MizanDunyeviRoute
+  '/mizan/maneviyat': typeof MizanManeviyatRoute
+  '/mizan': typeof MizanIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/giris': typeof GirisRoute
   '/gundemler': typeof GundemlerRoute
-  '/mizan': typeof MizanRouteWithChildren
   '/network': typeof NetworkRoute
   '/workspace': typeof WorkspaceRoute
   '/mizan/akademi': typeof MizanAkademiRoute
   '/mizan/dunyevi': typeof MizanDunyeviRoute
+  '/mizan/maneviyat': typeof MizanManeviyatRoute
+  '/mizan/': typeof MizanIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -96,40 +105,43 @@ export interface FileRouteTypes {
     | '/'
     | '/giris'
     | '/gundemler'
-    | '/mizan'
     | '/network'
     | '/workspace'
     | '/mizan/akademi'
     | '/mizan/dunyevi'
+    | '/mizan/maneviyat'
+    | '/mizan/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/giris'
     | '/gundemler'
-    | '/mizan'
     | '/network'
     | '/workspace'
     | '/mizan/akademi'
     | '/mizan/dunyevi'
+    | '/mizan/maneviyat'
+    | '/mizan'
   id:
     | '__root__'
     | '/'
     | '/giris'
     | '/gundemler'
-    | '/mizan'
     | '/network'
     | '/workspace'
     | '/mizan/akademi'
     | '/mizan/dunyevi'
+    | '/mizan/maneviyat'
+    | '/mizan/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GirisRoute: typeof GirisRoute
   GundemlerRoute: typeof GundemlerRoute
-  MizanRoute: typeof MizanRouteWithChildren
   NetworkRoute: typeof NetworkRoute
   WorkspaceRoute: typeof WorkspaceRoute
+  MizanIndexRoute: typeof MizanIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -146,13 +158,6 @@ declare module '@tanstack/react-router' {
       path: '/network'
       fullPath: '/network'
       preLoaderRoute: typeof NetworkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mizan': {
-      id: '/mizan'
-      path: '/mizan'
-      fullPath: '/mizan'
-      preLoaderRoute: typeof MizanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gundemler': {
@@ -176,6 +181,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mizan/': {
+      id: '/mizan/'
+      path: '/mizan'
+      fullPath: '/mizan/'
+      preLoaderRoute: typeof MizanIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mizan/maneviyat': {
+      id: '/mizan/maneviyat'
+      path: '/maneviyat'
+      fullPath: '/mizan/maneviyat'
+      preLoaderRoute: typeof MizanManeviyatRouteImport
+      parentRoute: typeof MizanRoute
+    }
     '/mizan/dunyevi': {
       id: '/mizan/dunyevi'
       path: '/dunyevi'
@@ -193,26 +212,23 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface MizanRouteChildren {
-  MizanAkademiRoute: typeof MizanAkademiRoute
-  MizanDunyeviRoute: typeof MizanDunyeviRoute
-}
-
-const MizanRouteChildren: MizanRouteChildren = {
-  MizanAkademiRoute: MizanAkademiRoute,
-  MizanDunyeviRoute: MizanDunyeviRoute,
-}
-
-const MizanRouteWithChildren = MizanRoute._addFileChildren(MizanRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GirisRoute: GirisRoute,
   GundemlerRoute: GundemlerRoute,
-  MizanRoute: MizanRouteWithChildren,
   NetworkRoute: NetworkRoute,
   WorkspaceRoute: WorkspaceRoute,
+  MizanIndexRoute: MizanIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
