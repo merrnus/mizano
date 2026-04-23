@@ -79,14 +79,14 @@ function Index() {
           <CalendarDays className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-medium text-foreground">Bugünün zaman çizelgesi</h2>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {zamanDilimleri.map((dilim) => (
             <div key={dilim.etiket} className="rounded-lg border border-border bg-background/40 p-3">
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-xs font-medium uppercase tracking-wide text-foreground">
                   {dilim.etiket}
                 </span>
-                <span className="text-xs text-muted-foreground">{dilim.saat}</span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{dilim.saat}</span>
               </div>
               <ul className="flex flex-col gap-1.5">
                 {dilim.olaylar.map((o) => (
@@ -106,10 +106,10 @@ function Index() {
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <div className="flex flex-col gap-6">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="flex min-w-0 flex-col gap-6">
           {/* Orta blok — 3 denge kartı */}
-          <section className="grid gap-4 md:grid-cols-3">
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <DengeKarti
               alan="akademi"
               baslik="Bugünkü ders: Ağ Yönetimi"

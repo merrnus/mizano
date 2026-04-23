@@ -10,11 +10,7 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-20 flex h-12 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur">
       <SidebarTrigger className="h-8 w-8" />
-      <div className="hidden items-center gap-1.5 text-primary md:flex">
-        <MizanLogo />
-        <span className="text-sm font-semibold tracking-wide text-foreground">Mizan</span>
-      </div>
-      <div className="relative ml-2 hidden flex-1 max-w-md md:block">
+      <div className="relative ml-1 hidden min-w-0 flex-1 max-w-md md:block">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Ara: ders, gündem, kişi, not…"
