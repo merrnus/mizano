@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import { addWeeks } from "date-fns";
-import { ArrowLeft, ChevronLeft, ChevronRight, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   GUN_KISA,
@@ -13,6 +13,7 @@ import {
 import {
   useSablonlar,
   useHaftaKayitlari,
+  useUcAylikKayitlari,
   useBaslangicYukle,
   useSablonSil,
   haftaToplami,
@@ -20,6 +21,8 @@ import {
 import { CeteleHucre } from "@/components/mizan/cetele-hucre";
 import { SablonForm } from "@/components/mizan/sablon-form";
 import { UcAylikIlerleme } from "@/components/mizan/uc-aylik-ilerleme";
+import { ceteleyiPdfeAktar } from "@/lib/cetele-pdf";
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/mizan/maneviyat")({
@@ -39,9 +42,30 @@ function ManeviyatSayfasi() {
   const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
   const baslangicYukle = useBaslangicYukle();
   const sil = useSablonSil();
+  const { user } = useAuth();
 
   const maneviyat = sablonlar.filter((s) => s.alan === "maneviyat");
   const bos = !isLoading && maneviyat.length === 0;
+  const ucAyliklar = sablonlar.filter((s) => s.uc_aylik_hedef);
+  const { data: ucAylikKayitlari = [] } = useUcAylikKayitlari(
+    ucAyliklar.map((s) => s.id),
+  );
+
+  const pdfIndir = () => {
+    try {
+      ceteleyiPdfeAktar({
+        haftaBas,
+        sablonlar,
+        haftaKayitlari: kayitlar,
+        ucAylikKayitlari,
+        kullanici: user?.email ?? null,
+      });
+    } catch (e) {
+      toast.error("PDF oluşturulamadı");
+    }
+  };
+
+  const bugunStr = tarihFormat(new Date());
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
@@ -84,7 +108,18 @@ function ManeviyatSayfasi() {
               Bugün
             </Button>
           </div>
-          <SablonForm varsayilanAlan="maneviyat" />
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1 text-xs"
+              onClick={pdfIndir}
+              disabled={maneviyat.length === 0}
+            >
+              <Download className="h-3.5 w-3.5" /> PDF
+            </Button>
+            <SablonForm varsayilanAlan="maneviyat" />
+          </div>
         </div>
 
         {bos ? (
