@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/workspace")({
   head: () => ({
     meta: [
-      { title: "Çalışma Alanı — Notlar, Takvim, Pomodoro" },
+      { title: "Mutfak — Notlar, Takvim, Pomodoro" },
       {
         name: "description",
         content: "Notlar, takvim, tablolar ve pomodoro tek alanda.",
@@ -62,10 +62,10 @@ function Workspace() {
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <header className="mb-6">
         <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          Çalışma Alanı
+          Mutfak
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          Workspace
+          Mutfak
         </h1>
       </header>
 

@@ -30,12 +30,12 @@ import { haftaBaslangici, haftaGunleri, tarihFormat } from "@/lib/cetele-tarih";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Mizan — Komuta Merkezi" },
+      { title: "Bugün — Mizan" },
       {
         name: "description",
         content: "Haftalık denge halkası, günün çetelesi ve bugünün programı.",
       },
-      { property: "og:title", content: "Mizan Komuta Merkezi" },
+      { property: "og:title", content: "Bugün — Mizan" },
       {
         property: "og:description",
         content: "Maneviyat, akademi ve dünyevi alanların haftalık dengesi tek bakışta.",
@@ -121,7 +121,7 @@ function Dashboard() {
       <header className="mb-6 flex items-end justify-between gap-4">
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            Komuta Merkezi
+            Bugün
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             Bugünün Dengesi

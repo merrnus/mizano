@@ -41,7 +41,7 @@ import {
 export const Route = createFileRoute("/takvim")({
   head: () => ({
     meta: [
-      { title: "Takvim & Görevler — Mizan" },
+      { title: "Planlama — Mizan" },
       {
         name: "description",
         content: "Etkinlikler, dersler ve günlük görevler tek ekranda.",
@@ -131,7 +131,7 @@ function TakvimSayfasi() {
       <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            Takvim
+            Planlama
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             {baslikMetni}

@@ -5,11 +5,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 
 const items = [
-  { title: "Dashboard", url: "/" as const, icon: LayoutDashboard },
-  { title: "Kişisel Mizan", url: "/mizan" as const, icon: Scale },
-  { title: "Takvim & Görevler", url: "/takvim" as const, icon: CalendarDays },
-  { title: "Kardeşler Ağı", url: "/network" as const, icon: Users },
-  { title: "Çalışma Alanı", url: "/workspace" as const, icon: Briefcase },
+  { title: "Bugün", url: "/" as const, icon: LayoutDashboard },
+  { title: "İstikamet", url: "/mizan" as const, icon: Scale },
+  { title: "Planlama", url: "/takvim" as const, icon: CalendarDays },
+  { title: "Rehberlik", url: "/network" as const, icon: Users },
+  { title: "Mutfak", url: "/workspace" as const, icon: Briefcase },
 ];
 
 /**
