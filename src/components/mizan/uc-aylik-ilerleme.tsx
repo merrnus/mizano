@@ -31,6 +31,11 @@ export function UcAylikIlerleme() {
                   {toplam} / {hedef} {s.birim}
                 </span>
               </div>
+              {s.notlar ? (
+                <div className="mb-1 text-[10px] text-muted-foreground/80">
+                  {s.notlar}
+                </div>
+              ) : null}
               <Progress
                 value={yuzde}
                 className="h-1.5 bg-muted [&>div]:bg-[var(--maneviyat)]"

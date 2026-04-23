@@ -5,6 +5,7 @@ import {
   type CeteleSablon,
   type CeteleKayit,
   type CeteleSablonEkle,
+  type CeteleSablonGuncelle,
   BASLANGIC_PAKETI,
 } from "./cetele-tipleri";
 import { tarihFormat, haftaBaslangici, haftaGunleri } from "./cetele-tarih";
@@ -109,6 +110,20 @@ export function useSablonEkle() {
       const { error } = await supabase
         .from("cetele_sablon")
         .insert({ ...s, user_id: user.id });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sablonlar"] }),
+  });
+}
+
+export function useSablonGuncelle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: CeteleSablonGuncelle & { id: string }) => {
+      const { error } = await supabase
+        .from("cetele_sablon")
+        .update(patch)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["sablonlar"] }),
