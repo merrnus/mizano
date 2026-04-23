@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, Scale, Users, Network, Briefcase } from "lucide-react";
+import { LayoutDashboard, Scale, Users, CalendarDays, Briefcase } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -18,8 +18,8 @@ import { cn } from "@/lib/utils";
 const items = [
   { title: "Dashboard", url: "/" as const, icon: LayoutDashboard },
   { title: "Kişisel Mizan", url: "/mizan" as const, icon: Scale },
+  { title: "Takvim & Görevler", url: "/takvim" as const, icon: CalendarDays },
   { title: "Kardeşler Ağı", url: "/network" as const, icon: Users },
-  { title: "Gündemler", url: "/gundemler" as const, icon: Network },
   { title: "Çalışma Alanı", url: "/workspace" as const, icon: Briefcase },
 ];
 
