@@ -174,7 +174,7 @@ function ManeviyatSayfasi() {
                   const haftaSum = haftaToplami(kayitlar, s.id);
                   return (
                     <tr key={s.id} className="text-xs">
-                      <td className="sticky left-0 z-10 w-[160px] bg-card px-2 pl-4 align-middle shadow-[1px_0_0_0_hsl(var(--border))] sm:pl-5">
+                      <td className="sticky left-0 z-10 w-[160px] border-r border-border bg-card px-2 pl-4 align-middle sm:pl-5">
                         <div className="font-medium">{s.ad}</div>
                         {s.notlar ? (
                           <div className="text-[10px] text-muted-foreground line-clamp-2">
