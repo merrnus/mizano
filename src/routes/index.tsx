@@ -11,10 +11,21 @@ import {
   Heart,
   Sparkles,
   Target,
+  Plus,
 } from "lucide-react";
 import { DengeHalkalari, DengeLegend } from "@/components/mizan/denge-halkalari";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  useSablonlar,
+  useHaftaKayitlari,
+  useKayitEkle,
+  useKayitSil,
+  haftaSablonOzet,
+  gunToplami,
+  haftaToplami,
+} from "@/lib/cetele-hooks";
+import { haftaBaslangici, haftaGunleri, tarihFormat } from "@/lib/cetele-tarih";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -33,22 +44,6 @@ export const Route = createFileRoute("/")({
   }),
   component: Dashboard,
 });
-
-const halkalar = [
-  { ad: "Maneviyat", yuzde: 72, renkVar: "--maneviyat", ikon: <Heart className="h-3 w-3" /> },
-  { ad: "Akademi", yuzde: 58, renkVar: "--akademi", ikon: <GraduationCap className="h-3 w-3" /> },
-  { ad: "Dünyevi", yuzde: 40, renkVar: "--dunyevi", ikon: <Target className="h-3 w-3" /> },
-] as const;
-
-const cetele = [
-  { ad: "Sabah evradı", alan: "maneviyat", gunler: [1, 1, 1, 1, 0, 1, 1] },
-  { ad: "Akşam evradı", alan: "maneviyat", gunler: [1, 1, 0, 1, 1, 1, 0] },
-  { ad: "Cüz okuma", alan: "maneviyat", gunler: [1, 0, 1, 1, 1, 0, 1] },
-  { ad: "CCNA — 30dk", alan: "dunyevi", gunler: [1, 1, 0, 0, 1, 1, 0] },
-  { ad: "Linux pratik", alan: "dunyevi", gunler: [0, 1, 1, 0, 1, 0, 0] },
-  { ad: "Spor", alan: "dunyevi", gunler: [1, 0, 1, 1, 0, 1, 1] },
-  { ad: "Ders tekrarı", alan: "akademi", gunler: [1, 1, 1, 0, 1, 0, 1] },
-];
 
 const program = [
   {
@@ -82,6 +77,37 @@ const alanRenk: Record<string, string> = {
 function Dashboard() {
   const gunEtiket = ["P", "S", "Ç", "P", "C", "C", "P"];
   const [bugun, setBugun] = React.useState<string | null>(null);
+  const haftaBas = React.useMemo(() => haftaBaslangici(new Date()), []);
+  const haftaGunleriArr = React.useMemo(() => haftaGunleri(haftaBas), [haftaBas]);
+  const { data: sablonlar = [] } = useSablonlar();
+  const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
+  const ekle = useKayitEkle();
+  const sil = useKayitSil();
+  const bugunStr = tarihFormat(new Date());
+
+  const halkalar = React.useMemo(() => {
+    const calc = (alan: "maneviyat" | "akademi" | "dunyevi") => {
+      const sb = sablonlar.filter((s) => s.alan === alan);
+      const o = haftaSablonOzet(sb, kayitlar, haftaBas);
+      return o.toplam > 0 ? Math.round((o.tamamlanan / o.toplam) * 100) : 0;
+    };
+    return [
+      { ad: "Maneviyat", yuzde: calc("maneviyat"), renkVar: "--maneviyat", ikon: <Heart className="h-3 w-3" /> },
+      { ad: "Akademi", yuzde: 58, renkVar: "--akademi", ikon: <GraduationCap className="h-3 w-3" /> },
+      { ad: "Dünyevi", yuzde: 40, renkVar: "--dunyevi", ikon: <Target className="h-3 w-3" /> },
+    ] as const;
+  }, [sablonlar, kayitlar, haftaBas]);
+
+  const bugunSablonlar = React.useMemo(
+    () =>
+      sablonlar.filter(
+        (s) =>
+          s.alan === "maneviyat" &&
+          (s.hedef_tipi === "gunluk" || s.hedef_tipi === "haftalik"),
+      ),
+    [sablonlar],
+  );
+
   React.useEffect(() => {
     const d = new Date();
     setBugun(
@@ -137,58 +163,114 @@ function Dashboard() {
           <div className="flex items-center gap-2">
             <Flame className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-medium text-foreground">
-              Günlük Çetele & Evrad
+              Günün Çetelesi
             </h2>
           </div>
-          <span className="text-xs text-muted-foreground">Son 7 gün</span>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/mizan/maneviyat" className="gap-1 text-xs">
+              Tümü <ChevronRight className="h-3 w-3" />
+            </Link>
+          </Button>
         </div>
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <div className="flex gap-3 pb-1">
-            {cetele.map((c) => {
-              const bugun = c.gunler[c.gunler.length - 1] === 1;
-              const seri = c.gunler.filter((g) => g === 1).length;
-              return (
-                <div
-                  key={c.ad}
-                  className="flex w-[180px] shrink-0 flex-col gap-2 rounded-xl border border-border bg-card p-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="truncate text-xs font-medium text-foreground">
-                      {c.ad}
-                    </span>
-                    {bugun ? (
-                      <CheckCircle2
-                        className="h-4 w-4"
-                        style={{ color: `var(--${c.alan})` }}
-                      />
-                    ) : (
-                      <Circle className="h-4 w-4 text-muted-foreground/40" />
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    {c.gunler.map((g, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "flex h-5 flex-1 items-center justify-center rounded text-[9px]",
-                          g
-                            ? alanRenk[c.alan] + " text-background"
-                            : "bg-muted/40 text-muted-foreground/50",
-                        )}
-                      >
-                        {gunEtiket[i]}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span>Seri</span>
-                    <span className="font-medium text-foreground">{seri}/7</span>
-                  </div>
-                </div>
-              );
-            })}
+        {bugunSablonlar.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center">
+            <p className="text-sm">Henüz evrad eklenmemiş.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Maneviyat sayfasından başlangıç paketini yükleyebilirsin.
+            </p>
+            <Button size="sm" variant="outline" asChild className="mt-3">
+              <Link to="/mizan/maneviyat" className="gap-1 text-xs">
+                <Plus className="h-3 w-3" /> Evrad ekle
+              </Link>
+            </Button>
           </div>
-        </div>
+        ) : (
+          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <div className="flex gap-3 pb-1">
+              {bugunSablonlar.map((s) => {
+                const ikili = s.birim === "ikili";
+                const haftalik = s.hedef_tipi === "haftalik";
+                const bugunToplam = gunToplami(kayitlar, s.id, bugunStr);
+                const haftaSum = haftaToplami(kayitlar, s.id);
+                const hedef = Number(s.hedef_deger);
+                const tamam = haftalik ? haftaSum >= hedef : bugunToplam >= hedef;
+                const haftaGunleriDoluluk = haftaGunleriArr.map((g) =>
+                  gunToplami(kayitlar, s.id, tarihFormat(g)) > 0 ? 1 : 0,
+                );
+                const seri = haftaGunleriDoluluk.filter((g) => g === 1).length;
+
+                const tikla = async () => {
+                  if (ikili) {
+                    if (bugunToplam > 0) {
+                      const k = kayitlar.find(
+                        (kk) => kk.sablon_id === s.id && kk.tarih === bugunStr,
+                      );
+                      if (k) await sil.mutateAsync(k.id);
+                    } else {
+                      await ekle.mutateAsync({
+                        sablon_id: s.id,
+                        tarih: bugunStr,
+                        miktar: 1,
+                      });
+                    }
+                  } else {
+                    await ekle.mutateAsync({
+                      sablon_id: s.id,
+                      tarih: bugunStr,
+                      miktar: 1,
+                    });
+                  }
+                };
+
+                return (
+                  <button
+                    key={s.id}
+                    onClick={tikla}
+                    className="flex w-[180px] shrink-0 flex-col gap-2 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-[var(--maneviyat)]/40"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="truncate text-xs font-medium text-foreground">
+                        {s.ad}
+                      </span>
+                      {tamam ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                      ) : (
+                        <Circle className="h-4 w-4 text-muted-foreground/40" />
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {haftaGunleriDoluluk.map((g, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "flex h-5 flex-1 items-center justify-center rounded text-[9px]",
+                            g
+                              ? alanRenk["maneviyat"] + " text-background"
+                              : "bg-muted/40 text-muted-foreground/50",
+                          )}
+                        >
+                          {gunEtiket[i]}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>
+                        {haftalik
+                          ? `${haftaSum}/${hedef} hafta`
+                          : ikili
+                            ? bugunToplam > 0
+                              ? "bugün ✓"
+                              : "bugün —"
+                            : `${bugunToplam}/${hedef} ${s.birim}`}
+                      </span>
+                      <span className="font-medium text-foreground">{seri}/7</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* 3) Bugünün programı */}
