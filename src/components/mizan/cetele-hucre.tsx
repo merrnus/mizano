@@ -112,10 +112,12 @@ export function CeteleHucre({
             size="icon"
             variant="outline"
             className="h-7 w-7"
-            onClick={() =>
-              ekle.mutate({ sablon_id: sablon.id, tarih: tarihStr, miktar: -adim })
-            }
-            disabled={toplam <= 0}
+            onClick={() => {
+              const azalt = Math.min(adim, toplam);
+              if (azalt <= 0) return;
+              ekle.mutate({ sablon_id: sablon.id, tarih: tarihStr, miktar: -azalt });
+            }}
+            disabled={toplam <= 0 || ekle.isPending}
           >
             <Minus className="h-3 w-3" />
           </Button>
@@ -126,6 +128,7 @@ export function CeteleHucre({
             onClick={() =>
               ekle.mutate({ sablon_id: sablon.id, tarih: tarihStr, miktar: adim })
             }
+            disabled={ekle.isPending}
           >
             <Plus className="h-3 w-3" />
           </Button>
@@ -139,6 +142,7 @@ export function CeteleHucre({
           <div className="flex gap-1.5">
             <Input
               type="number"
+              min={0}
               placeholder={`Miktar (${sablon.birim})`}
               value={yeniMiktar}
               onChange={(e) => setYeniMiktar(e.target.value)}
@@ -147,12 +151,14 @@ export function CeteleHucre({
             <Button
               size="sm"
               className="h-7 px-2 text-xs"
-              disabled={!yeniMiktar || isNaN(Number(yeniMiktar))}
+              disabled={!yeniMiktar || isNaN(Number(yeniMiktar)) || Number(yeniMiktar) <= 0}
               onClick={async () => {
+                const m = Number(yeniMiktar);
+                if (!Number.isFinite(m) || m <= 0) return;
                 await ekle.mutateAsync({
                   sablon_id: sablon.id,
                   tarih: tarihStr,
-                  miktar: Number(yeniMiktar),
+                  miktar: m,
                   not_metni: not || null,
                 });
                 setYeniMiktar("");
