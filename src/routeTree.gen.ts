@@ -21,6 +21,8 @@ import { Route as HedeflerRouteImport } from './routes/hedefler'
 import { Route as GundemlerRouteImport } from './routes/gundemler'
 import { Route as AkademiRouteImport } from './routes/akademi'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as KardeslerKisiIdRouteImport } from './routes/kardesler.$kisiId'
+import { Route as AkademiDersIdRouteImport } from './routes/akademi.$dersId'
 
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
@@ -82,49 +84,65 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KardeslerKisiIdRoute = KardeslerKisiIdRouteImport.update({
+  id: '/$kisiId',
+  path: '/$kisiId',
+  getParentRoute: () => KardeslerRoute,
+} as any)
+const AkademiDersIdRoute = AkademiDersIdRouteImport.update({
+  id: '/$dersId',
+  path: '/$dersId',
+  getParentRoute: () => AkademiRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/akademi': typeof AkademiRoute
+  '/akademi': typeof AkademiRouteWithChildren
   '/gundemler': typeof GundemlerRoute
   '/hedefler': typeof HedeflerRoute
   '/istatistik': typeof IstatistikRoute
-  '/kardesler': typeof KardeslerRoute
+  '/kardesler': typeof KardeslerRouteWithChildren
   '/maneviyat': typeof ManeviyatRoute
   '/notlar': typeof NotlarRoute
   '/pomodoro': typeof PomodoroRoute
   '/tablolar': typeof TablolarRoute
   '/takvim': typeof TakvimRoute
   '/tasks': typeof TasksRoute
+  '/akademi/$dersId': typeof AkademiDersIdRoute
+  '/kardesler/$kisiId': typeof KardeslerKisiIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/akademi': typeof AkademiRoute
+  '/akademi': typeof AkademiRouteWithChildren
   '/gundemler': typeof GundemlerRoute
   '/hedefler': typeof HedeflerRoute
   '/istatistik': typeof IstatistikRoute
-  '/kardesler': typeof KardeslerRoute
+  '/kardesler': typeof KardeslerRouteWithChildren
   '/maneviyat': typeof ManeviyatRoute
   '/notlar': typeof NotlarRoute
   '/pomodoro': typeof PomodoroRoute
   '/tablolar': typeof TablolarRoute
   '/takvim': typeof TakvimRoute
   '/tasks': typeof TasksRoute
+  '/akademi/$dersId': typeof AkademiDersIdRoute
+  '/kardesler/$kisiId': typeof KardeslerKisiIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/akademi': typeof AkademiRoute
+  '/akademi': typeof AkademiRouteWithChildren
   '/gundemler': typeof GundemlerRoute
   '/hedefler': typeof HedeflerRoute
   '/istatistik': typeof IstatistikRoute
-  '/kardesler': typeof KardeslerRoute
+  '/kardesler': typeof KardeslerRouteWithChildren
   '/maneviyat': typeof ManeviyatRoute
   '/notlar': typeof NotlarRoute
   '/pomodoro': typeof PomodoroRoute
   '/tablolar': typeof TablolarRoute
   '/takvim': typeof TakvimRoute
   '/tasks': typeof TasksRoute
+  '/akademi/$dersId': typeof AkademiDersIdRoute
+  '/kardesler/$kisiId': typeof KardeslerKisiIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +159,8 @@ export interface FileRouteTypes {
     | '/tablolar'
     | '/takvim'
     | '/tasks'
+    | '/akademi/$dersId'
+    | '/kardesler/$kisiId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -155,6 +175,8 @@ export interface FileRouteTypes {
     | '/tablolar'
     | '/takvim'
     | '/tasks'
+    | '/akademi/$dersId'
+    | '/kardesler/$kisiId'
   id:
     | '__root__'
     | '/'
@@ -169,15 +191,17 @@ export interface FileRouteTypes {
     | '/tablolar'
     | '/takvim'
     | '/tasks'
+    | '/akademi/$dersId'
+    | '/kardesler/$kisiId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AkademiRoute: typeof AkademiRoute
+  AkademiRoute: typeof AkademiRouteWithChildren
   GundemlerRoute: typeof GundemlerRoute
   HedeflerRoute: typeof HedeflerRoute
   IstatistikRoute: typeof IstatistikRoute
-  KardeslerRoute: typeof KardeslerRoute
+  KardeslerRoute: typeof KardeslerRouteWithChildren
   ManeviyatRoute: typeof ManeviyatRoute
   NotlarRoute: typeof NotlarRoute
   PomodoroRoute: typeof PomodoroRoute
@@ -272,16 +296,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kardesler/$kisiId': {
+      id: '/kardesler/$kisiId'
+      path: '/$kisiId'
+      fullPath: '/kardesler/$kisiId'
+      preLoaderRoute: typeof KardeslerKisiIdRouteImport
+      parentRoute: typeof KardeslerRoute
+    }
+    '/akademi/$dersId': {
+      id: '/akademi/$dersId'
+      path: '/$dersId'
+      fullPath: '/akademi/$dersId'
+      preLoaderRoute: typeof AkademiDersIdRouteImport
+      parentRoute: typeof AkademiRoute
+    }
   }
 }
 
+interface AkademiRouteChildren {
+  AkademiDersIdRoute: typeof AkademiDersIdRoute
+}
+
+const AkademiRouteChildren: AkademiRouteChildren = {
+  AkademiDersIdRoute: AkademiDersIdRoute,
+}
+
+const AkademiRouteWithChildren =
+  AkademiRoute._addFileChildren(AkademiRouteChildren)
+
+interface KardeslerRouteChildren {
+  KardeslerKisiIdRoute: typeof KardeslerKisiIdRoute
+}
+
+const KardeslerRouteChildren: KardeslerRouteChildren = {
+  KardeslerKisiIdRoute: KardeslerKisiIdRoute,
+}
+
+const KardeslerRouteWithChildren = KardeslerRoute._addFileChildren(
+  KardeslerRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AkademiRoute: AkademiRoute,
+  AkademiRoute: AkademiRouteWithChildren,
   GundemlerRoute: GundemlerRoute,
   HedeflerRoute: HedeflerRoute,
   IstatistikRoute: IstatistikRoute,
-  KardeslerRoute: KardeslerRoute,
+  KardeslerRoute: KardeslerRouteWithChildren,
   ManeviyatRoute: ManeviyatRoute,
   NotlarRoute: NotlarRoute,
   PomodoroRoute: PomodoroRoute,

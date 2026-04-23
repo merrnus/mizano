@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { GraduationCap, Heart } from "lucide-react";
 import { SayfaBasligi } from "@/components/mizan/sayfa-basligi";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,9 +55,11 @@ function KardesGrid({ liste }: { liste: Kardes[] }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {liste.map((k) => (
-        <div
+        <Link
           key={k.ad}
-          className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
+          to="/kardesler/$kisiId"
+          params={{ kisiId: k.ad }}
+          className="block rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
         >
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 border border-border">
@@ -91,7 +93,7 @@ function KardesGrid({ liste }: { liste: Kardes[] }) {
               />
             </div>
           </div>
-        </div>
+        </Link>
       ))}
     </div>
   );

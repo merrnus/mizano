@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { CalendarClock, GraduationCap } from "lucide-react";
 import { SayfaBasligi } from "@/components/mizan/sayfa-basligi";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,7 +34,11 @@ const borcDersler = [
 
 function DersKart({ d }: { d: (typeof aktifDersler)[number] }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40">
+    <Link
+      to="/akademi/$dersId"
+      params={{ dersId: d.ad }}
+      className="block rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
+    >
       <div className="flex items-start justify-between">
         <div>
           <h3 className="text-sm font-medium text-foreground">{d.ad}</h3>
@@ -59,7 +63,7 @@ function DersKart({ d }: { d: (typeof aktifDersler)[number] }) {
           />
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
