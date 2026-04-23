@@ -1,5 +1,5 @@
 import * as React from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { Filter, Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,11 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GundemlerTab } from "@/components/mizan/network/gundemler-tab";
 import { cn } from "@/lib/utils";
+
+type NetworkSearch = { tab?: "kisiler" | "gundemler" };
 
 export const Route = createFileRoute("/network")({
   head: () => ({
@@ -23,6 +27,9 @@ export const Route = createFileRoute("/network")({
         content: "Kardeşlerin profilleri, ilerleme çubukları ve atanmış gündemler.",
       },
     ],
+  }),
+  validateSearch: (s: Record<string, unknown>): NetworkSearch => ({
+    tab: s.tab === "gundemler" ? "gundemler" : "kisiler",
   }),
   component: Network,
 });
