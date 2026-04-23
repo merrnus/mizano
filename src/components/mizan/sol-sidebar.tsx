@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Calendar, CheckSquare, StickyNote, Table2, Timer } from "lucide-react";
+import { LayoutDashboard, Scale, Users, Network, Briefcase } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -16,11 +16,11 @@ import { MizanLogo } from "./mizan-logo";
 import { cn } from "@/lib/utils";
 
 const items = [
-  { title: "Tablolar", url: "/tablolar", icon: Table2 },
-  { title: "Takvim", url: "/takvim", icon: Calendar },
-  { title: "Notlar", url: "/notlar", icon: StickyNote },
-  { title: "Tasks", url: "/tasks", icon: CheckSquare },
-  { title: "Pomodoro", url: "/pomodoro", icon: Timer },
+  { title: "Dashboard", url: "/" as const, icon: LayoutDashboard },
+  { title: "Kişisel Mizan", url: "/mizan" as const, icon: Scale },
+  { title: "Kardeşler Ağı", url: "/network" as const, icon: Users },
+  { title: "Gündemler", url: "/gundemler" as const, icon: Network },
+  { title: "Çalışma Alanı", url: "/workspace" as const, icon: Briefcase },
 ];
 
 export function SolSidebar() {
@@ -40,11 +40,11 @@ export function SolSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel>Workspace</SidebarGroupLabel>}
+          {!collapsed && <SidebarGroupLabel>Menü</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
-                const active = pathname === item.url;
+                const active = item.url === "/" ? pathname === "/" : pathname.startsWith(item.url);
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
