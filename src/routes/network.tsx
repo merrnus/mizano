@@ -21,7 +21,7 @@ type NetworkSearch = { tab?: "kisiler" | "gundemler" };
 export const Route = createFileRoute("/network")({
   head: () => ({
     meta: [
-      { title: "Kardeşler Ağı — Network" },
+      { title: "Rehberlik — İnsanlar ve Gündemler" },
       {
         name: "description",
         content: "Kardeşlerin profilleri, ilerleme çubukları ve atanmış gündemler.",
@@ -157,10 +157,10 @@ function Network() {
       <header className="mb-6 flex items-end justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            Network
+            Rehberlik
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            Kardeşler Ağı
+            Yol Arkadaşları
           </h1>
         </div>
         <Button size="sm" className="gap-1.5">
@@ -294,23 +294,12 @@ function KisilerIcerigi({
       <div className="-mx-4 mb-5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <div className="flex items-center gap-2 pb-1">
           <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <button
-            onClick={() => setAktif("tumu")}
-            className={cn(
-              "rounded-full border px-3 py-1 text-xs transition-colors",
-              aktif === "tumu"
-                ? "border-primary/60 bg-primary/15 text-foreground"
-                : "border-border bg-background text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Tümü ({filtreli.length})
-          </button>
           {tumEtiketler.map((e) => {
-            const sayi = filtreli.filter((k) => k.etiketler.includes(e)).length;
+            const sayi = kisiler.filter((k) => k.etiketler.includes(e)).length;
             return (
               <button
                 key={e}
-                onClick={() => setAktif(e)}
+                onClick={() => setAktif(aktif === e ? "tumu" : e)}
                 className={cn(
                   "shrink-0 rounded-full border px-3 py-1 text-xs transition-colors",
                   aktif === e
