@@ -1,0 +1,190 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import * as React from "react";
+import { addWeeks } from "date-fns";
+import { ArrowLeft, ChevronLeft, ChevronRight, Sparkles, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  GUN_KISA,
+  haftaBaslangici,
+  haftaEtiketi,
+  haftaGunleri,
+  tarihFormat,
+} from "@/lib/cetele-tarih";
+import {
+  useSablonlar,
+  useHaftaKayitlari,
+  useBaslangicYukle,
+  useSablonSil,
+  haftaToplami,
+} from "@/lib/cetele-hooks";
+import { CeteleHucre } from "@/components/mizan/cetele-hucre";
+import { SablonForm } from "@/components/mizan/sablon-form";
+import { UcAylikIlerleme } from "@/components/mizan/uc-aylik-ilerleme";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/mizan/maneviyat")({
+  head: () => ({
+    meta: [
+      { title: "Maneviyat Çetelesi — Mizan" },
+      { name: "description", content: "Haftalık evrad çetelesi ve 3 aylık manevi hedefler." },
+    ],
+  }),
+  component: ManeviyatSayfasi,
+});
+
+function ManeviyatSayfasi() {
+  const [haftaBas, setHaftaBas] = React.useState<Date>(() => haftaBaslangici(new Date()));
+  const gunler = haftaGunleri(haftaBas);
+  const { data: sablonlar = [], isLoading } = useSablonlar();
+  const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
+  const baslangicYukle = useBaslangicYukle();
+  const sil = useSablonSil();
+
+  const maneviyat = sablonlar.filter((s) => s.alan === "maneviyat");
+  const bos = !isLoading && maneviyat.length === 0;
+
+  return (
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+      <header className="mb-6">
+        <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2 h-7 gap-1 text-xs text-muted-foreground">
+          <Link to="/mizan"><ArrowLeft className="h-3 w-3" /> Mizan</Link>
+        </Button>
+        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Maneviyat</p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Haftalık Çetele</h1>
+      </header>
+
+      <section className="mb-6 rounded-2xl border border-border bg-card p-4 sm:p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={() => setHaftaBas((d) => addWeeks(d, -1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-[8rem] text-center text-sm font-medium">
+              {haftaEtiketi(haftaBas)}
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={() => setHaftaBas((d) => addWeeks(d, 1))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-2 h-7 px-2 text-xs"
+              onClick={() => setHaftaBas(haftaBaslangici(new Date()))}
+            >
+              Bugün
+            </Button>
+          </div>
+          <SablonForm varsayilanAlan="maneviyat" />
+        </div>
+
+        {bos ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-10 text-center">
+            <Sparkles className="h-6 w-6 text-primary" />
+            <p className="text-sm text-foreground">Henüz evrad eklenmemiş.</p>
+            <p className="max-w-md text-xs text-muted-foreground">
+              Tek tıkla başlangıç paketini yükleyebilir veya yeni evrad ekleyebilirsin.
+            </p>
+            <Button
+              size="sm"
+              onClick={async () => {
+                try {
+                  await baslangicYukle.mutateAsync();
+                  toast.success("Başlangıç paketi yüklendi");
+                } catch {
+                  toast.error("Yüklenemedi");
+                }
+              }}
+              disabled={baslangicYukle.isPending}
+            >
+              {baslangicYukle.isPending ? "..." : "Başlangıç paketini yükle"}
+            </Button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] border-separate border-spacing-y-1">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <th className="w-[180px] px-2 text-left font-normal">Evrad</th>
+                  {gunler.map((g, i) => (
+                    <th key={i} className="px-1 text-center font-normal">
+                      <div>{GUN_KISA[i]}</div>
+                      <div className="text-[9px] text-muted-foreground/60">{g.getDate()}</div>
+                    </th>
+                  ))}
+                  <th className="w-[80px] px-2 text-right font-normal">Hedef</th>
+                  <th className="w-[28px]"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {maneviyat.map((s) => {
+                  const haftaSum = haftaToplami(kayitlar, s.id);
+                  return (
+                    <tr key={s.id} className="text-xs">
+                      <td className="px-2 align-middle">
+                        <div className="font-medium">{s.ad}</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {s.birim !== "ikili" && s.birim}
+                        </div>
+                      </td>
+                      {gunler.map((g) => {
+                        const ts = tarihFormat(g);
+                        return (
+                          <td key={ts} className="px-0.5 align-middle">
+                            <CeteleHucre
+                              sablon={s}
+                              tarih={g}
+                              tarihStr={ts}
+                              kayitlar={kayitlar}
+                            />
+                          </td>
+                        );
+                      })}
+                      <td className="px-2 text-right align-middle">
+                        <div className="text-[11px] font-medium text-foreground">
+                          {s.hedef_tipi === "haftalik" ? (
+                            <>
+                              {haftaSum}/{Number(s.hedef_deger)} <span className="text-muted-foreground">/h</span>
+                            </>
+                          ) : s.hedef_tipi === "gunluk" ? (
+                            <>
+                              {Number(s.hedef_deger)} <span className="text-muted-foreground">/g</span>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">esnek</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="align-middle">
+                        <button
+                          onClick={() => {
+                            if (confirm(`"${s.ad}" şablonunu kaldır?`)) sil.mutate(s.id);
+                          }}
+                          className="text-muted-foreground/40 hover:text-destructive"
+                          aria-label="Sil"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <UcAylikIlerleme />
+    </div>
+  );
+}
