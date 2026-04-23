@@ -152,8 +152,17 @@ function ManeviyatSayfasi() {
                   <th className="w-[180px] px-2 text-left font-normal">Evrad</th>
                   {gunler.map((g, i) => (
                     <th key={i} className="px-1 text-center font-normal">
-                      <div>{GUN_KISA[i]}</div>
-                      <div className="text-[9px] text-muted-foreground/60">{g.getDate()}</div>
+                      {tarihFormat(g) === bugunStr ? (
+                        <div className="mx-auto inline-flex flex-col items-center rounded-md bg-primary/15 px-1.5 py-0.5 text-primary">
+                          <span>{GUN_KISA[i]}</span>
+                          <span className="text-[9px]">{g.getDate()}</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div>{GUN_KISA[i]}</div>
+                          <div className="text-[9px] text-muted-foreground/60">{g.getDate()}</div>
+                        </>
+                      )}
                     </th>
                   ))}
                   <th className="w-[80px] px-2 text-right font-normal">Hedef</th>
