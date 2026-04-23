@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <SidebarProvider>
         <SolSidebar />
-        <SidebarInset className="flex min-h-svh flex-col bg-background">
+        <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background">
           <Topbar />
           <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
         </SidebarInset>
