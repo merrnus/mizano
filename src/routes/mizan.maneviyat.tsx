@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import * as React from "react";
 import { addWeeks } from "date-fns";
-import { ArrowLeft, ChevronLeft, ChevronRight, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   GUN_KISA,
@@ -13,6 +13,7 @@ import {
 import {
   useSablonlar,
   useHaftaKayitlari,
+  useUcAylikKayitlari,
   useBaslangicYukle,
   useSablonSil,
   haftaToplami,
@@ -20,6 +21,8 @@ import {
 import { CeteleHucre } from "@/components/mizan/cetele-hucre";
 import { SablonForm } from "@/components/mizan/sablon-form";
 import { UcAylikIlerleme } from "@/components/mizan/uc-aylik-ilerleme";
+import { ceteleyiPdfeAktar } from "@/lib/cetele-pdf";
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/mizan/maneviyat")({
@@ -39,9 +42,30 @@ function ManeviyatSayfasi() {
   const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
   const baslangicYukle = useBaslangicYukle();
   const sil = useSablonSil();
+  const { user } = useAuth();
 
   const maneviyat = sablonlar.filter((s) => s.alan === "maneviyat");
   const bos = !isLoading && maneviyat.length === 0;
+  const ucAyliklar = sablonlar.filter((s) => s.uc_aylik_hedef);
+  const { data: ucAylikKayitlari = [] } = useUcAylikKayitlari(
+    ucAyliklar.map((s) => s.id),
+  );
+
+  const pdfIndir = () => {
+    try {
+      ceteleyiPdfeAktar({
+        haftaBas,
+        sablonlar,
+        haftaKayitlari: kayitlar,
+        ucAylikKayitlari,
+        kullanici: user?.email ?? null,
+      });
+    } catch (e) {
+      toast.error("PDF oluşturulamadı");
+    }
+  };
+
+  const bugunStr = tarihFormat(new Date());
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
@@ -84,7 +108,18 @@ function ManeviyatSayfasi() {
               Bugün
             </Button>
           </div>
-          <SablonForm varsayilanAlan="maneviyat" />
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1 text-xs"
+              onClick={pdfIndir}
+              disabled={maneviyat.length === 0}
+            >
+              <Download className="h-3.5 w-3.5" /> PDF
+            </Button>
+            <SablonForm varsayilanAlan="maneviyat" />
+          </div>
         </div>
 
         {bos ? (
@@ -117,8 +152,17 @@ function ManeviyatSayfasi() {
                   <th className="w-[180px] px-2 text-left font-normal">Evrad</th>
                   {gunler.map((g, i) => (
                     <th key={i} className="px-1 text-center font-normal">
-                      <div>{GUN_KISA[i]}</div>
-                      <div className="text-[9px] text-muted-foreground/60">{g.getDate()}</div>
+                      {tarihFormat(g) === bugunStr ? (
+                        <div className="mx-auto inline-flex flex-col items-center rounded-md bg-primary/15 px-1.5 py-0.5 text-primary">
+                          <span>{GUN_KISA[i]}</span>
+                          <span className="text-[9px]">{g.getDate()}</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div>{GUN_KISA[i]}</div>
+                          <div className="text-[9px] text-muted-foreground/60">{g.getDate()}</div>
+                        </>
+                      )}
                     </th>
                   ))}
                   <th className="w-[80px] px-2 text-right font-normal">Hedef</th>
