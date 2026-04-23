@@ -1,30 +1,9 @@
-import * as React from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { Check, LayoutGrid, List, Plus, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/gundemler")({
-  head: () => ({
-    meta: [
-      { title: "Gündemler — Sohbet, Kamp, Görüşme" },
-      {
-        name: "description",
-        content: "Konu havuzu ve toplu atama ile haftalık gündemleri yönet.",
-      },
-    ],
-  }),
-  component: Gundemler,
+  beforeLoad: () => {
+    throw redirect({ to: "/network", search: { tab: "gundemler" } });
+  },
 });
 
 type Sutun = "fikir" | "planlama" | "aktif" | "tamam";
