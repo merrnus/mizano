@@ -21,6 +21,8 @@ import { Route as HedeflerRouteImport } from './routes/hedefler'
 import { Route as GundemlerRouteImport } from './routes/gundemler'
 import { Route as AkademiRouteImport } from './routes/akademi'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as KardeslerIndexRouteImport } from './routes/kardesler.index'
+import { Route as AkademiIndexRouteImport } from './routes/akademi.index'
 import { Route as KardeslerKisiIdRouteImport } from './routes/kardesler.$kisiId'
 import { Route as AkademiDersIdRouteImport } from './routes/akademi.$dersId'
 
@@ -84,6 +86,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KardeslerIndexRoute = KardeslerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => KardeslerRoute,
+} as any)
+const AkademiIndexRoute = AkademiIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AkademiRoute,
+} as any)
 const KardeslerKisiIdRoute = KardeslerKisiIdRouteImport.update({
   id: '/$kisiId',
   path: '/$kisiId',
@@ -110,14 +122,14 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof TasksRoute
   '/akademi/$dersId': typeof AkademiDersIdRoute
   '/kardesler/$kisiId': typeof KardeslerKisiIdRoute
+  '/akademi/': typeof AkademiIndexRoute
+  '/kardesler/': typeof KardeslerIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/akademi': typeof AkademiRouteWithChildren
   '/gundemler': typeof GundemlerRoute
   '/hedefler': typeof HedeflerRoute
   '/istatistik': typeof IstatistikRoute
-  '/kardesler': typeof KardeslerRouteWithChildren
   '/maneviyat': typeof ManeviyatRoute
   '/notlar': typeof NotlarRoute
   '/pomodoro': typeof PomodoroRoute
@@ -126,6 +138,8 @@ export interface FileRoutesByTo {
   '/tasks': typeof TasksRoute
   '/akademi/$dersId': typeof AkademiDersIdRoute
   '/kardesler/$kisiId': typeof KardeslerKisiIdRoute
+  '/akademi': typeof AkademiIndexRoute
+  '/kardesler': typeof KardeslerIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,6 +157,8 @@ export interface FileRoutesById {
   '/tasks': typeof TasksRoute
   '/akademi/$dersId': typeof AkademiDersIdRoute
   '/kardesler/$kisiId': typeof KardeslerKisiIdRoute
+  '/akademi/': typeof AkademiIndexRoute
+  '/kardesler/': typeof KardeslerIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,14 +177,14 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/akademi/$dersId'
     | '/kardesler/$kisiId'
+    | '/akademi/'
+    | '/kardesler/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/akademi'
     | '/gundemler'
     | '/hedefler'
     | '/istatistik'
-    | '/kardesler'
     | '/maneviyat'
     | '/notlar'
     | '/pomodoro'
@@ -177,6 +193,8 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/akademi/$dersId'
     | '/kardesler/$kisiId'
+    | '/akademi'
+    | '/kardesler'
   id:
     | '__root__'
     | '/'
@@ -193,6 +211,8 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/akademi/$dersId'
     | '/kardesler/$kisiId'
+    | '/akademi/'
+    | '/kardesler/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -296,6 +316,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kardesler/': {
+      id: '/kardesler/'
+      path: '/'
+      fullPath: '/kardesler/'
+      preLoaderRoute: typeof KardeslerIndexRouteImport
+      parentRoute: typeof KardeslerRoute
+    }
+    '/akademi/': {
+      id: '/akademi/'
+      path: '/'
+      fullPath: '/akademi/'
+      preLoaderRoute: typeof AkademiIndexRouteImport
+      parentRoute: typeof AkademiRoute
+    }
     '/kardesler/$kisiId': {
       id: '/kardesler/$kisiId'
       path: '/$kisiId'
@@ -315,10 +349,12 @@ declare module '@tanstack/react-router' {
 
 interface AkademiRouteChildren {
   AkademiDersIdRoute: typeof AkademiDersIdRoute
+  AkademiIndexRoute: typeof AkademiIndexRoute
 }
 
 const AkademiRouteChildren: AkademiRouteChildren = {
   AkademiDersIdRoute: AkademiDersIdRoute,
+  AkademiIndexRoute: AkademiIndexRoute,
 }
 
 const AkademiRouteWithChildren =
@@ -326,10 +362,12 @@ const AkademiRouteWithChildren =
 
 interface KardeslerRouteChildren {
   KardeslerKisiIdRoute: typeof KardeslerKisiIdRoute
+  KardeslerIndexRoute: typeof KardeslerIndexRoute
 }
 
 const KardeslerRouteChildren: KardeslerRouteChildren = {
   KardeslerKisiIdRoute: KardeslerKisiIdRoute,
+  KardeslerIndexRoute: KardeslerIndexRoute,
 }
 
 const KardeslerRouteWithChildren = KardeslerRoute._addFileChildren(
