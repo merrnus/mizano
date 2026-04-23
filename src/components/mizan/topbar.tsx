@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useTheme } from "./theme-provider";
-import { MizanLogo } from "./mizan-logo";
 
 export function Topbar() {
   const { theme, toggle } = useTheme();
