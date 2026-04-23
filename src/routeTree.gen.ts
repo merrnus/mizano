@@ -9,8 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkspaceRouteImport } from './routes/workspace'
+import { Route as NetworkRouteImport } from './routes/network'
+import { Route as MizanRouteImport } from './routes/mizan'
+import { Route as GundemlerRouteImport } from './routes/gundemler'
 import { Route as IndexRouteImport } from './routes/index'
 
+const WorkspaceRoute = WorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NetworkRoute = NetworkRouteImport.update({
+  id: '/network',
+  path: '/network',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MizanRoute = MizanRouteImport.update({
+  id: '/mizan',
+  path: '/mizan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GundemlerRoute = GundemlerRouteImport.update({
+  id: '/gundemler',
+  path: '/gundemler',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +43,72 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/gundemler': typeof GundemlerRoute
+  '/mizan': typeof MizanRoute
+  '/network': typeof NetworkRoute
+  '/workspace': typeof WorkspaceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/gundemler': typeof GundemlerRoute
+  '/mizan': typeof MizanRoute
+  '/network': typeof NetworkRoute
+  '/workspace': typeof WorkspaceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/gundemler': typeof GundemlerRoute
+  '/mizan': typeof MizanRoute
+  '/network': typeof NetworkRoute
+  '/workspace': typeof WorkspaceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/gundemler' | '/mizan' | '/network' | '/workspace'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/gundemler' | '/mizan' | '/network' | '/workspace'
+  id: '__root__' | '/' | '/gundemler' | '/mizan' | '/network' | '/workspace'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  GundemlerRoute: typeof GundemlerRoute
+  MizanRoute: typeof MizanRoute
+  NetworkRoute: typeof NetworkRoute
+  WorkspaceRoute: typeof WorkspaceRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/workspace': {
+      id: '/workspace'
+      path: '/workspace'
+      fullPath: '/workspace'
+      preLoaderRoute: typeof WorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/network': {
+      id: '/network'
+      path: '/network'
+      fullPath: '/network'
+      preLoaderRoute: typeof NetworkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mizan': {
+      id: '/mizan'
+      path: '/mizan'
+      fullPath: '/mizan'
+      preLoaderRoute: typeof MizanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gundemler': {
+      id: '/gundemler'
+      path: '/gundemler'
+      fullPath: '/gundemler'
+      preLoaderRoute: typeof GundemlerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +121,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  GundemlerRoute: GundemlerRoute,
+  MizanRoute: MizanRoute,
+  NetworkRoute: NetworkRoute,
+  WorkspaceRoute: WorkspaceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
