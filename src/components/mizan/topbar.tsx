@@ -1,11 +1,13 @@
-import { Moon, Plus, Search, Sun } from "lucide-react";
+import { Moon, PanelRight, Plus, Search, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useTheme } from "./theme-provider";
+import { useSagSidebar } from "./sag-sidebar";
 
 export function Topbar() {
   const { theme, toggle } = useTheme();
+  const { setMobileOpen } = useSagSidebar();
   return (
     <header className="sticky top-0 z-20 flex h-12 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur">
       <SidebarTrigger className="h-8 w-8" />
@@ -28,6 +30,15 @@ export function Topbar() {
           aria-label="Temayı değiştir"
         >
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 md:hidden"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Hayat alanlarını aç"
+        >
+          <PanelRight className="h-4 w-4" />
         </Button>
       </div>
     </header>
