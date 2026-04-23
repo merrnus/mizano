@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import * as React from "react";
 import {
   Calendar,
   CheckCircle2,
@@ -80,6 +81,13 @@ const alanRenk: Record<string, string> = {
 
 function Dashboard() {
   const gunEtiket = ["P", "S", "Ç", "P", "C", "C", "P"];
+  const [bugun, setBugun] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const d = new Date();
+    setBugun(
+      `${d.toLocaleDateString("tr-TR", { weekday: "long" })} • ${d.toLocaleDateString("tr-TR", { day: "numeric", month: "long" })}`,
+    );
+  }, []);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
@@ -94,10 +102,7 @@ function Dashboard() {
           </h1>
         </div>
         <div className="hidden text-right text-xs text-muted-foreground sm:block">
-          <div>{new Date().toLocaleDateString("tr-TR", { weekday: "long" })}</div>
-          <div className="font-medium text-foreground">
-            {new Date().toLocaleDateString("tr-TR", { day: "numeric", month: "long" })}
-          </div>
+          {bugun && <div className="font-medium text-foreground">{bugun}</div>}
         </div>
       </header>
 
