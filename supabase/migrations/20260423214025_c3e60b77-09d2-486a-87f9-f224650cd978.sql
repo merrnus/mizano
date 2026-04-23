@@ -1,0 +1,1 @@
+ALTER TYPE public.cetele_alan ADD VALUE IF NOT EXISTS 'kisisel';

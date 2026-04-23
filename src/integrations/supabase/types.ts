@@ -103,6 +103,93 @@ export type Database = {
         }
         Relationships: []
       }
+      takvim_etkinlik: {
+        Row: {
+          aciklama: string | null
+          alan: Database["public"]["Enums"]["cetele_alan"]
+          baslangic: string
+          baslik: string
+          bitis: string | null
+          created_at: string
+          id: string
+          konum: string | null
+          tekrar: Database["public"]["Enums"]["takvim_tekrar"]
+          tekrar_bitis: string | null
+          tum_gun: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aciklama?: string | null
+          alan?: Database["public"]["Enums"]["cetele_alan"]
+          baslangic: string
+          baslik: string
+          bitis?: string | null
+          created_at?: string
+          id?: string
+          konum?: string | null
+          tekrar?: Database["public"]["Enums"]["takvim_tekrar"]
+          tekrar_bitis?: string | null
+          tum_gun?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aciklama?: string | null
+          alan?: Database["public"]["Enums"]["cetele_alan"]
+          baslangic?: string
+          baslik?: string
+          bitis?: string | null
+          created_at?: string
+          id?: string
+          konum?: string | null
+          tekrar?: Database["public"]["Enums"]["takvim_tekrar"]
+          tekrar_bitis?: string | null
+          tum_gun?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      takvim_gorev: {
+        Row: {
+          aciklama: string | null
+          alan: Database["public"]["Enums"]["cetele_alan"]
+          baslik: string
+          created_at: string
+          id: string
+          oncelik: Database["public"]["Enums"]["gorev_oncelik"]
+          tamamlandi: boolean
+          updated_at: string
+          user_id: string
+          vade: string
+        }
+        Insert: {
+          aciklama?: string | null
+          alan?: Database["public"]["Enums"]["cetele_alan"]
+          baslik: string
+          created_at?: string
+          id?: string
+          oncelik?: Database["public"]["Enums"]["gorev_oncelik"]
+          tamamlandi?: boolean
+          updated_at?: string
+          user_id: string
+          vade: string
+        }
+        Update: {
+          aciklama?: string | null
+          alan?: Database["public"]["Enums"]["cetele_alan"]
+          baslik?: string
+          created_at?: string
+          id?: string
+          oncelik?: Database["public"]["Enums"]["gorev_oncelik"]
+          tamamlandi?: boolean
+          updated_at?: string
+          user_id?: string
+          vade?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -111,9 +198,11 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      cetele_alan: "maneviyat" | "akademi" | "dunyevi"
+      cetele_alan: "maneviyat" | "akademi" | "dunyevi" | "kisisel"
       cetele_birim: "sayfa" | "adet" | "dakika" | "ikili"
       cetele_hedef_tipi: "gunluk" | "haftalik" | "esnek"
+      gorev_oncelik: "dusuk" | "orta" | "yuksek"
+      takvim_tekrar: "yok" | "haftalik" | "aylik"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -241,9 +330,11 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      cetele_alan: ["maneviyat", "akademi", "dunyevi"],
+      cetele_alan: ["maneviyat", "akademi", "dunyevi", "kisisel"],
       cetele_birim: ["sayfa", "adet", "dakika", "ikili"],
       cetele_hedef_tipi: ["gunluk", "haftalik", "esnek"],
+      gorev_oncelik: ["dusuk", "orta", "yuksek"],
+      takvim_tekrar: ["yok", "haftalik", "aylik"],
     },
   },
 } as const

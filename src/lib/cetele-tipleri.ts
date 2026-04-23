@@ -21,12 +21,14 @@ export const ALAN_ETIKET: Record<CeteleAlan, string> = {
   maneviyat: "Maneviyat",
   akademi: "Akademi",
   dunyevi: "Dünyevi",
+  kisisel: "Kişisel",
 };
 
 export const ALAN_RENK_VAR: Record<CeteleAlan, string> = {
   maneviyat: "--maneviyat",
   akademi: "--akademi",
   dunyevi: "--dunyevi",
+  kisisel: "--kisisel",
 };
 
 export type HucreDurum = "yesil" | "sari" | "kirmizi" | "bos";
