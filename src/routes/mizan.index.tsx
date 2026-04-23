@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/mizan/")({
   head: () => ({
     meta: [
-      { title: "Mizan — Üç Alanın Dengesi" },
+      { title: "İstikamet — Üç Alanın Dengesi" },
       { name: "description", content: "Akademi, Dünyevi ve Maneviyat alanlarının özeti." },
     ],
   }),
@@ -143,7 +143,7 @@ function MizanHub() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <header className="mb-6">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Kişisel Mizan</p>
+        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">İstikamet</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
           Üç Alanın Dengesi
         </h1>
