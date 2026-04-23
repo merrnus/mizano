@@ -1,11 +1,15 @@
-import { Moon, Plus, Search, Sun } from "lucide-react";
+import { LogOut, Moon, Plus, Search, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useTheme } from "./theme-provider";
+import { useAuth } from "@/lib/auth-context";
+import { useNavigate } from "@tanstack/react-router";
 
 export function Topbar() {
   const { theme, toggle } = useTheme();
+  const { signOut, user } = useAuth();
+  const navigate = useNavigate();
   return (
     <header className="sticky top-0 z-20 flex h-12 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur">
       <SidebarTrigger className="h-8 w-8" />
@@ -29,6 +33,21 @@ export function Topbar() {
         >
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
+        {user && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={async () => {
+              await signOut();
+              navigate({ to: "/giris" });
+            }}
+            aria-label="Çıkış yap"
+            title={user.email ?? "Çıkış yap"}
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </header>
   );

@@ -13,6 +13,7 @@ import { Route as WorkspaceRouteImport } from './routes/workspace'
 import { Route as NetworkRouteImport } from './routes/network'
 import { Route as MizanRouteImport } from './routes/mizan'
 import { Route as GundemlerRouteImport } from './routes/gundemler'
+import { Route as GirisRouteImport } from './routes/giris'
 import { Route as IndexRouteImport } from './routes/index'
 
 const WorkspaceRoute = WorkspaceRouteImport.update({
@@ -35,6 +36,11 @@ const GundemlerRoute = GundemlerRouteImport.update({
   path: '/gundemler',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GirisRoute = GirisRouteImport.update({
+  id: '/giris',
+  path: '/giris',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,6 +49,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/giris': typeof GirisRoute
   '/gundemler': typeof GundemlerRoute
   '/mizan': typeof MizanRoute
   '/network': typeof NetworkRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/giris': typeof GirisRoute
   '/gundemler': typeof GundemlerRoute
   '/mizan': typeof MizanRoute
   '/network': typeof NetworkRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/giris': typeof GirisRoute
   '/gundemler': typeof GundemlerRoute
   '/mizan': typeof MizanRoute
   '/network': typeof NetworkRoute
@@ -65,14 +74,28 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/gundemler' | '/mizan' | '/network' | '/workspace'
+  fullPaths:
+    | '/'
+    | '/giris'
+    | '/gundemler'
+    | '/mizan'
+    | '/network'
+    | '/workspace'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/gundemler' | '/mizan' | '/network' | '/workspace'
-  id: '__root__' | '/' | '/gundemler' | '/mizan' | '/network' | '/workspace'
+  to: '/' | '/giris' | '/gundemler' | '/mizan' | '/network' | '/workspace'
+  id:
+    | '__root__'
+    | '/'
+    | '/giris'
+    | '/gundemler'
+    | '/mizan'
+    | '/network'
+    | '/workspace'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  GirisRoute: typeof GirisRoute
   GundemlerRoute: typeof GundemlerRoute
   MizanRoute: typeof MizanRoute
   NetworkRoute: typeof NetworkRoute
@@ -109,6 +132,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GundemlerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/giris': {
+      id: '/giris'
+      path: '/giris'
+      fullPath: '/giris'
+      preLoaderRoute: typeof GirisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -121,6 +151,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  GirisRoute: GirisRoute,
   GundemlerRoute: GundemlerRoute,
   MizanRoute: MizanRoute,
   NetworkRoute: NetworkRoute,
@@ -129,3 +160,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
