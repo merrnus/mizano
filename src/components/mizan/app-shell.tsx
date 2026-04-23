@@ -12,7 +12,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SolSidebar />
         <SidebarInset className="flex min-h-svh flex-col bg-background">
           <Topbar />
-          <div className="flex min-h-0 flex-1">
+          <div className="flex min-h-0 min-w-0 flex-1">
             <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
             <SagSidebar />
           </div>
