@@ -122,7 +122,7 @@ function ManeviyatSayfasi() {
                     </th>
                   ))}
                   <th className="w-[80px] px-2 text-right font-normal">Hedef</th>
-                  <th className="w-[28px]"></th>
+                  <th className="w-[56px]"></th>
                 </tr>
               </thead>
               <tbody>
