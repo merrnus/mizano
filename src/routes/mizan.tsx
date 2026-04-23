@@ -4,7 +4,7 @@ import { useSablonlar, useHaftaKayitlari, haftaSablonOzet, gunToplami } from "@/
 import { haftaBaslangici, tarihFormat } from "@/lib/cetele-tarih";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/mizan/")({
+export const Route = createFileRoute("/mizan")({
   head: () => ({
     meta: [
       { title: "Mizan — Üç Alanın Dengesi" },
