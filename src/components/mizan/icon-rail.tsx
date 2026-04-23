@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, Scale, Users, Network, Briefcase, PanelLeft } from "lucide-react";
+import { LayoutDashboard, Scale, Users, CalendarDays, Briefcase, PanelLeft } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 const items = [
   { title: "Dashboard", url: "/" as const, icon: LayoutDashboard },
   { title: "Kişisel Mizan", url: "/mizan" as const, icon: Scale },
+  { title: "Takvim & Görevler", url: "/takvim" as const, icon: CalendarDays },
   { title: "Kardeşler Ağı", url: "/network" as const, icon: Users },
-  { title: "Gündemler", url: "/gundemler" as const, icon: Network },
   { title: "Çalışma Alanı", url: "/workspace" as const, icon: Briefcase },
 ];
 
