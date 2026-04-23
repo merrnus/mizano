@@ -1,155 +1,154 @@
 
 
-# Çetele Sistemi — Plan (Güncel)
+# Takvim Ekleme + Menü Yeniden Düzenleme
 
-## Ana Karar: `/mizan` Hub'a Dönüşüyor
+## Görsel kararı
 
-`/mizan` artık **3 büyük kart hub'ı** olur. Tab yapısı kalkar. Her alan kendi sayfasına sahip — şimdilik sadece Maneviyat detaylanır, Akademi/Dünyevi karttan tam sayfaya tıklanır ama içerikleri mevcut haliyle taşınır.
+Paylaştığın v0 takvimi referans alınacak — Apple Calendar + Things tarzı:
+- Sol: hafta görünümü (saat ızgarası, alan rengiyle dolu etkinlik blokları)
+- Sağ: Görevler paneli (Bugün / Bu Hafta grupları, checkbox + alan rengi noktası)
+- Üst: Ay/Hafta/Gün segment kontrolü + Bugün + < > + Yeni butonu
 
-**Sebep:** Tab içinde çetele sıkışır. Üç alan eşit görsel ağırlık almalı — Mizan = denge demek. Hub yapısı bu felsefeyle uyumlu.
+## Menü yeniden düzeni
 
-```text
-/mizan                  → Hub: Akademi / Dünyevi / Maneviyat (3 büyük kart)
-  └─ /mizan/maneviyat   → Tam çetele sayfası (yeni, zengin)
-  └─ /mizan/akademi     → Mevcut ders listesi (taşınır)
-  └─ /mizan/dunyevi     → Mevcut hedef listesi (taşınır)
-```
-
-Sidebar'da tek "Mizan" linki. Alt sayfalar hub kartlarından açılır.
-
-## Hub Kartı (her alan için)
+Mevcut 5 öğe → temizlenmiş 5 öğe (Takvim eklendi, Gündemler birleşti):
 
 ```text
-┌────────────────────────────┐
-│ 📖 Maneviyat               │
-│                            │
-│ Bu hafta: 78%              │
-│ ●●●●●●●●○○ (10 evrad)      │
-│                            │
-│ Bugün: Kuran 2/3 sf        │
-│ Sıradaki: Cevşen           │
-│                            │
-│           [ Detay → ]      │
-└────────────────────────────┘
+ESKİ                          YENİ
+─────────────────────         ─────────────────────
+Dashboard          /          Dashboard          /
+Kişisel Mizan      /mizan     Kişisel Mizan      /mizan
+Kardeşler Ağı      /network   Takvim & Görevler  /takvim   ← YENİ
+Gündemler          /gundemler Kardeşler Ağı      /network  ← Gündemler içinde tab
+Çalışma Alanı      /workspace Çalışma Alanı      /workspace
 ```
 
-Akademi kartında: aktif ders sayısı + yaklaşan sınav. Dünyevi kartında: aktif hedef sayısı + en yakın milestone.
+**Gündemler → Kardeşler Ağı'na taşınıyor.** Çünkü gündem = bir kişiye/gruba atanan konu. İki sayfada birden duruyordu, gereksiz tekrar.
 
-## Veri Modeli (Çetele)
+## Kardeşler Ağı'nın yeni yapısı
 
-**Şablon:**
-- `ad`, `birim` (sayfa/adet/dakika/ikili), `hedef_tipi` (gunluk/haftalik), `hedef_deger`, `alan`, `aktif`, `siralama`
-- Opsiyonel: `3aylik_hedef: { deger, baslangic }`
-
-**Kayıt:**
-- `sablon_id`, `tarih`, `miktar`, `not`, `olusturuldu_at`
-- Aynı gün birden fazla kayıt → toplam = sum
-
-**Renk:** Yeşil (≥min) / Sarı (yapıldı ama altı) / Kırmızı (geçmiş, hiç) / Boş (bugün/gelecek).
-İkili evradlar: yeşil veya boş, kırmızı yok (opsiyonel ibadet).
-
-## `/mizan/maneviyat` Sayfası
+`/network` artık iki sekmeli:
 
 ```text
-┌──────────────────────────────────────────────────┐
-│ Haftalık Çetele    [< 21-27 Nis >]  [+ Evrad]   │
-├──────────────────────────────────────────────────┤
-│                Pzt Sal Çar Per Cum Cmt Paz  Hed  │
-│ Kuran (sf)      3   4   2   3   -   1   -   3/g │
-│ Cevşen (ad)     3   5   3   -   -   -   -   3/g │
-│ Risale (sf)    10   -  15  20   -   -   -  10/g │
-│ Pırlanta (sf)   5   5   -   -   -   -   -   5/g │
-│ Kitap (sf)      -   -  10   -   -   -   -   5/g │
-│ mp3 (dk)       20  30   -  20   -   -   -  20/g │
-│ Evvâbîn         ✓   ✓   ✓   -   -   ✓   -  her  │
-│ Virdler         ✓   ✓   ✓   ✓   ✓   ✓   -   1/g │
-│ Oruç            -   ✓   -   ✓   -   -   -   2/h │
-│ Teheccüd        ✓   -   ✓   -   -   ✓   -   3/h │
-├──────────────────────────────────────────────────┤
-│ + Plan dışı evrad (bu hafta)                    │
-└──────────────────────────────────────────────────┘
-
-3 Aylık Bağlı Hedefler
-┌──────────────────────────────────────────────────┐
-│ Risale — Sözler        ████░░░░░░  240/600 sf   │
-│ Pırlanta — Asrın...    ██████░░░░  180/300 sf   │
-│ Manevi kitap (1 adet)  █░░░░░░░░░  Başlandı     │
-│ mp3 toplam             ███░░░░░░░  9/30 saat    │
-│ Ezber (sure/dua)       ██░░░░░░░░  3/10 adet    │
-└──────────────────────────────────────────────────┘
+┌─ Kardeşler Ağı ─────── [+ Kişi] [+ Gündem] ┐
+│  [Kişiler] [Gündemler]                     │
+├────────────────────────────────────────────┤
+│  (seçili tab'ın içeriği — mevcut UI'lar)   │
+└────────────────────────────────────────────┘
 ```
 
-**Hücre etkileşimi:**
-- Sayısal: tek tık → popover `[- 3 +]` + not + "Yeni giriş ekle" (gün içi 2. kayıt)
-- İkili: tek tık → toggle
-- Geçmiş gün: hafta navigasyonu ile geri git, normal yaz
+- **Kişiler tab**: mevcut `network.tsx` kart grid'i + drawer (aynı kalıyor)
+- **Gündemler tab**: mevcut `gundemler.tsx` kanban/liste + toplu ata (aynı kalıyor)
+- Drawer'da kişiye gündem atama, gündem kartından kişi havuzu açma — iki yön de çalışıyor (zaten kısmen var)
+- Eski `/gundemler` rotası → `/network?tab=gundemler` kalıcı yönlendirme
 
-**Plan dışı evrad:** Sayfa altında "+" → şablon seç ya da tek seferlik satır (`aktif: false`, sadece bu hafta).
+## Yeni rota: `/takvim`
 
-**3 aylık ↔ haftalık bağ:** Risale satırına yazılan her sayfa otomatik 3 aylık ilerlemeye eklenir. Tek kayıt, çift görünüm.
+### Veri modeli (2 yeni tablo)
 
-## Başlangıç Şablonları (Senin Verdiğin Liste)
+**`takvim_etkinlik`** — zamanlı olaylar (ders, sohbet, randevu)
 
-| # | Ad | Birim | Hedef | 3 aylık |
-|---|---|---|---|---|
-| 1 | Kuran-ı Kerim | sayfa | 3/gün | — |
-| 2 | Cevşen | adet | 3/gün | — |
-| 3 | Risale | sayfa | 10/gün | 600 sf |
-| 4 | Pırlanta | sayfa | 5/gün | 300 sf |
-| 5 | Manevi kitap | sayfa | 5/gün | 1 kitap |
-| 6 | mp3 dinleme | dakika | 20/gün | 30 saat |
-| 7 | Evvâbîn | ikili | her gün | — |
-| 8 | Virdler | adet | 1/gün (min) | — |
-| 9 | Oruç | ikili | 2/hafta | — |
-| 10 | Teheccüd | ikili | 3/hafta | — |
-| 11 | Ezber | adet | esnek | 10 adet |
+| Alan | Tip |
+|---|---|
+| id, user_id | uuid |
+| baslik, aciklama? | text |
+| baslangic | timestamptz |
+| bitis? | timestamptz |
+| tum_gun | bool |
+| alan | enum: maneviyat / akademi / dunyevi / kisisel |
+| konum? | text |
+| tekrar | enum: yok / haftalik / aylik |
+| tekrar_bitis? | date |
 
-İlk açılışta "Başlangıç paketini yükle" butonu → bu 11 şablon eklenir, sen üstüne düzenlersin.
+**`takvim_gorev`** — saatsiz to-do'lar (vade tarihi + alan + öncelik)
 
-## Dashboard (`/`) — Çetele Bağlantısı
+| Alan | Tip |
+|---|---|
+| id, user_id | uuid |
+| baslik, aciklama? | text |
+| vade | date |
+| tamamlandi | bool |
+| oncelik | enum: dusuk / orta / yuksek |
+| alan | enum (aynı) |
 
-Mevcut "Günlük Çetele" bölümü gerçek veriden okur:
-- Bugünün şablonları + haftalık hedefliler (oruç gibi)
-- Tek tık → ikili toggle, sayısal +1 (uzun bas → custom)
-- "Tümünü gör →" `/mizan/maneviyat`
+Her tabloya RLS (4 policy: SELECT/INSERT/UPDATE/DELETE, hepsi `user_id = auth.uid()`) + `set_updated_at` trigger.
 
-## Veri Saklama
+### Sayfa düzeni
 
-İki seçenek — onaydan sonra ilk soru:
-- **Lovable Cloud (önerilen):** Kalıcı, çoklu cihaz, geriye dönük analiz. Tablolar: `cetele_sablon`, `cetele_kayit`.
-- **localStorage:** Tek cihaz, tarayıcı temizlenince kaybolur. Bu kadar değerli veri için riskli.
+```text
+┌─ Takvim & Görevler ──────────── [< Bugün >] [Ay|Hafta|Gün] [+ Yeni] ┐
+│  Nisan 2026 · Hafta 17                                              │
+├─────────────────────────────────────────────┬───────────────────────┤
+│  PZT  SAL  ÇAR  PER  CUM  CMT  PAZ          │  Görevler        [+]  │
+│  07                                         │  4/10 · bu hafta      │
+│  08                                         │                       │
+│  09  ┌Hadis┐                                │  BUGÜN            3   │
+│  10  └────┘                                 │  ☑ Kitap güncelle     │
+│  11  ┌Tefsir┐                               │    • Akademi          │
+│  ...                                        │  ☐ Disk sipariş et    │
+│  (alan rengiyle dolu etkinlik blokları)     │    • Dünyevi          │
+│                                             │                       │
+│                                             │  BU HAFTA         4   │
+│                                             │  ☐ Kehf okuma         │
+│                                             │    • Manevi · Cuma    │
+└─────────────────────────────────────────────┴───────────────────────┘
+```
 
-## Build Adımları
+Üç görünüm tek sayfada, segment kontrolü ile değişir:
+- **Ay**: 7×5 grid, hücre başına max 3 etkinlik chip'i
+- **Hafta** (varsayılan): 7 sütun × saat ızgarası 06–24
+- **Gün**: tek kolon, daha geniş bloklar
 
-1. Veri modeli + storage adapter (`src/lib/cetele-store.ts`, `src/lib/cetele-tipleri.ts`)
-2. `/mizan` hub: 3 kart yapısı (`mizan.tsx` yeniden yazılır)
-3. `/mizan/maneviyat`: çetele tablosu + hücre popover + hafta navigasyonu
-4. `/mizan/akademi` ve `/mizan/dunyevi`: mevcut içerikler taşınır
-5. Şablon yönetimi modal (`+ Evrad`)
-6. Plan dışı evrad ekleme
-7. 3 aylık ilerleme bloğu
-8. Dashboard çetele bağlantısı
-9. Başlangıç paketi seed butonu
+Boş hücreye/saate tıkla → hızlı ekleme dialog'u (Etkinlik / Görev tip seçici).
+Etkinlik/göreve tıkla → düzenleme/silme drawer'ı.
 
-## Teknik Dosyalar
+### Renk sistemi
 
-**Yeni:**
-- `src/routes/mizan.maneviyat.tsx`
-- `src/routes/mizan.akademi.tsx`
-- `src/routes/mizan.dunyevi.tsx`
-- `src/components/mizan/cetele-tablosu.tsx`
-- `src/components/mizan/cetele-hucre-popover.tsx`
-- `src/components/mizan/sablon-form.tsx`
-- `src/components/mizan/uc-aylik-ilerleme.tsx`
-- `src/lib/cetele-store.ts`
-- `src/lib/cetele-tipleri.ts`
+Mevcut `--maneviyat` / `--akademi` / `--dunyevi` CSS değişkenleri kullanılır. Yeni `--kisisel` eklenir (toprak/bej). Etkinlik blokları alan renginin %15 dolgusu + tam doygun sol kenar çubuğu.
 
-**Değişen:**
-- `src/routes/mizan.tsx` → tab yerine 3 kart hub
-- `src/routes/index.tsx` → çetele bölümü gerçek veri
-- `src/components/mizan/sol-sidebar.tsx` → "Mizan" tek link kalır (alt sayfalar hub'dan)
+## Selamlama (sonradan)
 
-## Onaydan Sonraki İlk Soru
+Takvim bittikten sonra ana sayfaya **sade selamlama** eklenir (selam + 1 akıllı satır):
 
-**Lovable Cloud mu, localStorage mı?** (Önerim: Cloud — bu veri çok değerli, tek cihaza bağlamamak gerekir.)
+> ☀ Es-selâmu aleykum, Yusuf
+> Hayırlı sabahlar • Pazartesi, 23 Nisan
+> │ Bugün 09:00 — Hadis Usulü
+
+Tek dinamik satırın önceliği: Pzt/Prş orucu → Cuma → bugünün ilk takvim etkinliği → hafta hâli → varsayılan.
+
+## Dosya değişiklikleri
+
+| Dosya | Değişiklik |
+|---|---|
+| Migration | 2 tablo + RLS + trigger + (opsiyonel) `--kisisel` rengi |
+| `src/lib/takvim-tipleri.ts` | TS tipleri + alan→renk eşlemesi |
+| `src/lib/takvim-hooks.ts` | `useEtkinlikler(aralik)`, `useGorevler(aralik)`, mutate hook'ları |
+| `src/routes/takvim.tsx` | Sayfa + segment + sağ Görevler paneli |
+| `src/components/mizan/takvim/hafta-gorunumu.tsx` | YENİ — varsayılan görünüm |
+| `src/components/mizan/takvim/ay-gorunumu.tsx` | YENİ |
+| `src/components/mizan/takvim/gun-gorunumu.tsx` | YENİ |
+| `src/components/mizan/takvim/etkinlik-dialog.tsx` | YENİ — ekle/düzenle |
+| `src/components/mizan/takvim/gorev-paneli.tsx` | YENİ — sağ panel |
+| `src/components/mizan/takvim/gorev-dialog.tsx` | YENİ |
+| `src/routes/network.tsx` | Tab yapısı eklenir, mevcut içerik "Kişiler" tab'ına sarılır |
+| `src/routes/gundemler.tsx` | İçerik `Gundemler` komponentine çıkarılır, route silinir veya `/network`'e redirect |
+| `src/components/mizan/network/gundemler-tab.tsx` | YENİ — eski gundemler içeriği komponent olarak |
+| `src/components/mizan/sol-sidebar.tsx` | "Takvim & Görevler" eklenir, "Gündemler" çıkarılır |
+| `src/components/mizan/icon-rail.tsx` | Aynı menü güncellemesi |
+
+## Sıralama
+
+1. Migration (tablolar + RLS + trigger)
+2. Hook'lar + tipler
+3. `/takvim` — Hafta görünümü + Görevler paneli + ekleme dialog'ları (en kritik MVP)
+4. Ay + Gün görünümleri
+5. Sidebar/IconRail menü güncellemesi
+6. `/network` tab yapısı + Gündemler tab'ı + eski rota redirect
+7. (Sonra) Selamlama bileşeni ana sayfaya
+
+## Notlar
+
+- Tekrar eden etkinlikler **render zamanında genişletilir** (DB'de tek satır + tekrar kuralı), ayrı satır kaydı yok
+- Mobilde takvim: Hafta görünümü 3 günlük kayan görünüme düşer, Görevler paneli alta taşınır (sheet)
+- v0 tasarımındaki ikon ve tipografi detayları birebir referans — chip stili, hücre yoğunluğu, "BUGÜN/BU HAFTA" başlık formatı dahil
 
