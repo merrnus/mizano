@@ -13,9 +13,12 @@ export function UcAylikIlerleme() {
 
   return (
     <section className="rounded-2xl border border-border bg-card p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-primary" />
-        <h2 className="text-sm font-medium">3 Aylık Bağlı Hedefler</h2>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-medium">3 Aylık Bağlı Hedefler</h2>
+        </div>
+        <SablonForm varsayilanAlan="mana" />
       </div>
       <div className="flex flex-col gap-3">
         {ucAyliklar.map((s) => {
