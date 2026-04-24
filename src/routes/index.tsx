@@ -592,6 +592,89 @@ function Dashboard() {
           </div>
         )}
       </section>
+
+      {/* 4) Aktif hedefler */}
+      {yakinHedefler.length > 0 && (
+        <section className="mt-5 sm:mt-6">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-medium text-foreground">Aktif Hedefler</h2>
+            </div>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/mizan" className="gap-1 text-xs">
+                Tümü <ChevronRight className="h-3 w-3" />
+              </Link>
+            </Button>
+          </div>
+          <div className="flex flex-col gap-2.5 sm:grid sm:grid-cols-2">
+            {yakinHedefler.map((h) => {
+              const ilerleme = hedefIlerleme(h, tumAdimlar);
+              const kalan = h.bitis
+                ? Math.max(
+                    0,
+                    Math.ceil(
+                      (new Date(h.bitis).getTime() - Date.now()) /
+                        (1000 * 60 * 60 * 24),
+                    ),
+                  )
+                : null;
+              return (
+                <Link
+                  key={h.id}
+                  to="/mizan/hedef/$id"
+                  params={{ id: h.id }}
+                  className="group flex flex-col gap-2.5 rounded-xl border border-border bg-card p-3.5 transition-all hover:border-primary/40 active:scale-[0.99]"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[14px] font-medium text-foreground">
+                        {h.ad}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <span
+                          className="rounded-full px-1.5 py-0.5"
+                          style={{
+                            backgroundColor: `color-mix(in oklab, var(--${h.alan}) 18%, transparent)`,
+                            color: `var(--${h.alan})`,
+                          }}
+                        >
+                          {ALAN_ETIKET[h.alan]}
+                        </span>
+                        {kalan !== null && (
+                          <span>
+                            {kalan === 0
+                              ? "Bugün son"
+                              : kalan === 1
+                                ? "Yarın son"
+                                : `${kalan} gün kaldı`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-[16px] font-semibold tabular-nums text-foreground">
+                      {ilerleme}%
+                    </span>
+                  </div>
+                  <Progress
+                    value={ilerleme}
+                    className="h-1.5"
+                    style={
+                      {
+                        ["--progress-foreground" as string]: `var(--${h.alan})`,
+                      } as React.CSSProperties
+                    }
+                  />
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Hızlı eylem diyalogları */}
+      <EtkinlikDialog acik={etkAcik} onOpenChange={setEtkAcik} />
+      <GorevDialog acik={gorevAcik} onOpenChange={setGorevAcik} />
     </div>
   );
 }
