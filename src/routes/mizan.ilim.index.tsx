@@ -26,7 +26,7 @@ import {
 } from "@/lib/ilim-tipleri";
 import { DersForm } from "@/components/mizan/ilim/ders-form";
 
-export const Route = createFileRoute("/mizan/ilim")({
+export const Route = createFileRoute("/mizan/ilim/")({
   head: () => ({
     meta: [
       { title: "İlim — Mizan" },

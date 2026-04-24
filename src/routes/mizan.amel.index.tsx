@@ -50,7 +50,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/mizan/amel")({
+export const Route = createFileRoute("/mizan/amel/")({
   head: () => ({
     meta: [
       { title: "Müfredat — Mizan" },
