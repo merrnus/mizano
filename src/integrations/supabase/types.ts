@@ -103,6 +103,257 @@ export type Database = {
         }
         Relationships: []
       }
+      ders: {
+        Row: {
+          ad: string
+          created_at: string
+          donem: string | null
+          durum: Database["public"]["Enums"]["ders_durum"]
+          etiketler: string[]
+          gecme_baraji: number | null
+          hoca: string | null
+          id: string
+          kod: string | null
+          kredi: number | null
+          notlar: string | null
+          restant: boolean
+          siralama: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          donem?: string | null
+          durum?: Database["public"]["Enums"]["ders_durum"]
+          etiketler?: string[]
+          gecme_baraji?: number | null
+          hoca?: string | null
+          id?: string
+          kod?: string | null
+          kredi?: number | null
+          notlar?: string | null
+          restant?: boolean
+          siralama?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          donem?: string | null
+          durum?: Database["public"]["Enums"]["ders_durum"]
+          etiketler?: string[]
+          gecme_baraji?: number | null
+          hoca?: string | null
+          id?: string
+          kod?: string | null
+          kredi?: number | null
+          notlar?: string | null
+          restant?: boolean
+          siralama?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ders_kaynak: {
+        Row: {
+          baslik: string
+          created_at: string
+          ders_id: string
+          icerik: string | null
+          id: string
+          siralama: number
+          storage_path: string | null
+          tip: Database["public"]["Enums"]["ders_kaynak_tip"]
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          baslik: string
+          created_at?: string
+          ders_id: string
+          icerik?: string | null
+          id?: string
+          siralama?: number
+          storage_path?: string | null
+          tip?: Database["public"]["Enums"]["ders_kaynak_tip"]
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          baslik?: string
+          created_at?: string
+          ders_id?: string
+          icerik?: string | null
+          id?: string
+          siralama?: number
+          storage_path?: string | null
+          tip?: Database["public"]["Enums"]["ders_kaynak_tip"]
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ders_kaynak_ders_id_fkey"
+            columns: ["ders_id"]
+            isOneToOne: false
+            referencedRelation: "ders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ders_proje: {
+        Row: {
+          aciklama: string | null
+          baslik: string
+          created_at: string
+          deadline: string | null
+          ders_id: string
+          id: string
+          modul_no: number | null
+          siralama: number
+          tamamlandi: boolean
+          tamamlanma: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aciklama?: string | null
+          baslik: string
+          created_at?: string
+          deadline?: string | null
+          ders_id: string
+          id?: string
+          modul_no?: number | null
+          siralama?: number
+          tamamlandi?: boolean
+          tamamlanma?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aciklama?: string | null
+          baslik?: string
+          created_at?: string
+          deadline?: string | null
+          ders_id?: string
+          id?: string
+          modul_no?: number | null
+          siralama?: number
+          tamamlandi?: boolean
+          tamamlanma?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ders_proje_ders_id_fkey"
+            columns: ["ders_id"]
+            isOneToOne: false
+            referencedRelation: "ders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ders_saat: {
+        Row: {
+          baslangic: string
+          bitis: string
+          created_at: string
+          ders_id: string
+          gun: Database["public"]["Enums"]["hafta_gun"]
+          id: string
+          konum: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          baslangic: string
+          bitis: string
+          created_at?: string
+          ders_id: string
+          gun: Database["public"]["Enums"]["hafta_gun"]
+          id?: string
+          konum?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          baslangic?: string
+          bitis?: string
+          created_at?: string
+          ders_id?: string
+          gun?: Database["public"]["Enums"]["hafta_gun"]
+          id?: string
+          konum?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ders_saat_ders_id_fkey"
+            columns: ["ders_id"]
+            isOneToOne: false
+            referencedRelation: "ders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ders_sinav: {
+        Row: {
+          agirlik: number | null
+          alinan_not: number | null
+          baslik: string | null
+          created_at: string
+          ders_id: string
+          id: string
+          notlar: string | null
+          tarih: string | null
+          tip: Database["public"]["Enums"]["ders_sinav_tip"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agirlik?: number | null
+          alinan_not?: number | null
+          baslik?: string | null
+          created_at?: string
+          ders_id: string
+          id?: string
+          notlar?: string | null
+          tarih?: string | null
+          tip?: Database["public"]["Enums"]["ders_sinav_tip"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agirlik?: number | null
+          alinan_not?: number | null
+          baslik?: string | null
+          created_at?: string
+          ders_id?: string
+          id?: string
+          notlar?: string | null
+          tarih?: string | null
+          tip?: Database["public"]["Enums"]["ders_sinav_tip"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ders_sinav_ders_id_fkey"
+            columns: ["ders_id"]
+            isOneToOne: false
+            referencedRelation: "ders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hedef: {
         Row: {
           aciklama: string | null
@@ -322,7 +573,18 @@ export type Database = {
       cetele_alan: "mana" | "ilim" | "amel" | "kisisel"
       cetele_birim: "sayfa" | "adet" | "dakika" | "ikili"
       cetele_hedef_tipi: "gunluk" | "haftalik" | "esnek"
+      ders_durum: "izliyor" | "birakti" | "gecti" | "restant"
+      ders_kaynak_tip: "link" | "dosya" | "resim" | "not"
+      ders_sinav_tip: "vize" | "final" | "quiz" | "odev" | "proje" | "butunleme"
       gorev_oncelik: "dusuk" | "orta" | "yuksek"
+      hafta_gun:
+        | "pazartesi"
+        | "sali"
+        | "carsamba"
+        | "persembe"
+        | "cuma"
+        | "cumartesi"
+        | "pazar"
       hedef_durum: "aktif" | "tamamlandi" | "arsiv"
       hedef_tip: "kurs" | "aliskanlik" | "proje" | "sayisal" | "tekil"
       streak_birim: "gunluk" | "haftalik"
@@ -457,7 +719,19 @@ export const Constants = {
       cetele_alan: ["mana", "ilim", "amel", "kisisel"],
       cetele_birim: ["sayfa", "adet", "dakika", "ikili"],
       cetele_hedef_tipi: ["gunluk", "haftalik", "esnek"],
+      ders_durum: ["izliyor", "birakti", "gecti", "restant"],
+      ders_kaynak_tip: ["link", "dosya", "resim", "not"],
+      ders_sinav_tip: ["vize", "final", "quiz", "odev", "proje", "butunleme"],
       gorev_oncelik: ["dusuk", "orta", "yuksek"],
+      hafta_gun: [
+        "pazartesi",
+        "sali",
+        "carsamba",
+        "persembe",
+        "cuma",
+        "cumartesi",
+        "pazar",
+      ],
       hedef_durum: ["aktif", "tamamlandi", "arsiv"],
       hedef_tip: ["kurs", "aliskanlik", "proje", "sayisal", "tekil"],
       streak_birim: ["gunluk", "haftalik"],
