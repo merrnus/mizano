@@ -38,7 +38,7 @@ export function UcAylikIlerleme() {
               ) : null}
               <Progress
                 value={yuzde}
-                className="h-1.5 bg-muted [&>div]:bg-[var(--maneviyat)]"
+                className="h-1.5 bg-muted [&>div]:bg-[var(--mana)]"
               />
             </div>
           );

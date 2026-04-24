@@ -187,11 +187,7 @@ export function ceteleyiPdfeAktar({
   bugun.setHours(0, 0, 0, 0);
 
   // Alanlara göre grupla
-  const alanlar: Array<"maneviyat" | "akademi" | "dunyevi"> = [
-    "maneviyat",
-    "akademi",
-    "dunyevi",
-  ];
+  const alanlar: Array<"mana" | "ilim" | "amel"> = ["mana", "ilim", "amel"];
 
   for (const alan of alanlar) {
     const grup = sablonlar.filter((s) => s.alan === alan);

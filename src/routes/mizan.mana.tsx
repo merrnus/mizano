@@ -25,17 +25,17 @@ import { ceteleyiPdfeAktar } from "@/lib/cetele-pdf";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/mizan/maneviyat")({
+export const Route = createFileRoute("/mizan/mana")({
   head: () => ({
     meta: [
-      { title: "Maneviyat Çetelesi — Mizan" },
+      { title: "Mana — Çetele" },
       { name: "description", content: "Haftalık evrad çetelesi ve 3 aylık manevi hedefler." },
     ],
   }),
-  component: ManeviyatSayfasi,
+  component: ManaSayfasi,
 });
 
-function ManeviyatSayfasi() {
+function ManaSayfasi() {
   const [haftaBas, setHaftaBas] = React.useState<Date>(() => haftaBaslangici(new Date()));
   const gunler = haftaGunleri(haftaBas);
   const { data: sablonlar = [], isLoading } = useSablonlar();
@@ -44,8 +44,8 @@ function ManeviyatSayfasi() {
   const sil = useSablonSil();
   const { user } = useAuth();
 
-  const maneviyat = sablonlar.filter((s) => s.alan === "maneviyat");
-  const bos = !isLoading && maneviyat.length === 0;
+  const mana = sablonlar.filter((s) => s.alan === "mana");
+  const bos = !isLoading && mana.length === 0;
   const ucAyliklar = sablonlar.filter((s) => s.uc_aylik_hedef);
   const { data: ucAylikKayitlari = [] } = useUcAylikKayitlari(
     ucAyliklar.map((s) => s.id),
@@ -71,9 +71,9 @@ function ManeviyatSayfasi() {
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <header className="mb-6">
         <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2 h-7 gap-1 text-xs text-muted-foreground">
-          <Link to="/mizan"><ArrowLeft className="h-3 w-3" /> Mizan</Link>
+          <Link to="/mizan"><ArrowLeft className="h-3 w-3" /> İstikamet</Link>
         </Button>
-        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Maneviyat</p>
+        <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Mana</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Haftalık Çetele</h1>
       </header>
 
@@ -114,11 +114,11 @@ function ManeviyatSayfasi() {
               variant="outline"
               className="h-8 gap-1 text-xs"
               onClick={pdfIndir}
-              disabled={maneviyat.length === 0}
+              disabled={mana.length === 0}
             >
               <Download className="h-3.5 w-3.5" /> PDF
             </Button>
-            <SablonForm varsayilanAlan="maneviyat" />
+            <SablonForm varsayilanAlan="mana" />
           </div>
         </div>
 
@@ -170,7 +170,7 @@ function ManeviyatSayfasi() {
                 </tr>
               </thead>
               <tbody>
-                {maneviyat.map((s) => {
+                {mana.map((s) => {
                   const haftaSum = haftaToplami(kayitlar, s.id);
                   return (
                     <tr key={s.id} className="text-xs">
