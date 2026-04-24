@@ -224,7 +224,8 @@ export function AlanDetaySheet({ alan, onOpenChange, yuzde }: Props) {
             </section>
           ) : null}
 
-          {/* Hedef tablosundaki aktif hedefler (her alanda gösterilir) */}
+          {/* Hedef tablosundaki aktif hedefler — Mana'da gizli (3 aylık çetele zaten ana içerik) */}
+          {aktifAlan !== "mana" ? (
           <section>
             <div className="mb-3 flex items-center gap-2">
               <Target className="h-3.5 w-3.5" style={{ color: renk }} />
@@ -259,6 +260,7 @@ export function AlanDetaySheet({ alan, onOpenChange, yuzde }: Props) {
               </div>
             )}
           </section>
+          ) : null}
 
           {/* Alt aksiyon */}
           <div className="sticky bottom-0 -mx-6 border-t border-border bg-background/95 px-6 py-3 backdrop-blur">
