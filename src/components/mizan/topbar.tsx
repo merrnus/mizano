@@ -60,7 +60,7 @@ export function Topbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-20 flex h-12 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur transition-transform duration-200 will-change-transform",
+        "sticky top-0 z-20 flex h-12 items-center gap-2 border-b border-border bg-background/80 px-3 pt-safe backdrop-blur transition-transform duration-200 will-change-transform",
         // Sadece mobilde gizleme animasyonu — xl ve üzeri her zaman görünür
         gizle ? "-translate-y-full xl:translate-y-0" : "translate-y-0",
       )}

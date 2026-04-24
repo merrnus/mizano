@@ -38,7 +38,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1",
+      },
+      { name: "theme-color", content: "#0a0a0a", media: "(prefers-color-scheme: dark)" },
+      { name: "theme-color", content: "#fafafa", media: "(prefers-color-scheme: light)" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Mizan" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "format-detection", content: "telephone=no" },
       { title: "Mizan — Denge Sistemi" },
       {
         name: "description",
