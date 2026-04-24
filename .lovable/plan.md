@@ -1,72 +1,165 @@
 
-# Menü Yeniden Adlandırma + Filtre Temizliği
 
-İki küçük ama etkili dokunuş: kliseden uzak yeni menü isimleri ve `/network` Kişiler tabındaki gereksiz "Tümü" butonu.
+# İstikamet Yenilemesi — Mana / İlim / Amel Kartları
 
-## 1. Menü adlandırma
+## 1. İsimlendirme — tam değişim
 
-Yeni isimler — günlük dilden uzaklaşmadan, her birinin **bir niyeti** var:
+URL'ler dahil her yer:
 
 ```text
-ESKİ                          YENİ              ANLAM
-─────────────────────         ─────────         ──────────────────────────
-Dashboard          /          Bugün             Şu an, anlık hâl
-Kişisel Mizan      /mizan     İstikamet         Yön, kıble, kişisel ölçü
-Takvim & Görevler  /takvim    Planlama          Zaman + iş düzeni
-Kardeşler Ağı      /network   Rehberlik         İnsanlarla yürüme, yol arkadaşlığı
-Çalışma Alanı      /workspace Mutfak            Pişirme, üretim, ortak emek
+ESKİ                              YENİ
+─────────────────────             ──────────────────
+/mizan/maneviyat                  /mizan/mana
+/mizan/akademi                    /mizan/ilim
+/mizan/dunyevi                    /mizan/amel
+
+DB enum: cetele_alan
+'maneviyat' / 'akademi' / 'dunyevi' → 'mana' / 'ilim' / 'amel'
+('kisisel' aynı kalır)
+
+CSS değişkenleri
+--maneviyat → --mana
+--akademi   → --ilim
+--dunyevi   → --amel
 ```
 
-**Rotalar (URL'ler) aynı kalıyor** — sadece görünen etiketler değişiyor. Bu sayede mevcut linkler/redirect'ler kırılmaz, kullanıcı kafa karışıklığı yaşamaz.
+Renk eşleştirmesi referans görseldeki gibi:
+- **Mana** → mavi (mevcut maneviyat tonu — zaten mavi)
+- **İlim** → mor (mevcut akademi yeşildi → **mora çekilir**)
+- **Amel** → sarı/altın (mevcut dünyevi sarıydı — kalır)
 
-### Etkilenecek yerler
+İkonlar:
+- Mana → `Sprout` (lotus/yaprak — referansa yakın)
+- İlim → `BookOpen` (kitap — referansla aynı)
+- Amel → `Hammer` veya `Wrench` (çekiç-anahtar — referansa yakın)
+
+## 2. Yeni kart bileşeni: `IstikametKart`
+
+Referans birebir:
+
+```text
+┌────────────────────────┐
+│                        │
+│        [glow ikon]     │
+│                        │
+│         Mana           │
+│                        │
+│         85%            │
+│                        │
+│   ━━━━━━━━──────       │  ← neon glow bar
+└────────────────────────┘
+```
+
+- Karanlık arka plan (`bg-card`), yumuşak border
+- Üstte ikon — alanın renginde, hafif `drop-shadow` glow
+- İsim (medium, 14-16px), büyük yüzde (text-4xl, semibold, tracking-tight)
+- Altta neon ilerleme barı: dolan kısım renk + glow, kalan kısım `bg-muted/40`
+- Hover'da hafif parıltı artar, tıklanabilir → ilgili `/mizan/{alan}` sayfasına gider
+
+## 3. Dinamik rozet — "leading area" yerine bağlamlı mikro-mesaj
+
+Üç senaryo, tek rozet (üç kartın **üst hizasında**, ilgili kartın üstüne yapışır):
+
+```text
+1. Bir kart belirgin önde (max - others > 15%)
+   → "ÖNDESİN" rozet, en yüksek kartın üstünde, o alanın renginde
+
+2. Bir kart belirgin geride (others - min > 15%)
+   → "EL VER" rozet, en düşük kartın üstünde, kırmızımsı/uyarı tonu
+
+3. Hepsi yakın (max - min ≤ 15%)
+   → "DENGEDE" rozet, ortadaki kartın üstünde, primary/nötr tonda
+```
+
+Tek satır metin. Rozet stili: ince border, `rounded-full`, küçük caps (`text-[10px] uppercase tracking-[0.2em]`), referansla aynı oval form.
+
+## 4. Yerleştirme
+
+### `/mizan` (asıl gösteri)
+
+`mizan.index.tsx` üç-kart şeridi `IstikametKart` ile değişir. Mevcut `ManeviyatKart` ve `StatikKart` bileşenleri kaldırılır. Üst başlık zaten "İstikamet" — değişmez.
+
+Sayfa görünümü:
+
+```text
+İSTİKAMET
+Üç Alanın Dengesi
+
+           [ÖNDESİN]
+┌──────┐ ┌──────┐ ┌──────┐
+│ Mana │ │ İlim │ │ Amel │
+│ 85%  │ │ 89%  │ │ 32%  │   ← örnek; rozet hangi karta yapıştığı dinamik
+└──────┘ └──────┘ └──────┘
+
+(altında alanların kısa detayı — bugünkü ilk 2-3 kalem her alandan)
+```
+
+### `/` Bugün anasayfa — sade "burdayım" hattı
+
+Mevcut **DengeHalkalari** kalır (asıl görsel). Onun altında **küçük 3-mini şerit**: ikon + isim + yüzde + kısa bar — rozet yok, glow zayıf, tıklanabilir. Karta gitme kısayolu gibi.
+
+```text
+Haftalık Denge
+[       halkalar       ]  ← mevcut
+
+[Mana 85%] [İlim 89%] [Amel 32%]   ← yeni mini hat, link
+```
+
+Mevcut "alan kart linkleri" listesi (Maneviyat / Akademi / Dünyevi → halkanın sağındaki dikey liste) bu mini hatla **değişir**, daha kompakt durur. Suyunu çıkarmıyoruz.
+
+## 5. Veri modeli değişikliği
+
+`cetele_alan` enum'a yeni 3 değer eklenir, eski veriler güncellenir, eski değerler enum'dan düşürülür.
+
+```sql
+-- 1) Yeni değerleri ekle
+ALTER TYPE cetele_alan ADD VALUE 'mana';
+ALTER TYPE cetele_alan ADD VALUE 'ilim';
+ALTER TYPE cetele_alan ADD VALUE 'amel';
+
+-- 2) Mevcut satırları güncelle (cetele_sablon, takvim_etkinlik, takvim_gorev)
+UPDATE cetele_sablon SET alan = 'mana' WHERE alan = 'maneviyat';
+UPDATE cetele_sablon SET alan = 'ilim' WHERE alan = 'akademi';
+UPDATE cetele_sablon SET alan = 'amel' WHERE alan = 'dunyevi';
+-- aynısı takvim tabloları için
+
+-- 3) Eski değerleri enum'dan çıkar (PG'de zor — yeni enum yarat + migrate + swap)
+```
+
+Postgres `ENUM` değer silmeyi doğrudan desteklemediği için: yeni enum (`cetele_alan_v2`) oluştur → kolonları ona migrate et → eskisini drop et → v2'yi `cetele_alan` olarak yeniden adlandır.
+
+## 6. Etkilenecek dosyalar
 
 | Dosya | Değişiklik |
 |---|---|
-| `src/components/mizan/sol-sidebar.tsx` | 5 menü öğesinin label'ları güncellenir |
-| `src/components/mizan/icon-rail.tsx` | Aynı güncelleme + tooltip metinleri |
-| `src/routes/index.tsx` | Üst başlıktaki "Komuta Merkezi / Dashboard" varsa "Bugün" olur |
-| `src/routes/mizan.tsx` | Sayfa başlığı "Kişisel Mizan" → "İstikamet" |
-| `src/routes/takvim.tsx` | Sayfa başlığı "Takvim & Görevler" → "Planlama" |
-| `src/routes/network.tsx` | Sayfa başlığı "Kardeşler Ağı" → "Rehberlik" |
-| `src/routes/workspace.tsx` | Sayfa başlığı "Çalışma Alanı" → "Mutfak" |
-| `src/routes/__root.tsx` ve route `head()` meta'ları | `<title>` ve description'lar yeni isimlerle güncellenir |
+| Migration | enum swap + tüm tablolarda alan değerlerini güncelle |
+| `src/lib/cetele-tipleri.ts` | `Alan` tipi `mana/ilim/amel/kisisel` olur |
+| `src/lib/takvim-tipleri.ts` | aynı |
+| `src/styles.css` | `--maneviyat/--akademi/--dunyevi` → `--mana/--ilim/--amel` (akademi mor olur) |
+| `src/components/mizan/istikamet-kart.tsx` | YENİ — kart bileşeni |
+| `src/components/mizan/istikamet-rozeti.tsx` | YENİ — dinamik rozet mantığı |
+| `src/components/mizan/denge-halkalari.tsx` | renk değişkeni isimleri güncellenir |
+| `src/routes/mizan.index.tsx` | yeni 3 kart + rozet |
+| `src/routes/mizan.maneviyat.tsx` → `mizan.mana.tsx` | rename + iç metinler "Mana" |
+| `src/routes/mizan.akademi.tsx` → `mizan.ilim.tsx` | rename |
+| `src/routes/mizan.dunyevi.tsx` → `mizan.amel.tsx` | rename |
+| `src/routes/index.tsx` | sağdaki alan link listesi → mini 3-kart şerit; başlıklar güncel |
+| Tüm `var(--maneviyat)` vb. CSS referansları | yeni isimlerle değiştir (kapsamlı arama-değiştir) |
 
-**Dosya/route adları değişmiyor.** `mizan.tsx`, `network.tsx`, `workspace.tsx` dosya isimleri kalır — bu iç organizasyonu bozmamak için. Sadece kullanıcıya görünen metinler değişir.
+## 7. Sıralama
 
-### Alt rotalar (Mizan içi)
-
-`/mizan/akademi`, `/mizan/maneviyat`, `/mizan/dunyevi` alt sekmeleri **olduğu gibi kalır** — bunlar zaten temiz isimler. Üst başlığı "İstikamet" olur, içerik değişmez.
-
-## 2. Kişiler tabında "Tümü" kaldırma
-
-`/network` → Kişiler sekmesindeki etiket filtresinde şu an:
-
-```text
-[Tümü (8)] [Evdekiler (3)] [GG (2)] [OMM (2)] [Kuran (3)] [Online (2)]
-```
-
-→ olacak:
-
-```text
-[Evdekiler (3)] [GG (2)] [OMM (2)] [Kuran (3)] [Online (2)]
-```
-
-**Mantık:** Hiçbir filtre seçili değilken (varsayılan durum) tüm kişiler zaten görünür — ayrı bir "Tümü" butonu gereksiz. Bir etiket seçilince filtrelenir, **aynı etikete tekrar tıklanırsa filtre kaldırılır** (toggle davranışı). Bu hem alanı temizler hem daha sezgisel olur.
-
-### Etkilenecek dosya
-
-- `src/routes/network.tsx` → `KisilerIcerigi` içindeki "Tümü" butonu çıkarılır, etiket butonlarının `onClick`'i toggle olacak şekilde güncellenir (`aktif === e ? "tumu" : e`). Varsayılan state `"tumu"` olarak kalır (içsel olarak "filtre yok" anlamı taşır).
-
-## Uygulama sırası
-
-1. Sidebar + IconRail label'ları
-2. Her route'un sayfa başlığı + `head()` meta
-3. `/network` Kişiler "Tümü" butonu kaldır + toggle davranışı
-4. `index.tsx` varsa üst başlık güncelle
+1. **Migration** — enum swap + veri güncelle (kullanıcı onayı şart)
+2. **Tipler + CSS değişkenleri** — `mana/ilim/amel` her yerde yenilenir
+3. **`IstikametKart` + `IstikametRozeti`** bileşenleri
+4. **`/mizan` ana sayfa** yeni kartlarla yenilenir
+5. **Alt rotaları rename** (`mizan.mana.tsx` vs.) + iç başlıklar
+6. **Bugün anasayfa** — mevcut alan linkleri yerine mini 3-şerit
+7. Eski rotalardan yenilere redirect (`/mizan/maneviyat` → `/mizan/mana`) — eski linkler kırılmasın
 
 ## Notlar
 
-- **Mizan** kelimesi sidebar'dan kalkıyor ama uygulama markası olarak header/logo'da kalmaya devam ediyor — "Mizan" uygulama adı, "İstikamet" sayfa başlığı.
-- "Mutfak" biraz cesur bir seçim ama tam da paylaştığın ton — birlikte bir şeyler pişirilen, atölyeden daha sıcak bir mekân hissi veriyor.
-- Selamlama bileşeni hâlâ sıraya — bu küçük temizlik bittikten sonra ona dönülür.
+- Akademi yeşilden mora geçtiği için mevcut grafiklerde renk algısı değişir — referansa sadık kalmak istedim, ama istersen mavi-yeşil-sarı kalabilir. Kararını söyle.
+- Rozet metinleri **Türkçe ve mizan diline yakın**: "ÖNDESİN / EL VER / DENGEDE". İngilizce "LEADING AREA" yerine sıcak.
+- "Kisisel" alanı (takvimde kullanılan) bu üçlüye dahil değil, sadece takvim için kalmaya devam eder.
+- Sayfa içeriği (içerideki ders/evrad listeleri, formlar) aynı kalır — sadece kapak ve isim yenilenir.
+
