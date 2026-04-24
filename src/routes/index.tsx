@@ -271,8 +271,7 @@ function Dashboard() {
                 </div>
               </Link>
               <Link
-                to="/mizan/hedef/$id"
-                params={{ id: "yeni" }}
+                to="/mizan/amel"
                 onClick={() => setHizliAcik(false)}
                 className="flex w-full items-center gap-3 rounded-md px-2.5 py-2.5 text-left text-sm transition-colors hover:bg-accent"
               >
