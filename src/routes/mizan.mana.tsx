@@ -21,6 +21,7 @@ import {
 import { CeteleHucre } from "@/components/mizan/cetele-hucre";
 import { SablonForm } from "@/components/mizan/sablon-form";
 import { UcAylikIlerleme } from "@/components/mizan/uc-aylik-ilerleme";
+import { AlanHedefleriMini } from "@/components/mizan/hedef/alan-hedefleri-mini";
 import { ceteleyiPdfeAktar } from "@/lib/cetele-pdf";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -238,6 +239,7 @@ function ManaSayfasi() {
       </section>
 
       <UcAylikIlerleme />
+      <AlanHedefleriMini alan="mana" />
     </div>
   );
 }
