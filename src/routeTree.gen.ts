@@ -16,7 +16,13 @@ import { Route as MizanRouteImport } from './routes/mizan'
 import { Route as GundemlerRouteImport } from './routes/gundemler'
 import { Route as GirisRouteImport } from './routes/giris'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WorkspaceIndexRouteImport } from './routes/workspace.index'
 import { Route as MizanIndexRouteImport } from './routes/mizan.index'
+import { Route as WorkspaceTabloRouteImport } from './routes/workspace.tablo'
+import { Route as WorkspaceSurucuRouteImport } from './routes/workspace.surucu'
+import { Route as WorkspacePomodoroRouteImport } from './routes/workspace.pomodoro'
+import { Route as WorkspaceNotlarRouteImport } from './routes/workspace.notlar'
+import { Route as WorkspaceBelgeRouteImport } from './routes/workspace.belge'
 import { Route as MizanManeviyatRouteImport } from './routes/mizan.maneviyat'
 import { Route as MizanManaRouteImport } from './routes/mizan.mana'
 import { Route as MizanIlimRouteImport } from './routes/mizan.ilim'
@@ -25,6 +31,8 @@ import { Route as MizanAmelRouteImport } from './routes/mizan.amel'
 import { Route as MizanAkademiRouteImport } from './routes/mizan.akademi'
 import { Route as MizanIlimIndexRouteImport } from './routes/mizan.ilim.index'
 import { Route as MizanAmelIndexRouteImport } from './routes/mizan.amel.index'
+import { Route as WorkspaceTabloIdRouteImport } from './routes/workspace.tablo.$id'
+import { Route as WorkspaceBelgeIdRouteImport } from './routes/workspace.belge.$id'
 import { Route as MizanIlimIdRouteImport } from './routes/mizan.ilim.$id'
 import { Route as MizanHedefIdRouteImport } from './routes/mizan.hedef.$id'
 import { Route as MizanAmelIdRouteImport } from './routes/mizan.amel.$id'
@@ -64,10 +72,40 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
 const MizanIndexRoute = MizanIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => MizanRoute,
+} as any)
+const WorkspaceTabloRoute = WorkspaceTabloRouteImport.update({
+  id: '/tablo',
+  path: '/tablo',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceSurucuRoute = WorkspaceSurucuRouteImport.update({
+  id: '/surucu',
+  path: '/surucu',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspacePomodoroRoute = WorkspacePomodoroRouteImport.update({
+  id: '/pomodoro',
+  path: '/pomodoro',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceNotlarRoute = WorkspaceNotlarRouteImport.update({
+  id: '/notlar',
+  path: '/notlar',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceBelgeRoute = WorkspaceBelgeRouteImport.update({
+  id: '/belge',
+  path: '/belge',
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const MizanManeviyatRoute = MizanManeviyatRouteImport.update({
   id: '/maneviyat',
@@ -109,6 +147,16 @@ const MizanAmelIndexRoute = MizanAmelIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MizanAmelRoute,
 } as any)
+const WorkspaceTabloIdRoute = WorkspaceTabloIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => WorkspaceTabloRoute,
+} as any)
+const WorkspaceBelgeIdRoute = WorkspaceBelgeIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => WorkspaceBelgeRoute,
+} as any)
 const MizanIlimIdRoute = MizanIlimIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -132,17 +180,25 @@ export interface FileRoutesByFullPath {
   '/mizan': typeof MizanRouteWithChildren
   '/network': typeof NetworkRoute
   '/takvim': typeof TakvimRoute
-  '/workspace': typeof WorkspaceRoute
+  '/workspace': typeof WorkspaceRouteWithChildren
   '/mizan/akademi': typeof MizanAkademiRoute
   '/mizan/amel': typeof MizanAmelRouteWithChildren
   '/mizan/dunyevi': typeof MizanDunyeviRoute
   '/mizan/ilim': typeof MizanIlimRouteWithChildren
   '/mizan/mana': typeof MizanManaRoute
   '/mizan/maneviyat': typeof MizanManeviyatRoute
+  '/workspace/belge': typeof WorkspaceBelgeRouteWithChildren
+  '/workspace/notlar': typeof WorkspaceNotlarRoute
+  '/workspace/pomodoro': typeof WorkspacePomodoroRoute
+  '/workspace/surucu': typeof WorkspaceSurucuRoute
+  '/workspace/tablo': typeof WorkspaceTabloRouteWithChildren
   '/mizan/': typeof MizanIndexRoute
+  '/workspace/': typeof WorkspaceIndexRoute
   '/mizan/amel/$id': typeof MizanAmelIdRoute
   '/mizan/hedef/$id': typeof MizanHedefIdRoute
   '/mizan/ilim/$id': typeof MizanIlimIdRoute
+  '/workspace/belge/$id': typeof WorkspaceBelgeIdRoute
+  '/workspace/tablo/$id': typeof WorkspaceTabloIdRoute
   '/mizan/amel/': typeof MizanAmelIndexRoute
   '/mizan/ilim/': typeof MizanIlimIndexRoute
 }
@@ -152,15 +208,22 @@ export interface FileRoutesByTo {
   '/gundemler': typeof GundemlerRoute
   '/network': typeof NetworkRoute
   '/takvim': typeof TakvimRoute
-  '/workspace': typeof WorkspaceRoute
   '/mizan/akademi': typeof MizanAkademiRoute
   '/mizan/dunyevi': typeof MizanDunyeviRoute
   '/mizan/mana': typeof MizanManaRoute
   '/mizan/maneviyat': typeof MizanManeviyatRoute
+  '/workspace/belge': typeof WorkspaceBelgeRouteWithChildren
+  '/workspace/notlar': typeof WorkspaceNotlarRoute
+  '/workspace/pomodoro': typeof WorkspacePomodoroRoute
+  '/workspace/surucu': typeof WorkspaceSurucuRoute
+  '/workspace/tablo': typeof WorkspaceTabloRouteWithChildren
   '/mizan': typeof MizanIndexRoute
+  '/workspace': typeof WorkspaceIndexRoute
   '/mizan/amel/$id': typeof MizanAmelIdRoute
   '/mizan/hedef/$id': typeof MizanHedefIdRoute
   '/mizan/ilim/$id': typeof MizanIlimIdRoute
+  '/workspace/belge/$id': typeof WorkspaceBelgeIdRoute
+  '/workspace/tablo/$id': typeof WorkspaceTabloIdRoute
   '/mizan/amel': typeof MizanAmelIndexRoute
   '/mizan/ilim': typeof MizanIlimIndexRoute
 }
@@ -172,17 +235,25 @@ export interface FileRoutesById {
   '/mizan': typeof MizanRouteWithChildren
   '/network': typeof NetworkRoute
   '/takvim': typeof TakvimRoute
-  '/workspace': typeof WorkspaceRoute
+  '/workspace': typeof WorkspaceRouteWithChildren
   '/mizan/akademi': typeof MizanAkademiRoute
   '/mizan/amel': typeof MizanAmelRouteWithChildren
   '/mizan/dunyevi': typeof MizanDunyeviRoute
   '/mizan/ilim': typeof MizanIlimRouteWithChildren
   '/mizan/mana': typeof MizanManaRoute
   '/mizan/maneviyat': typeof MizanManeviyatRoute
+  '/workspace/belge': typeof WorkspaceBelgeRouteWithChildren
+  '/workspace/notlar': typeof WorkspaceNotlarRoute
+  '/workspace/pomodoro': typeof WorkspacePomodoroRoute
+  '/workspace/surucu': typeof WorkspaceSurucuRoute
+  '/workspace/tablo': typeof WorkspaceTabloRouteWithChildren
   '/mizan/': typeof MizanIndexRoute
+  '/workspace/': typeof WorkspaceIndexRoute
   '/mizan/amel/$id': typeof MizanAmelIdRoute
   '/mizan/hedef/$id': typeof MizanHedefIdRoute
   '/mizan/ilim/$id': typeof MizanIlimIdRoute
+  '/workspace/belge/$id': typeof WorkspaceBelgeIdRoute
+  '/workspace/tablo/$id': typeof WorkspaceTabloIdRoute
   '/mizan/amel/': typeof MizanAmelIndexRoute
   '/mizan/ilim/': typeof MizanIlimIndexRoute
 }
@@ -202,10 +273,18 @@ export interface FileRouteTypes {
     | '/mizan/ilim'
     | '/mizan/mana'
     | '/mizan/maneviyat'
+    | '/workspace/belge'
+    | '/workspace/notlar'
+    | '/workspace/pomodoro'
+    | '/workspace/surucu'
+    | '/workspace/tablo'
     | '/mizan/'
+    | '/workspace/'
     | '/mizan/amel/$id'
     | '/mizan/hedef/$id'
     | '/mizan/ilim/$id'
+    | '/workspace/belge/$id'
+    | '/workspace/tablo/$id'
     | '/mizan/amel/'
     | '/mizan/ilim/'
   fileRoutesByTo: FileRoutesByTo
@@ -215,15 +294,22 @@ export interface FileRouteTypes {
     | '/gundemler'
     | '/network'
     | '/takvim'
-    | '/workspace'
     | '/mizan/akademi'
     | '/mizan/dunyevi'
     | '/mizan/mana'
     | '/mizan/maneviyat'
+    | '/workspace/belge'
+    | '/workspace/notlar'
+    | '/workspace/pomodoro'
+    | '/workspace/surucu'
+    | '/workspace/tablo'
     | '/mizan'
+    | '/workspace'
     | '/mizan/amel/$id'
     | '/mizan/hedef/$id'
     | '/mizan/ilim/$id'
+    | '/workspace/belge/$id'
+    | '/workspace/tablo/$id'
     | '/mizan/amel'
     | '/mizan/ilim'
   id:
@@ -241,10 +327,18 @@ export interface FileRouteTypes {
     | '/mizan/ilim'
     | '/mizan/mana'
     | '/mizan/maneviyat'
+    | '/workspace/belge'
+    | '/workspace/notlar'
+    | '/workspace/pomodoro'
+    | '/workspace/surucu'
+    | '/workspace/tablo'
     | '/mizan/'
+    | '/workspace/'
     | '/mizan/amel/$id'
     | '/mizan/hedef/$id'
     | '/mizan/ilim/$id'
+    | '/workspace/belge/$id'
+    | '/workspace/tablo/$id'
     | '/mizan/amel/'
     | '/mizan/ilim/'
   fileRoutesById: FileRoutesById
@@ -256,7 +350,7 @@ export interface RootRouteChildren {
   MizanRoute: typeof MizanRouteWithChildren
   NetworkRoute: typeof NetworkRoute
   TakvimRoute: typeof TakvimRoute
-  WorkspaceRoute: typeof WorkspaceRoute
+  WorkspaceRoute: typeof WorkspaceRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -310,12 +404,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workspace/': {
+      id: '/workspace/'
+      path: '/'
+      fullPath: '/workspace/'
+      preLoaderRoute: typeof WorkspaceIndexRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
     '/mizan/': {
       id: '/mizan/'
       path: '/'
       fullPath: '/mizan/'
       preLoaderRoute: typeof MizanIndexRouteImport
       parentRoute: typeof MizanRoute
+    }
+    '/workspace/tablo': {
+      id: '/workspace/tablo'
+      path: '/tablo'
+      fullPath: '/workspace/tablo'
+      preLoaderRoute: typeof WorkspaceTabloRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/surucu': {
+      id: '/workspace/surucu'
+      path: '/surucu'
+      fullPath: '/workspace/surucu'
+      preLoaderRoute: typeof WorkspaceSurucuRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/pomodoro': {
+      id: '/workspace/pomodoro'
+      path: '/pomodoro'
+      fullPath: '/workspace/pomodoro'
+      preLoaderRoute: typeof WorkspacePomodoroRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/notlar': {
+      id: '/workspace/notlar'
+      path: '/notlar'
+      fullPath: '/workspace/notlar'
+      preLoaderRoute: typeof WorkspaceNotlarRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/belge': {
+      id: '/workspace/belge'
+      path: '/belge'
+      fullPath: '/workspace/belge'
+      preLoaderRoute: typeof WorkspaceBelgeRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/mizan/maneviyat': {
       id: '/mizan/maneviyat'
@@ -372,6 +508,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/mizan/amel/'
       preLoaderRoute: typeof MizanAmelIndexRouteImport
       parentRoute: typeof MizanAmelRoute
+    }
+    '/workspace/tablo/$id': {
+      id: '/workspace/tablo/$id'
+      path: '/$id'
+      fullPath: '/workspace/tablo/$id'
+      preLoaderRoute: typeof WorkspaceTabloIdRouteImport
+      parentRoute: typeof WorkspaceTabloRoute
+    }
+    '/workspace/belge/$id': {
+      id: '/workspace/belge/$id'
+      path: '/$id'
+      fullPath: '/workspace/belge/$id'
+      preLoaderRoute: typeof WorkspaceBelgeIdRouteImport
+      parentRoute: typeof WorkspaceBelgeRoute
     }
     '/mizan/ilim/$id': {
       id: '/mizan/ilim/$id'
@@ -449,6 +599,52 @@ const MizanRouteChildren: MizanRouteChildren = {
 
 const MizanRouteWithChildren = MizanRoute._addFileChildren(MizanRouteChildren)
 
+interface WorkspaceBelgeRouteChildren {
+  WorkspaceBelgeIdRoute: typeof WorkspaceBelgeIdRoute
+}
+
+const WorkspaceBelgeRouteChildren: WorkspaceBelgeRouteChildren = {
+  WorkspaceBelgeIdRoute: WorkspaceBelgeIdRoute,
+}
+
+const WorkspaceBelgeRouteWithChildren = WorkspaceBelgeRoute._addFileChildren(
+  WorkspaceBelgeRouteChildren,
+)
+
+interface WorkspaceTabloRouteChildren {
+  WorkspaceTabloIdRoute: typeof WorkspaceTabloIdRoute
+}
+
+const WorkspaceTabloRouteChildren: WorkspaceTabloRouteChildren = {
+  WorkspaceTabloIdRoute: WorkspaceTabloIdRoute,
+}
+
+const WorkspaceTabloRouteWithChildren = WorkspaceTabloRoute._addFileChildren(
+  WorkspaceTabloRouteChildren,
+)
+
+interface WorkspaceRouteChildren {
+  WorkspaceBelgeRoute: typeof WorkspaceBelgeRouteWithChildren
+  WorkspaceNotlarRoute: typeof WorkspaceNotlarRoute
+  WorkspacePomodoroRoute: typeof WorkspacePomodoroRoute
+  WorkspaceSurucuRoute: typeof WorkspaceSurucuRoute
+  WorkspaceTabloRoute: typeof WorkspaceTabloRouteWithChildren
+  WorkspaceIndexRoute: typeof WorkspaceIndexRoute
+}
+
+const WorkspaceRouteChildren: WorkspaceRouteChildren = {
+  WorkspaceBelgeRoute: WorkspaceBelgeRouteWithChildren,
+  WorkspaceNotlarRoute: WorkspaceNotlarRoute,
+  WorkspacePomodoroRoute: WorkspacePomodoroRoute,
+  WorkspaceSurucuRoute: WorkspaceSurucuRoute,
+  WorkspaceTabloRoute: WorkspaceTabloRouteWithChildren,
+  WorkspaceIndexRoute: WorkspaceIndexRoute,
+}
+
+const WorkspaceRouteWithChildren = WorkspaceRoute._addFileChildren(
+  WorkspaceRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GirisRoute: GirisRoute,
@@ -456,8 +652,17 @@ const rootRouteChildren: RootRouteChildren = {
   MizanRoute: MizanRouteWithChildren,
   NetworkRoute: NetworkRoute,
   TakvimRoute: TakvimRoute,
-  WorkspaceRoute: WorkspaceRoute,
+  WorkspaceRoute: WorkspaceRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
