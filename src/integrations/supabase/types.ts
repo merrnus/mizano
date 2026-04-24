@@ -198,7 +198,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      cetele_alan: "maneviyat" | "akademi" | "dunyevi" | "kisisel"
+      cetele_alan: "mana" | "ilim" | "amel" | "kisisel"
       cetele_birim: "sayfa" | "adet" | "dakika" | "ikili"
       cetele_hedef_tipi: "gunluk" | "haftalik" | "esnek"
       gorev_oncelik: "dusuk" | "orta" | "yuksek"
@@ -330,7 +330,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      cetele_alan: ["maneviyat", "akademi", "dunyevi", "kisisel"],
+      cetele_alan: ["mana", "ilim", "amel", "kisisel"],
       cetele_birim: ["sayfa", "adet", "dakika", "ikili"],
       cetele_hedef_tipi: ["gunluk", "haftalik", "esnek"],
       gorev_oncelik: ["dusuk", "orta", "yuksek"],
