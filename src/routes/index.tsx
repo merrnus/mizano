@@ -201,7 +201,7 @@ function Dashboard() {
           <div className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center">
             <p className="text-sm">Henüz evrad eklenmemiş.</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Maneviyat sayfasından başlangıç paketini yükleyebilirsin.
+              Mana sayfasından başlangıç paketini yükleyebilirsin.
             </p>
             <Button size="sm" variant="outline" asChild className="mt-3">
               <Link to="/mizan/mana" className="gap-1 text-xs">
