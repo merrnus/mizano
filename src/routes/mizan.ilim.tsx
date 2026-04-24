@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, Plus, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +63,9 @@ function IlimSayfasi() {
   const { data: sinavlar = [] } = useSinavlar();
   const [ekleAcik, setEkleAcik] = React.useState(false);
 
+  const aktifDersler = dersler.filter((d) => !d.restant && d.durum !== "restant");
+  const restantDersler = dersler.filter((d) => d.restant || d.durum === "restant");
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <header className="mb-6 flex items-end justify-between">
@@ -96,11 +100,38 @@ function IlimSayfasi() {
           <p className="text-sm text-muted-foreground">Henüz ders yok. Yukarıdan ekleyebilirsin.</p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {dersler.map((d) => (
-            <DersKart key={d.id} ders={d} sinav={sonrakiSinav(sinavlar, d.id)} />
-          ))}
-        </div>
+        <Tabs defaultValue="aktif" className="w-full">
+          <TabsList>
+            <TabsTrigger value="aktif">
+              Aktif <span className="ml-1.5 text-[10px] text-muted-foreground">({aktifDersler.length})</span>
+            </TabsTrigger>
+            <TabsTrigger value="restant">
+              Restant <span className="ml-1.5 text-[10px] text-muted-foreground">({restantDersler.length})</span>
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="aktif" className="mt-4">
+            {aktifDersler.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aktif ders yok.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {aktifDersler.map((d) => (
+                  <DersKart key={d.id} ders={d} sinav={sonrakiSinav(sinavlar, d.id)} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="restant" className="mt-4">
+            {restantDersler.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Restant ders yok.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {restantDersler.map((d) => (
+                  <DersKart key={d.id} ders={d} sinav={sonrakiSinav(sinavlar, d.id)} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
@@ -118,10 +149,7 @@ function DersKart({ ders, sinav }: { ders: Ders; sinav: DersSinav | null }) {
           params={{ id: ders.id }}
           className="min-w-0 flex-1"
         >
-          <div className="flex items-center gap-2">
-            {ders.kod && <span className="text-[10px] font-mono text-muted-foreground">{ders.kod}</span>}
-            <h3 className="truncate text-sm font-medium">{ders.ad}</h3>
-          </div>
+          <h3 className="truncate text-sm font-medium">{ders.ad}</h3>
           {ders.hoca && <p className="mt-0.5 text-[11px] text-muted-foreground">{ders.hoca}</p>}
         </Link>
         <div className="flex shrink-0 items-center gap-1">
@@ -138,16 +166,6 @@ function DersKart({ ders, sinav }: { ders: Ders; sinav: DersSinav | null }) {
         {!!ders.kredi && <span>{ders.kredi} kredi</span>}
         {ders.donem && <span>{ders.donem}</span>}
       </div>
-
-      {ders.etiketler.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {ders.etiketler.map((e) => (
-            <span key={e} className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-              {e}
-            </span>
-          ))}
-        </div>
-      )}
 
       <div className="mt-3 flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         <Dialog open={duzenleAcik} onOpenChange={setDuzenleAcik}>
