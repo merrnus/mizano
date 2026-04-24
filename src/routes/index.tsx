@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
-import { Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-hooks";
@@ -8,6 +7,8 @@ import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { BugunCetelesi } from "@/components/mizan/dashboard/bugun-cetelesi";
 import { BugunZamanCizelgesi } from "@/components/mizan/dashboard/bugun-zaman-cizelgesi";
 import { GelecekGunler } from "@/components/mizan/dashboard/gelecek-gunler";
+import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
+import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/")({
@@ -51,11 +52,15 @@ function AnaDashboard() {
   const ilimYuzde = 58;
   const amelYuzde = 32;
 
-  const rozetler = [
-    { ad: "Mana", yuzde: manaYuzde, renkVar: "--mana", to: "/mizan/mana" as const },
-    { ad: "İlim", yuzde: ilimYuzde, renkVar: "--ilim", to: "/mizan/ilim" as const },
-    { ad: "Amel", yuzde: amelYuzde, renkVar: "--amel", to: "/mizan/amel" as const },
+  const rozetler: Array<{ ad: string; yuzde: number; renkVar: string; alan: CeteleAlan }> = [
+    { ad: "Mana", yuzde: manaYuzde, renkVar: "--mana", alan: "mana" },
+    { ad: "İlim", yuzde: ilimYuzde, renkVar: "--ilim", alan: "ilim" },
+    { ad: "Amel", yuzde: amelYuzde, renkVar: "--amel", alan: "amel" },
   ];
+
+  const [acikAlan, setAcikAlan] = React.useState<CeteleAlan | null>(null);
+  const acikYuzde =
+    acikAlan === "mana" ? manaYuzde : acikAlan === "ilim" ? ilimYuzde : amelYuzde;
 
   const saat = simdi.getHours();
   const selamlama =
@@ -86,22 +91,25 @@ function AnaDashboard() {
             {isim ? <span className="text-muted-foreground">, {isim}</span> : null}
           </h1>
         </div>
-        <Link
-          to="/mizan"
-          className="group inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-1 py-1 text-xs transition-colors hover:border-border/80"
-          aria-label="İstikamet detayına git"
-        >
+        <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card p-1.5">
           {rozetler.map((r) => (
-            <span
+            <button
               key={r.ad}
-              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1"
+              type="button"
+              onClick={() => setAcikAlan(r.alan)}
+              className="group inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm transition-all hover:scale-[1.03] hover:brightness-110 active:scale-[0.98]"
               style={{
-                backgroundColor: `color-mix(in oklab, var(${r.renkVar}) 12%, transparent)`,
+                backgroundColor: `color-mix(in oklab, var(${r.renkVar}) 14%, transparent)`,
+                boxShadow: `inset 0 0 0 1px color-mix(in oklab, var(${r.renkVar}) 22%, transparent)`,
               }}
+              aria-label={`${r.ad} detayını aç`}
             >
               <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: `var(${r.renkVar})` }}
+                className="h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor: `var(${r.renkVar})`,
+                  boxShadow: `0 0 8px var(${r.renkVar})`,
+                }}
               />
               <span className="text-muted-foreground">{r.ad}</span>
               <span
@@ -110,9 +118,9 @@ function AnaDashboard() {
               >
                 {r.yuzde}%
               </span>
-            </span>
+            </button>
           ))}
-        </Link>
+        </div>
       </header>
 
       {/* Bugünün çetelesi + zaman çizelgesi */}
@@ -123,6 +131,12 @@ function AnaDashboard() {
 
       {/* Gelecek günler */}
       <GelecekGunler simdi={simdi} />
+
+      <AlanDetaySheet
+        alan={acikAlan}
+        onOpenChange={(o) => !o && setAcikAlan(null)}
+        yuzde={acikYuzde}
+      />
     </div>
   );
 }
