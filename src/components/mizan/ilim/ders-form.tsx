@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -28,14 +27,10 @@ export interface DersFormProps {
 
 export function DersForm({ ders, onBitti }: DersFormProps) {
   const [ad, setAd] = React.useState(ders?.ad ?? "");
-  const [kod, setKod] = React.useState(ders?.kod ?? "");
   const [donem, setDonem] = React.useState(ders?.donem ?? "");
   const [hoca, setHoca] = React.useState(ders?.hoca ?? "");
   const [kredi, setKredi] = React.useState<string>(String(ders?.kredi ?? ""));
   const [durum, setDurum] = React.useState<DersDurum>(ders?.durum ?? "izliyor");
-  const [restant, setRestant] = React.useState<boolean>(ders?.restant ?? false);
-  const [etiketler, setEtiketler] = React.useState<string>((ders?.etiketler ?? []).join(", "));
-  const [gecmeBaraji, setGecmeBaraji] = React.useState<string>(String(ders?.gecme_baraji ?? "60"));
   const [notlar, setNotlar] = React.useState(ders?.notlar ?? "");
 
   const ekle = useDersEkle();
@@ -46,17 +41,14 @@ export function DersForm({ ders, onBitti }: DersFormProps) {
     if (!ad.trim()) return;
     const payload = {
       ad: ad.trim(),
-      kod: kod.trim() || null,
+      kod: null,
       donem: donem.trim() || null,
       hoca: hoca.trim() || null,
       kredi: kredi ? Number(kredi) : 0,
       durum,
-      restant,
-      etiketler: etiketler
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      gecme_baraji: gecmeBaraji ? Number(gecmeBaraji) : null,
+      restant: durum === "restant",
+      etiketler: [],
+      gecme_baraji: null,
       notlar: notlar.trim() || null,
     };
     try {
@@ -81,10 +73,6 @@ export function DersForm({ ders, onBitti }: DersFormProps) {
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="ders-ad" className="text-xs">Ders adı</Label>
           <Input id="ders-ad" value={ad} onChange={(e) => setAd(e.target.value)} required />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="ders-kod" className="text-xs">Kod</Label>
-          <Input id="ders-kod" placeholder="BIL 305" value={kod} onChange={(e) => setKod(e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="ders-kredi" className="text-xs">Kredi</Label>
@@ -120,35 +108,6 @@ export function DersForm({ ders, onBitti }: DersFormProps) {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="ders-baraj" className="text-xs">Geçme barajı</Label>
-          <Input
-            id="ders-baraj"
-            type="number"
-            min={0}
-            max={100}
-            value={gecmeBaraji}
-            onChange={(e) => setGecmeBaraji(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between rounded-lg border border-border p-3">
-        <div>
-          <Label className="text-sm">Restant</Label>
-          <p className="text-[11px] text-muted-foreground">Geçen sene/dönemden kalmış ders</p>
-        </div>
-        <Switch checked={restant} onCheckedChange={setRestant} />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="ders-etiket" className="text-xs">Etiketler (virgülle ayır)</Label>
-        <Input
-          id="ders-etiket"
-          placeholder="web, networking, devops"
-          value={etiketler}
-          onChange={(e) => setEtiketler(e.target.value)}
-        />
       </div>
 
       <div className="space-y-1.5">
