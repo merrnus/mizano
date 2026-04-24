@@ -103,6 +103,127 @@ export type Database = {
         }
         Relationships: []
       }
+      hedef: {
+        Row: {
+          aciklama: string | null
+          ad: string
+          alan: Database["public"]["Enums"]["cetele_alan"]
+          baslangic: string
+          birim: string | null
+          bitis: string | null
+          created_at: string
+          durum: Database["public"]["Enums"]["hedef_durum"]
+          hedef_miktar: number | null
+          id: string
+          notlar: string | null
+          sablon_id: string | null
+          siralama: number
+          streak_birim: Database["public"]["Enums"]["streak_birim"] | null
+          tamamlanma: string | null
+          tip: Database["public"]["Enums"]["hedef_tip"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aciklama?: string | null
+          ad: string
+          alan?: Database["public"]["Enums"]["cetele_alan"]
+          baslangic?: string
+          birim?: string | null
+          bitis?: string | null
+          created_at?: string
+          durum?: Database["public"]["Enums"]["hedef_durum"]
+          hedef_miktar?: number | null
+          id?: string
+          notlar?: string | null
+          sablon_id?: string | null
+          siralama?: number
+          streak_birim?: Database["public"]["Enums"]["streak_birim"] | null
+          tamamlanma?: string | null
+          tip: Database["public"]["Enums"]["hedef_tip"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aciklama?: string | null
+          ad?: string
+          alan?: Database["public"]["Enums"]["cetele_alan"]
+          baslangic?: string
+          birim?: string | null
+          bitis?: string | null
+          created_at?: string
+          durum?: Database["public"]["Enums"]["hedef_durum"]
+          hedef_miktar?: number | null
+          id?: string
+          notlar?: string | null
+          sablon_id?: string | null
+          siralama?: number
+          streak_birim?: Database["public"]["Enums"]["streak_birim"] | null
+          tamamlanma?: string | null
+          tip?: Database["public"]["Enums"]["hedef_tip"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hedef_sablon_id_fkey"
+            columns: ["sablon_id"]
+            isOneToOne: false
+            referencedRelation: "cetele_sablon"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hedef_adim: {
+        Row: {
+          aciklama: string | null
+          baslik: string
+          created_at: string
+          hedef_id: string
+          id: string
+          siralama: number
+          tamamlandi: boolean
+          tamamlanma: string | null
+          updated_at: string
+          user_id: string
+          vade: string | null
+        }
+        Insert: {
+          aciklama?: string | null
+          baslik: string
+          created_at?: string
+          hedef_id: string
+          id?: string
+          siralama?: number
+          tamamlandi?: boolean
+          tamamlanma?: string | null
+          updated_at?: string
+          user_id: string
+          vade?: string | null
+        }
+        Update: {
+          aciklama?: string | null
+          baslik?: string
+          created_at?: string
+          hedef_id?: string
+          id?: string
+          siralama?: number
+          tamamlandi?: boolean
+          tamamlanma?: string | null
+          updated_at?: string
+          user_id?: string
+          vade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hedef_adim_hedef_id_fkey"
+            columns: ["hedef_id"]
+            isOneToOne: false
+            referencedRelation: "hedef"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       takvim_etkinlik: {
         Row: {
           aciklama: string | null
@@ -202,6 +323,9 @@ export type Database = {
       cetele_birim: "sayfa" | "adet" | "dakika" | "ikili"
       cetele_hedef_tipi: "gunluk" | "haftalik" | "esnek"
       gorev_oncelik: "dusuk" | "orta" | "yuksek"
+      hedef_durum: "aktif" | "tamamlandi" | "arsiv"
+      hedef_tip: "kurs" | "aliskanlik" | "proje" | "sayisal" | "tekil"
+      streak_birim: "gunluk" | "haftalik"
       takvim_tekrar: "yok" | "haftalik" | "aylik"
     }
     CompositeTypes: {
@@ -334,6 +458,9 @@ export const Constants = {
       cetele_birim: ["sayfa", "adet", "dakika", "ikili"],
       cetele_hedef_tipi: ["gunluk", "haftalik", "esnek"],
       gorev_oncelik: ["dusuk", "orta", "yuksek"],
+      hedef_durum: ["aktif", "tamamlandi", "arsiv"],
+      hedef_tip: ["kurs", "aliskanlik", "proje", "sayisal", "tekil"],
+      streak_birim: ["gunluk", "haftalik"],
       takvim_tekrar: ["yok", "haftalik", "aylik"],
     },
   },
