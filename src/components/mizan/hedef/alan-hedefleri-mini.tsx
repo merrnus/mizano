@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useHedefler, useTumAdimlar } from "@/lib/hedef-hooks";
 import { HedefForm } from "./hedef-form";
