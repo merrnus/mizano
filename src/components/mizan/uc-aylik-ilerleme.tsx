@@ -1,6 +1,7 @@
 import { Progress } from "@/components/ui/progress";
 import { useSablonlar, useUcAylikKayitlari } from "@/lib/cetele-hooks";
 import { Sparkles } from "lucide-react";
+import { SablonForm } from "@/components/mizan/sablon-form";
 
 export function UcAylikIlerleme() {
   const { data: sablonlar = [] } = useSablonlar();
@@ -25,11 +26,14 @@ export function UcAylikIlerleme() {
           const yuzde = hedef > 0 ? Math.min(100, (toplam / hedef) * 100) : 0;
           return (
             <div key={s.id}>
-              <div className="mb-1 flex items-center justify-between text-xs">
+              <div className="mb-1 flex items-center justify-between gap-2 text-xs">
                 <span className="font-medium">{s.ad}</span>
-                <span className="text-muted-foreground">
-                  {toplam} / {hedef} {s.birim}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="tabular-nums text-muted-foreground">
+                    {toplam} / {hedef} {s.birim}
+                  </span>
+                  <SablonForm duzenle={s} />
+                </div>
               </div>
               {s.notlar ? (
                 <div className="mb-1 text-[10px] text-muted-foreground/80">
