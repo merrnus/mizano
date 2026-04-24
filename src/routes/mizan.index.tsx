@@ -7,8 +7,6 @@ import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-h
 import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { IstikametKart } from "@/components/mizan/istikamet-kart";
 import { IstikametRozeti, rozetiHesapla } from "@/components/mizan/istikamet-rozeti";
-import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
-import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/mizan/")({
@@ -57,10 +55,6 @@ function MizanHub() {
     { ad: "İlim", yuzde: ilimYuzde, ikon: BookOpen, renkVar: "--ilim", to: "/mizan/ilim" as const },
     { ad: "Amel", yuzde: amelYuzde, ikon: Hammer, renkVar: "--amel", to: "/mizan/amel" as const },
   ];
-  const alanlar: CeteleAlan[] = ["mana", "ilim", "amel"];
-  const [acikAlan, setAcikAlan] = React.useState<CeteleAlan | null>(null);
-  const acikYuzde =
-    acikAlan === "mana" ? manaYuzde : acikAlan === "ilim" ? ilimYuzde : amelYuzde;
 
   const saat = simdi.getHours();
   const selamlama =
@@ -104,7 +98,6 @@ function MizanHub() {
             ikon={k.ikon}
             renkVar={k.renkVar}
             to={k.to}
-            onClick={() => setAcikAlan(alanlar[i])}
             rozet={
               i === rozet.index ? (
                 <IstikametRozeti metin={rozet.metin} renk={rozet.renk} />
@@ -113,12 +106,6 @@ function MizanHub() {
           />
         ))}
       </div>
-
-      <AlanDetaySheet
-        alan={acikAlan}
-        onOpenChange={(o) => !o && setAcikAlan(null)}
-        yuzde={acikYuzde}
-      />
     </div>
   );
 }
