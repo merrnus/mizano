@@ -7,11 +7,11 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/mizan/ilim")({
   head: () => ({
     meta: [
-      { title: "Akademi — Mizan" },
+      { title: "İlim — Mizan" },
       { name: "description", content: "Aktif dersler ve borç dersleri." },
     ],
   }),
-  component: AkademiSayfasi,
+  component: IlimSayfasi,
 });
 
 const dersler = [
@@ -25,27 +25,27 @@ const dersler = [
 ];
 
 const durumRenk: Record<string, string> = {
-  aktif: "bg-[var(--akademi)]/15 text-foreground border-[var(--akademi)]/40",
+  aktif: "bg-[var(--ilim)]/15 text-foreground border-[var(--ilim)]/40",
   borc: "bg-destructive/15 text-foreground border-destructive/40",
   gecti: "bg-muted text-muted-foreground border-border",
 };
 const durumEtiket: Record<string, string> = { aktif: "Aktif", borc: "Borç", gecti: "Geçti" };
 
-function AkademiSayfasi() {
+function IlimSayfasi() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <header className="mb-6 flex items-center justify-between">
         <div>
           <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2 h-7 gap-1 text-xs text-muted-foreground">
-            <Link to="/mizan"><ArrowLeft className="h-3 w-3" /> Mizan</Link>
+            <Link to="/mizan"><ArrowLeft className="h-3 w-3" /> İstikamet</Link>
           </Button>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Akademi</p>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">İlim</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Dersler</h1>
         </div>
       </header>
       <div className="grid gap-3 sm:grid-cols-2">
         {dersler.map((d) => (
-          <div key={d.ad} className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-[var(--akademi)]/40">
+          <div key={d.ad} className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-[var(--ilim)]/40">
             <div className="flex items-start justify-between gap-2">
               <h3 className="text-sm font-medium">{d.ad}</h3>
               <Badge variant="outline" className={cn("shrink-0 text-[10px]", durumRenk[d.durum])}>
