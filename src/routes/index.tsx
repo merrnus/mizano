@@ -14,9 +14,13 @@ import {
   Plus,
   MapPin,
   CalendarPlus,
+  ListTodo,
+  Trophy,
 } from "lucide-react";
 import { DengeHalkalari } from "@/components/mizan/denge-halkalari";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import {
   useSablonlar,
@@ -35,6 +39,10 @@ import {
   type EtkinlikOlay,
 } from "@/lib/takvim-hooks";
 import { ALAN_ETIKET } from "@/lib/cetele-tipleri";
+import { useHedefler, useTumAdimlar } from "@/lib/hedef-hooks";
+import { hedefIlerleme } from "@/lib/hedef-tipleri";
+import { EtkinlikDialog } from "@/components/mizan/takvim/etkinlik-dialog";
+import { GorevDialog } from "@/components/mizan/takvim/gorev-dialog";
 import { format, isSameDay, isToday, isTomorrow, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 
@@ -66,10 +74,15 @@ function Dashboard() {
   const gunEtiket = ["P", "S", "Ç", "P", "C", "C", "P"];
   const [bugun, setBugun] = React.useState<string | null>(null);
   const [selam, setSelam] = React.useState<string>("");
+  const [hizliAcik, setHizliAcik] = React.useState(false);
+  const [etkAcik, setEtkAcik] = React.useState(false);
+  const [gorevAcik, setGorevAcik] = React.useState(false);
   const haftaBas = React.useMemo(() => haftaBaslangici(new Date()), []);
   const haftaGunleriArr = React.useMemo(() => haftaGunleri(haftaBas), [haftaBas]);
   const { data: sablonlar = [] } = useSablonlar();
   const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
+  const { data: hedefler = [] } = useHedefler();
+  const { data: tumAdimlar = [] } = useTumAdimlar();
   const ekle = useKayitEkle();
   const sil = useKayitSil();
   const bugunStr = tarihFormat(new Date());
@@ -106,6 +119,41 @@ function Dashboard() {
       .sort((a, b) => a.olayBaslangic.getTime() - b.olayBaslangic.getTime())
       .slice(0, 4);
   }, [etkinlikler, takvimBas, takvimBitis, bugunBitis]);
+
+  // Streak: bu haftada aktivite olan ardışık gün sayısı
+  const streakSayi = React.useMemo(() => {
+    if (kayitlar.length === 0) return 0;
+    const aktifGunler = new Set(kayitlar.map((k) => k.tarih));
+    let s = 0;
+    const bg = new Date();
+    bg.setHours(0, 0, 0, 0);
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(bg);
+      d.setDate(bg.getDate() - i);
+      const iso = tarihFormat(d);
+      if (aktifGunler.has(iso)) {
+        s += 1;
+      } else if (i === 0) {
+        // bugün boşsa streak bozulmaz, dünden başla
+        continue;
+      } else {
+        break;
+      }
+    }
+    return s;
+  }, [kayitlar]);
+
+  // En yakın 2 aktif hedef (bitis tarihine göre)
+  const yakinHedefler = React.useMemo(() => {
+    return hedefler
+      .filter((h) => h.durum === "aktif")
+      .sort((a, b) => {
+        const ab = a.bitis ? new Date(a.bitis).getTime() : Infinity;
+        const bb = b.bitis ? new Date(b.bitis).getTime() : Infinity;
+        return ab - bb;
+      })
+      .slice(0, 2);
+  }, [hedefler]);
 
   const halkalar = React.useMemo(() => {
     const calc = (alan: "mana" | "ilim" | "amel") => {
@@ -151,17 +199,100 @@ function Dashboard() {
     <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-6">
       {/* Üst başlık — sosyal app tarzı selamlama */}
       <header className="mb-5 sm:mb-6">
-        {bugun && (
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            {bugun}
-          </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            {bugun && (
+              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                {bugun}
+              </p>
+            )}
+            <h1 className="mt-1 text-[26px] font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
+              {selam ? `${selam},` : "Bugünün Dengesi"}
+              <span className="block text-muted-foreground sm:inline sm:ml-2">
+                bugünün dengesi
+              </span>
+            </h1>
+          </div>
+          {/* Hızlı ekleme */}
+          <Popover open={hizliAcik} onOpenChange={setHizliAcik}>
+            <PopoverTrigger asChild>
+              <Button
+                size="icon"
+                className="h-11 w-11 shrink-0 rounded-full shadow-md transition-transform active:scale-95"
+                aria-label="Hızlı ekle"
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56 p-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setHizliAcik(false);
+                  setGorevAcik(true);
+                }}
+                className="flex w-full items-center gap-3 rounded-md px-2.5 py-2.5 text-left text-sm transition-colors hover:bg-accent"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <ListTodo className="h-4 w-4" />
+                </span>
+                <div className="flex flex-col">
+                  <span className="font-medium text-foreground">Görev</span>
+                  <span className="text-[11px] text-muted-foreground">Bugün için yapılacak</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setHizliAcik(false);
+                  setEtkAcik(true);
+                }}
+                className="flex w-full items-center gap-3 rounded-md px-2.5 py-2.5 text-left text-sm transition-colors hover:bg-accent"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <CalendarPlus className="h-4 w-4" />
+                </span>
+                <div className="flex flex-col">
+                  <span className="font-medium text-foreground">Etkinlik</span>
+                  <span className="text-[11px] text-muted-foreground">Takvime saatli ekle</span>
+                </div>
+              </button>
+              <Link
+                to="/mizan/mana"
+                onClick={() => setHizliAcik(false)}
+                className="flex w-full items-center gap-3 rounded-md px-2.5 py-2.5 text-left text-sm transition-colors hover:bg-accent"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Heart className="h-4 w-4" />
+                </span>
+                <div className="flex flex-col">
+                  <span className="font-medium text-foreground">Evrad / Çetele</span>
+                  <span className="text-[11px] text-muted-foreground">Yeni şablon</span>
+                </div>
+              </Link>
+              <Link
+                to="/mizan/amel"
+                onClick={() => setHizliAcik(false)}
+                className="flex w-full items-center gap-3 rounded-md px-2.5 py-2.5 text-left text-sm transition-colors hover:bg-accent"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Target className="h-4 w-4" />
+                </span>
+                <div className="flex flex-col">
+                  <span className="font-medium text-foreground">Hedef</span>
+                  <span className="text-[11px] text-muted-foreground">Yeni hedef tanımla</span>
+                </div>
+              </Link>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {streakSayi > 0 && (
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-[12px] font-medium text-orange-500">
+            <Flame className="h-3.5 w-3.5" />
+            <span>{streakSayi} gün üst üste</span>
+          </div>
         )}
-        <h1 className="mt-1 text-[26px] font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          {selam ? `${selam},` : "Bugünün Dengesi"}
-          <span className="block text-muted-foreground sm:inline sm:ml-2">
-            bugünün dengesi
-          </span>
-        </h1>
       </header>
 
       {/* 1) Haftalık denge */}
@@ -460,6 +591,89 @@ function Dashboard() {
           </div>
         )}
       </section>
+
+      {/* 4) Aktif hedefler */}
+      {yakinHedefler.length > 0 && (
+        <section className="mt-5 sm:mt-6">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-medium text-foreground">Aktif Hedefler</h2>
+            </div>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/mizan" className="gap-1 text-xs">
+                Tümü <ChevronRight className="h-3 w-3" />
+              </Link>
+            </Button>
+          </div>
+          <div className="flex flex-col gap-2.5 sm:grid sm:grid-cols-2">
+            {yakinHedefler.map((h) => {
+              const ilerleme = hedefIlerleme(h, tumAdimlar);
+              const kalan = h.bitis
+                ? Math.max(
+                    0,
+                    Math.ceil(
+                      (new Date(h.bitis).getTime() - Date.now()) /
+                        (1000 * 60 * 60 * 24),
+                    ),
+                  )
+                : null;
+              return (
+                <Link
+                  key={h.id}
+                  to="/mizan/hedef/$id"
+                  params={{ id: h.id }}
+                  className="group flex flex-col gap-2.5 rounded-xl border border-border bg-card p-3.5 transition-all hover:border-primary/40 active:scale-[0.99]"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[14px] font-medium text-foreground">
+                        {h.ad}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <span
+                          className="rounded-full px-1.5 py-0.5"
+                          style={{
+                            backgroundColor: `color-mix(in oklab, var(--${h.alan}) 18%, transparent)`,
+                            color: `var(--${h.alan})`,
+                          }}
+                        >
+                          {ALAN_ETIKET[h.alan]}
+                        </span>
+                        {kalan !== null && (
+                          <span>
+                            {kalan === 0
+                              ? "Bugün son"
+                              : kalan === 1
+                                ? "Yarın son"
+                                : `${kalan} gün kaldı`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-[16px] font-semibold tabular-nums text-foreground">
+                      {ilerleme}%
+                    </span>
+                  </div>
+                  <Progress
+                    value={ilerleme}
+                    className="h-1.5"
+                    style={
+                      {
+                        ["--progress-foreground" as string]: `var(--${h.alan})`,
+                      } as React.CSSProperties
+                    }
+                  />
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Hızlı eylem diyalogları */}
+      <EtkinlikDialog acik={etkAcik} onOpenChange={setEtkAcik} />
+      <GorevDialog acik={gorevAcik} onOpenChange={setGorevAcik} />
     </div>
   );
 }
