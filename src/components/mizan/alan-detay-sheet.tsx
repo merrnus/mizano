@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Plus, Target } from "lucide-react";
+import { ArrowRight, BookOpen, GraduationCap, Plus, Sparkles, Target } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useHedefler, useTumAdimlar } from "@/lib/hedef-hooks";
 import { hedefIlerleme } from "@/lib/hedef-tipleri";
+import { useSablonlar, useUcAylikKayitlari } from "@/lib/cetele-hooks";
+import { useDersler } from "@/lib/ilim-hooks";
+import { DERS_DURUM_ETIKET } from "@/lib/ilim-tipleri";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { ALAN_ETIKET, ALAN_RENK_VAR } from "@/lib/cetele-tipleri";
 import { HedefKart } from "./hedef/hedef-kart";
@@ -43,6 +46,8 @@ type Props = {
 export function AlanDetaySheet({ alan, onOpenChange, yuzde }: Props) {
   const { data: hedefler = [], isLoading } = useHedefler();
   const { data: adimlar = [] } = useTumAdimlar();
+  const { data: sablonlar = [] } = useSablonlar();
+  const { data: dersler = [] } = useDersler();
 
   const open = alan !== null;
   const aktifAlan = alan ?? "mana";
@@ -60,6 +65,23 @@ export function AlanDetaySheet({ alan, onOpenChange, yuzde }: Props) {
           return bi - ai;
         }),
     [hedefler, adimlar, aktifAlan],
+  );
+
+  // Mana: 3 aylık çetele hedefleri (uc_aylik_hedef tanımlı şablonlar)
+  const ucAylikSablonlar = React.useMemo(
+    () => sablonlar.filter((s) => s.alan === "mana" && s.uc_aylik_hedef),
+    [sablonlar],
+  );
+  const ucAylikIds = ucAylikSablonlar.map((s) => s.id);
+  const { data: ucAylikKayit = [] } = useUcAylikKayitlari(ucAylikIds);
+
+  // İlim: aktif dersler (izliyor / restant)
+  const aktifDersler = React.useMemo(
+    () =>
+      dersler.filter(
+        (d) => d.durum === "izliyor" || d.durum === "restant",
+      ),
+    [dersler],
   );
 
   return (
@@ -102,7 +124,107 @@ export function AlanDetaySheet({ alan, onOpenChange, yuzde }: Props) {
         </div>
 
         <div className="space-y-5 px-6 py-5">
-          {/* 3 Aylık Hedefler bölümü */}
+          {/* MANA — 3 aylık çetele hedefleri */}
+          {aktifAlan === "mana" && ucAylikSablonlar.length > 0 ? (
+            <section>
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5" style={{ color: renk }} />
+                <h3 className="text-sm font-medium">3 Aylık Hedefler</h3>
+                <span className="ml-auto text-[11px] text-muted-foreground">
+                  {ucAylikSablonlar.length} adet
+                </span>
+              </div>
+              <div className="flex flex-col gap-3 rounded-xl border border-border bg-card/40 p-4">
+                {ucAylikSablonlar.map((s) => {
+                  const toplam = ucAylikKayit
+                    .filter((k) => k.sablon_id === s.id)
+                    .reduce((a, k) => a + Number(k.miktar), 0);
+                  const hedef = Number(s.uc_aylik_hedef ?? 0);
+                  const yuzdeS =
+                    hedef > 0 ? Math.min(100, (toplam / hedef) * 100) : 0;
+                  return (
+                    <div key={s.id}>
+                      <div className="mb-1 flex items-center justify-between text-xs">
+                        <span className="font-medium">{s.ad}</span>
+                        <span className="tabular-nums text-muted-foreground">
+                          {toplam} / {hedef} {s.birim}
+                        </span>
+                      </div>
+                      {s.notlar ? (
+                        <div className="mb-1 text-[10px] text-muted-foreground/80">
+                          {s.notlar}
+                        </div>
+                      ) : null}
+                      <Progress
+                        value={yuzdeS}
+                        className="h-1.5 bg-muted"
+                        style={
+                          { ["--progress-fg" as string]: renk } as React.CSSProperties
+                        }
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
+
+          {/* İLİM — aktif dersler */}
+          {aktifAlan === "ilim" ? (
+            <section>
+              <div className="mb-3 flex items-center gap-2">
+                <GraduationCap className="h-3.5 w-3.5" style={{ color: renk }} />
+                <h3 className="text-sm font-medium">Aktif Dersler</h3>
+                <span className="ml-auto text-[11px] text-muted-foreground">
+                  {aktifDersler.length} adet
+                </span>
+              </div>
+              {aktifDersler.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border py-10 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    Henüz aktif ders yok.
+                  </p>
+                  <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                    <Link to={route} onClick={() => onOpenChange(false)}>
+                      <Plus className="mr-1 h-3 w-3" /> Ders ekle
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {aktifDersler.map((d) => (
+                    <Link
+                      key={d.id}
+                      to="/mizan/ilim/$id"
+                      params={{ id: d.id }}
+                      onClick={() => onOpenChange(false)}
+                      className="group flex items-center justify-between rounded-xl border border-border bg-card/40 px-4 py-3 transition hover:border-border/70 hover:bg-card"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <BookOpen
+                            className="h-3.5 w-3.5 shrink-0"
+                            style={{ color: renk }}
+                          />
+                          <span className="truncate text-sm font-medium">
+                            {d.ad}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2 pl-5 text-[11px] text-muted-foreground">
+                          <span>{DERS_DURUM_ETIKET[d.durum]}</span>
+                          {d.donem ? <span>· {d.donem}</span> : null}
+                          {d.kredi ? <span>· {d.kredi} kredi</span> : null}
+                        </div>
+                      </div>
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition group-hover:translate-x-0.5" />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
+
+          {/* Hedef tablosundaki aktif hedefler (her alanda gösterilir) */}
           <section>
             <div className="mb-3 flex items-center gap-2">
               <Target className="h-3.5 w-3.5" style={{ color: renk }} />
