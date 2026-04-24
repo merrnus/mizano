@@ -1,87 +1,60 @@
-# Mobil/Tablet Rahatlığı — Alt Tab Bar + Akıcı Topbar
+## Amaç
+Mobilde (392px) etkinlik dialogundaki Başlangıç/Bitiş `datetime-local` inputlarının çakışmasını çözmek ve Google Calendar'a benzer, ayrı tarih + saat alanlarına sahip net bir form sunmak.
 
-Şu anki uygulama mobilde "yönetim paneli" hissi veriyor: sol şerit + dolu topbar + dar içerik = küçültülmüş masaüstü. Bunu **Instagram/Facebook tarzı app hissi**ne çeviriyoruz — sadece `<1280px` için. Masaüstü aynen kalır.
+## 1) `src/components/mizan/takvim/etkinlik-dialog.tsx`
 
-## Hedeflenen his
+### State değişikliği
+Tek string yerine ayrı parçalar:
+- `baslangicTarih` (YYYY-MM-DD), `baslangicSaat` (HH:mm)
+- `bitisTarih` (YYYY-MM-DD), `bitisSaat` (HH:mm)
 
-```text
-MOBİL — ŞU AN                MOBİL — YENİ
-┌──┬──────────────┐          ┌─────────────────┐
-│☰ │ [Ara…]   + ☀ │  topbar  │ Bugün       👤  │  ← scroll'da gizlenir
-├──┼──────────────┤          ├─────────────────┤
-│⌂ │              │          │                 │
-│⚖ │   içerik     │          │    içerik       │  ← daha geniş
-│📅│              │          │                 │
-│👥│              │          │                 │
-│💼│              │          ├─────────────────┤
-└──┴──────────────┘          │ ⌂  ⚖  📅  👥  💼 │  ← sticky alt tab
-                             └─────────────────┘
+`toLocalInput`/`fromLocalInput` yerine küçük yardımcılar: `toDateInput(d)`, `toTimeInput(d)`, `birlestir(tarih, saat)` → ISO Date.
+
+`useEffect` içindeki initial set ve `kaydet`'teki ISO dönüşümü buna göre güncellenir.
+
+### Layout (Google Calendar tarzı)
+"Tüm gün" switch'ini koruyoruz. Altındaki blok:
+
+**Tüm gün AÇIK:**
+```
+[ Başlangıç tarihi ] [ Bitiş tarihi ]   ← grid-cols-2 (her iki input da kompakt date)
 ```
 
-## 1. Alt tab bar — yeni bileşen
+**Tüm gün KAPALI (saatli):**
+```
+Başlangıç
+[ Tarih (flex-1) ] [ Saat (w-[110px]) ]
 
-**Yeni dosya:** `src/components/mizan/alt-tab-bar.tsx`
+Bitiş
+[ Tarih (flex-1) ] [ Saat (w-[110px]) ]
+```
+İki ayrı satır halinde dikey istif — 392px'te sığar; sabit `sm:` breakpoint gerekmez çünkü her satır kendi içinde zaten dar.
 
-- 5 ikon: Bugün · İstikamet · Planlama · Rehberlik · Mutfak (mevcut sidebar item'larıyla aynı)
-- `fixed bottom-0`, `z-40`, tam genişlik, `h-14`
-- Aktif olan **renkli + ikon üstünde küçük nokta**, diğerleri muted
-- `safe-area-inset-bottom` desteği (iOS notch)
-- Sadece `<1280px`'de görünür (`xl:hidden`)
-- `bg-background/95 backdrop-blur` + üst border
+### Akıllı varsayılanlar / doğrulama
+- Yeni etkinlikte bitiş = başlangıç + 1 saat (zaten var, parçalı state'e taşınır).
+- `kaydet`'te: bitiş < başlangıç ise toast hata + `bitis` otomatik `başlangıç + 1 saat`'e düzeltilip kaydet iptal.
+- Başlangıç tarihi/saati değişince, bitiş hâlâ başlangıçtan önceyse otomatik olarak +1 saat ileri kaydır (Google Calendar davranışı).
+- Tüm gün açılınca: bitiş tarihi boşsa başlangıç tarihine eşitle.
 
-## 2. IconRail — mobil/tablette gizle
+### Diğer
+- "Alan" ve "Tekrar" satırı `grid-cols-2` olarak kalır (zaten 392px'te sığıyor — Select trigger'ları esnek).
+- `DialogContent`'a `max-h-[90vh] overflow-y-auto` ekle ki içerik uzayınca mobilde kaydırılabilsin.
 
-**Düzenlenecek:** `src/components/mizan/icon-rail.tsx`
-- `<aside>` className'ine `hidden xl:flex` ekle (şu an her zaman görünüyor)
+## 2) `src/components/mizan/takvim/gorev-dialog.tsx`
 
-**Düzenlenecek:** `src/components/mizan/app-shell.tsx`
-- `SidebarInset`'in `pl-12` sınıfını `xl:pl-12` yap (mobilde sol padding sıfırlanır, içerik tam genişlik)
-- `<main>` altına `pb-16 xl:pb-0` ekle (alt tab bar için yer aç)
-- `<AltTabBar />` bileşenini `SidebarInset` içinde en alta ekle
+Tek değişiklik: 3'lü grid'i mobilde dikey istifle.
+- `grid grid-cols-3 gap-2` → `grid grid-cols-1 gap-2 sm:grid-cols-3`
+- "Vade" sütunundaki `col-span-1` ifadesini kaldır (artık gereksiz).
+- 392px'te Vade / Öncelik / Alan üçü dikey istiflenir, ≥640px'te yan yana kalır.
 
-## 3. Topbar — mobilde sadeleştir + scroll'da gizle
+## Dokunulmayacaklar
+- `useEtkinlikEkle` / `useEtkinlikGuncelle` hook'ları ve `TakvimEtkinlikEkle` tipi — payload şeması (ISO baslangic/bitis) aynı kalır.
+- Veritabanı / migration yok.
+- `index.tsx`, `takvim.tsx` ve diğer çağıran yerler etkilenmez (props imzası aynı).
 
-**Düzenlenecek:** `src/components/mizan/topbar.tsx`
-
-Mobilde (`<xl`) görünüm:
-- Sol: **sayfa başlığı** (route'a göre dinamik: "Bugün", "İstikamet" vb.) + küçük Mizan logosu
-- Sağ: tek buton — **profil/menü** (avatar circle), tıklanınca dropdown açar (Tema değiştir, Çıkış)
-- Arama kutusu ve `+` butonu mobilde gizli (zaten gizliydi `+` hariç)
-
-Masaüstünde: mevcut görünüm korunur.
-
-**Scroll davranışı (yeni hook):**
-- Yeni dosya: `src/hooks/use-scroll-direction.ts` — son scroll yönünü döndürür
-- Topbar'a `transition-transform` + `-translate-y-full` (aşağı scroll) / `translate-y-0` (yukarı scroll)
-- Sayfa üstünde (scrollY < 64) her zaman görünür
-- Sadece mobilde aktif; masaüstünde topbar her zaman sabit
-
-## 4. İçerik nefesi — mobilde küçük ayarlar
-
-Tüm sayfalardaki `mx-auto w-full max-w-6xl px-4 py-6 sm:px-6` desenini bırakıyoruz, **sadece** ana sayfada (`src/routes/index.tsx`) kart yoğunluğu fazla. Plan dışı bırakıyorum çünkü bu cila iş — ana yapıyı çözdükten sonra tek tek bakarız.
-
-## 5. Etkilenecek/yeni dosyalar
-
-| Dosya | Değişiklik |
-|---|---|
-| `src/components/mizan/alt-tab-bar.tsx` | YENİ — sticky alt nav, 5 ikon, aktif state |
-| `src/hooks/use-scroll-direction.ts` | YENİ — yön + pozisyon döndürür |
-| `src/components/mizan/icon-rail.tsx` | `hidden xl:flex` ekle |
-| `src/components/mizan/app-shell.tsx` | Mobilde `pl-12` kaldır, alt padding ekle, AltTabBar render |
-| `src/components/mizan/topbar.tsx` | Mobil görünüm sadeleşir, scroll-hide davranışı, profil dropdown |
-
-## 6. Sıralama
-
-1. `useScrollDirection` hook
-2. `AltTabBar` bileşeni
-3. `IconRail` mobilde gizle + `AppShell` güncelle (alt padding + AltTabBar render)
-4. `Topbar` mobil sadeleşme + profil dropdown + scroll-hide
-
-## Notlar
-
-- **Breakpoint** `xl` (1280px) — `useIsMobile` hook'undaki mevcut eşikle uyumlu
-- **Sidebar (`SolSidebar`) hâlâ duruyor** — masaüstünde `IconRail` üstünden açılıyor; mobilde alt tab bar yeterli, sidebar'ı mobilde açma ihtiyacı kalkıyor
-- **Tema toggle ve çıkış** mobilde profil dropdown'una taşınır, kaybolmaz
-- **Üst başlık dinamik** — pathname → etiket eşlemesi `Topbar` içinde küçük bir map; alt-rotalarda da çalışır (örn. `/mizan/mana` → "Mana")
-- Bu değişiklik sadece **shell** seviyesinde; sayfa içerikleri dokunulmaz
-- İlerideki ihtiyaç: alt tab'da "+" merkezi (Instagram'daki gibi vurgulu orta buton) eklenebilir — şimdi dahil değil
+## Kabul kriterleri
+- 392px'te Başlangıç ve Bitiş alanları üst üste binmeden net görünür.
+- Tüm gün açıkken tek satırda iki tarih, kapalıyken iki satırda tarih+saat çiftleri.
+- Bitiş < Başlangıç engellenir (toast + auto-shift).
+- Yeni etkinlikte bitiş otomatik +1 saat.
+- Görev dialogunda Vade/Öncelik/Alan mobilde dikey, desktop'ta yatay.
