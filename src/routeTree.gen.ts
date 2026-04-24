@@ -19,10 +19,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as MizanIndexRouteImport } from './routes/mizan.index'
 import { Route as MizanManeviyatRouteImport } from './routes/mizan.maneviyat'
 import { Route as MizanManaRouteImport } from './routes/mizan.mana'
-import { Route as MizanIlimRouteImport } from './routes/mizan.ilim'
 import { Route as MizanDunyeviRouteImport } from './routes/mizan.dunyevi'
-import { Route as MizanAmelRouteImport } from './routes/mizan.amel'
 import { Route as MizanAkademiRouteImport } from './routes/mizan.akademi'
+import { Route as MizanIlimIndexRouteImport } from './routes/mizan.ilim.index'
+import { Route as MizanAmelIndexRouteImport } from './routes/mizan.amel.index'
 import { Route as MizanIlimIdRouteImport } from './routes/mizan.ilim.$id'
 import { Route as MizanHedefIdRouteImport } from './routes/mizan.hedef.$id'
 import { Route as MizanAmelIdRouteImport } from './routes/mizan.amel.$id'
@@ -77,19 +77,9 @@ const MizanManaRoute = MizanManaRouteImport.update({
   path: '/mana',
   getParentRoute: () => MizanRoute,
 } as any)
-const MizanIlimRoute = MizanIlimRouteImport.update({
-  id: '/ilim',
-  path: '/ilim',
-  getParentRoute: () => MizanRoute,
-} as any)
 const MizanDunyeviRoute = MizanDunyeviRouteImport.update({
   id: '/dunyevi',
   path: '/dunyevi',
-  getParentRoute: () => MizanRoute,
-} as any)
-const MizanAmelRoute = MizanAmelRouteImport.update({
-  id: '/amel',
-  path: '/amel',
   getParentRoute: () => MizanRoute,
 } as any)
 const MizanAkademiRoute = MizanAkademiRouteImport.update({
@@ -97,10 +87,20 @@ const MizanAkademiRoute = MizanAkademiRouteImport.update({
   path: '/akademi',
   getParentRoute: () => MizanRoute,
 } as any)
+const MizanIlimIndexRoute = MizanIlimIndexRouteImport.update({
+  id: '/ilim/',
+  path: '/ilim/',
+  getParentRoute: () => MizanRoute,
+} as any)
+const MizanAmelIndexRoute = MizanAmelIndexRouteImport.update({
+  id: '/amel/',
+  path: '/amel/',
+  getParentRoute: () => MizanRoute,
+} as any)
 const MizanIlimIdRoute = MizanIlimIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => MizanIlimRoute,
+  id: '/ilim/$id',
+  path: '/ilim/$id',
+  getParentRoute: () => MizanRoute,
 } as any)
 const MizanHedefIdRoute = MizanHedefIdRouteImport.update({
   id: '/hedef/$id',
@@ -108,9 +108,9 @@ const MizanHedefIdRoute = MizanHedefIdRouteImport.update({
   getParentRoute: () => MizanRoute,
 } as any)
 const MizanAmelIdRoute = MizanAmelIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => MizanAmelRoute,
+  id: '/amel/$id',
+  path: '/amel/$id',
+  getParentRoute: () => MizanRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -122,15 +122,15 @@ export interface FileRoutesByFullPath {
   '/takvim': typeof TakvimRoute
   '/workspace': typeof WorkspaceRoute
   '/mizan/akademi': typeof MizanAkademiRoute
-  '/mizan/amel': typeof MizanAmelRouteWithChildren
   '/mizan/dunyevi': typeof MizanDunyeviRoute
-  '/mizan/ilim': typeof MizanIlimRouteWithChildren
   '/mizan/mana': typeof MizanManaRoute
   '/mizan/maneviyat': typeof MizanManeviyatRoute
   '/mizan/': typeof MizanIndexRoute
   '/mizan/amel/$id': typeof MizanAmelIdRoute
   '/mizan/hedef/$id': typeof MizanHedefIdRoute
   '/mizan/ilim/$id': typeof MizanIlimIdRoute
+  '/mizan/amel/': typeof MizanAmelIndexRoute
+  '/mizan/ilim/': typeof MizanIlimIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -140,15 +140,15 @@ export interface FileRoutesByTo {
   '/takvim': typeof TakvimRoute
   '/workspace': typeof WorkspaceRoute
   '/mizan/akademi': typeof MizanAkademiRoute
-  '/mizan/amel': typeof MizanAmelRouteWithChildren
   '/mizan/dunyevi': typeof MizanDunyeviRoute
-  '/mizan/ilim': typeof MizanIlimRouteWithChildren
   '/mizan/mana': typeof MizanManaRoute
   '/mizan/maneviyat': typeof MizanManeviyatRoute
   '/mizan': typeof MizanIndexRoute
   '/mizan/amel/$id': typeof MizanAmelIdRoute
   '/mizan/hedef/$id': typeof MizanHedefIdRoute
   '/mizan/ilim/$id': typeof MizanIlimIdRoute
+  '/mizan/amel': typeof MizanAmelIndexRoute
+  '/mizan/ilim': typeof MizanIlimIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -160,15 +160,15 @@ export interface FileRoutesById {
   '/takvim': typeof TakvimRoute
   '/workspace': typeof WorkspaceRoute
   '/mizan/akademi': typeof MizanAkademiRoute
-  '/mizan/amel': typeof MizanAmelRouteWithChildren
   '/mizan/dunyevi': typeof MizanDunyeviRoute
-  '/mizan/ilim': typeof MizanIlimRouteWithChildren
   '/mizan/mana': typeof MizanManaRoute
   '/mizan/maneviyat': typeof MizanManeviyatRoute
   '/mizan/': typeof MizanIndexRoute
   '/mizan/amel/$id': typeof MizanAmelIdRoute
   '/mizan/hedef/$id': typeof MizanHedefIdRoute
   '/mizan/ilim/$id': typeof MizanIlimIdRoute
+  '/mizan/amel/': typeof MizanAmelIndexRoute
+  '/mizan/ilim/': typeof MizanIlimIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,15 +181,15 @@ export interface FileRouteTypes {
     | '/takvim'
     | '/workspace'
     | '/mizan/akademi'
-    | '/mizan/amel'
     | '/mizan/dunyevi'
-    | '/mizan/ilim'
     | '/mizan/mana'
     | '/mizan/maneviyat'
     | '/mizan/'
     | '/mizan/amel/$id'
     | '/mizan/hedef/$id'
     | '/mizan/ilim/$id'
+    | '/mizan/amel/'
+    | '/mizan/ilim/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,15 +199,15 @@ export interface FileRouteTypes {
     | '/takvim'
     | '/workspace'
     | '/mizan/akademi'
-    | '/mizan/amel'
     | '/mizan/dunyevi'
-    | '/mizan/ilim'
     | '/mizan/mana'
     | '/mizan/maneviyat'
     | '/mizan'
     | '/mizan/amel/$id'
     | '/mizan/hedef/$id'
     | '/mizan/ilim/$id'
+    | '/mizan/amel'
+    | '/mizan/ilim'
   id:
     | '__root__'
     | '/'
@@ -218,15 +218,15 @@ export interface FileRouteTypes {
     | '/takvim'
     | '/workspace'
     | '/mizan/akademi'
-    | '/mizan/amel'
     | '/mizan/dunyevi'
-    | '/mizan/ilim'
     | '/mizan/mana'
     | '/mizan/maneviyat'
     | '/mizan/'
     | '/mizan/amel/$id'
     | '/mizan/hedef/$id'
     | '/mizan/ilim/$id'
+    | '/mizan/amel/'
+    | '/mizan/ilim/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -311,25 +311,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MizanManaRouteImport
       parentRoute: typeof MizanRoute
     }
-    '/mizan/ilim': {
-      id: '/mizan/ilim'
-      path: '/ilim'
-      fullPath: '/mizan/ilim'
-      preLoaderRoute: typeof MizanIlimRouteImport
-      parentRoute: typeof MizanRoute
-    }
     '/mizan/dunyevi': {
       id: '/mizan/dunyevi'
       path: '/dunyevi'
       fullPath: '/mizan/dunyevi'
       preLoaderRoute: typeof MizanDunyeviRouteImport
-      parentRoute: typeof MizanRoute
-    }
-    '/mizan/amel': {
-      id: '/mizan/amel'
-      path: '/amel'
-      fullPath: '/mizan/amel'
-      preLoaderRoute: typeof MizanAmelRouteImport
       parentRoute: typeof MizanRoute
     }
     '/mizan/akademi': {
@@ -339,12 +325,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MizanAkademiRouteImport
       parentRoute: typeof MizanRoute
     }
+    '/mizan/ilim/': {
+      id: '/mizan/ilim/'
+      path: '/ilim'
+      fullPath: '/mizan/ilim/'
+      preLoaderRoute: typeof MizanIlimIndexRouteImport
+      parentRoute: typeof MizanRoute
+    }
+    '/mizan/amel/': {
+      id: '/mizan/amel/'
+      path: '/amel'
+      fullPath: '/mizan/amel/'
+      preLoaderRoute: typeof MizanAmelIndexRouteImport
+      parentRoute: typeof MizanRoute
+    }
     '/mizan/ilim/$id': {
       id: '/mizan/ilim/$id'
-      path: '/$id'
+      path: '/ilim/$id'
       fullPath: '/mizan/ilim/$id'
       preLoaderRoute: typeof MizanIlimIdRouteImport
-      parentRoute: typeof MizanIlimRoute
+      parentRoute: typeof MizanRoute
     }
     '/mizan/hedef/$id': {
       id: '/mizan/hedef/$id'
@@ -355,58 +355,38 @@ declare module '@tanstack/react-router' {
     }
     '/mizan/amel/$id': {
       id: '/mizan/amel/$id'
-      path: '/$id'
+      path: '/amel/$id'
       fullPath: '/mizan/amel/$id'
       preLoaderRoute: typeof MizanAmelIdRouteImport
-      parentRoute: typeof MizanAmelRoute
+      parentRoute: typeof MizanRoute
     }
   }
 }
 
-interface MizanAmelRouteChildren {
-  MizanAmelIdRoute: typeof MizanAmelIdRoute
-}
-
-const MizanAmelRouteChildren: MizanAmelRouteChildren = {
-  MizanAmelIdRoute: MizanAmelIdRoute,
-}
-
-const MizanAmelRouteWithChildren = MizanAmelRoute._addFileChildren(
-  MizanAmelRouteChildren,
-)
-
-interface MizanIlimRouteChildren {
-  MizanIlimIdRoute: typeof MizanIlimIdRoute
-}
-
-const MizanIlimRouteChildren: MizanIlimRouteChildren = {
-  MizanIlimIdRoute: MizanIlimIdRoute,
-}
-
-const MizanIlimRouteWithChildren = MizanIlimRoute._addFileChildren(
-  MizanIlimRouteChildren,
-)
-
 interface MizanRouteChildren {
   MizanAkademiRoute: typeof MizanAkademiRoute
-  MizanAmelRoute: typeof MizanAmelRouteWithChildren
   MizanDunyeviRoute: typeof MizanDunyeviRoute
-  MizanIlimRoute: typeof MizanIlimRouteWithChildren
   MizanManaRoute: typeof MizanManaRoute
   MizanManeviyatRoute: typeof MizanManeviyatRoute
   MizanIndexRoute: typeof MizanIndexRoute
+  MizanAmelIdRoute: typeof MizanAmelIdRoute
   MizanHedefIdRoute: typeof MizanHedefIdRoute
+  MizanIlimIdRoute: typeof MizanIlimIdRoute
+  MizanAmelIndexRoute: typeof MizanAmelIndexRoute
+  MizanIlimIndexRoute: typeof MizanIlimIndexRoute
 }
 
 const MizanRouteChildren: MizanRouteChildren = {
   MizanAkademiRoute: MizanAkademiRoute,
-  MizanAmelRoute: MizanAmelRouteWithChildren,
   MizanDunyeviRoute: MizanDunyeviRoute,
-  MizanIlimRoute: MizanIlimRouteWithChildren,
   MizanManaRoute: MizanManaRoute,
   MizanManeviyatRoute: MizanManeviyatRoute,
   MizanIndexRoute: MizanIndexRoute,
+  MizanAmelIdRoute: MizanAmelIdRoute,
   MizanHedefIdRoute: MizanHedefIdRoute,
+  MizanIlimIdRoute: MizanIlimIdRoute,
+  MizanAmelIndexRoute: MizanAmelIndexRoute,
+  MizanIlimIndexRoute: MizanIlimIndexRoute,
 }
 
 const MizanRouteWithChildren = MizanRoute._addFileChildren(MizanRouteChildren)
