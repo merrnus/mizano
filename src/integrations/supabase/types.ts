@@ -798,6 +798,138 @@ export type Database = {
           },
         ]
       }
+      mutfak_belge: {
+        Row: {
+          baslik: string
+          created_at: string
+          emoji: string | null
+          icerik: Json
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          baslik?: string
+          created_at?: string
+          emoji?: string | null
+          icerik?: Json
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          baslik?: string
+          created_at?: string
+          emoji?: string | null
+          icerik?: Json
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mutfak_dosya: {
+        Row: {
+          ad: string
+          boyut: number
+          created_at: string
+          id: string
+          klasor: string
+          mime_type: string | null
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          ad: string
+          boyut?: number
+          created_at?: string
+          id?: string
+          klasor?: string
+          mime_type?: string | null
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          ad?: string
+          boyut?: number
+          created_at?: string
+          id?: string
+          klasor?: string
+          mime_type?: string | null
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mutfak_not: {
+        Row: {
+          arsiv: boolean
+          baslik: string | null
+          created_at: string
+          etiketler: string[]
+          icerik: string
+          id: string
+          pinned: boolean
+          renk: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          arsiv?: boolean
+          baslik?: string | null
+          created_at?: string
+          etiketler?: string[]
+          icerik?: string
+          id?: string
+          pinned?: boolean
+          renk?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          arsiv?: boolean
+          baslik?: string | null
+          created_at?: string
+          etiketler?: string[]
+          icerik?: string
+          id?: string
+          pinned?: boolean
+          renk?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mutfak_tablo: {
+        Row: {
+          baslik: string
+          created_at: string
+          id: string
+          kolonlar: Json
+          satirlar: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          baslik?: string
+          created_at?: string
+          id?: string
+          kolonlar?: Json
+          satirlar?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          baslik?: string
+          created_at?: string
+          id?: string
+          kolonlar?: Json
+          satirlar?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       takvim_etkinlik: {
         Row: {
           aciklama: string | null
