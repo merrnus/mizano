@@ -33,10 +33,9 @@ import {
   useSablonKayitlari,
 } from "@/lib/hedef-hooks";
 import { useKayitEkle } from "@/lib/cetele-hooks";
-import { ALAN_ETIKET, ALAN_LISTESI } from "@/lib/cetele-tipleri";
-import { ALAN_RENK_VAR } from "@/lib/cetele-tipleri";
+import { ALAN_ETIKET, ALAN_RENK_VAR } from "@/lib/cetele-tipleri";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
-import { TIP_ETIKET, DURUM_ETIKET } from "@/lib/hedef-tipleri";
+import { ALAN_LISTESI, TIP_ETIKET, DURUM_ETIKET } from "@/lib/hedef-tipleri";
 import { AdimListesi } from "@/components/mizan/hedef/adim-listesi";
 import { StreakIsiHaritasi } from "@/components/mizan/hedef/streak-isi-haritasi";
 import { tarihFormat } from "@/lib/cetele-tarih";

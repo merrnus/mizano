@@ -13,9 +13,9 @@ import {
 import { useHedefler, useTumAdimlar } from "@/lib/hedef-hooks";
 import { HedefKart } from "@/components/mizan/hedef/hedef-kart";
 import { HedefForm } from "@/components/mizan/hedef/hedef-form";
-import { ALAN_ETIKET, ALAN_LISTESI } from "@/lib/cetele-tipleri";
+import { ALAN_ETIKET } from "@/lib/cetele-tipleri";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
-import type { HedefDurum } from "@/lib/hedef-tipleri";
+import { ALAN_LISTESI, type HedefDurum } from "@/lib/hedef-tipleri";
 
 export const Route = createFileRoute("/mizan/amel")({
   head: () => ({
