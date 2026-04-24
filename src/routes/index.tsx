@@ -39,7 +39,8 @@ import {
   type EtkinlikOlay,
 } from "@/lib/takvim-hooks";
 import { ALAN_ETIKET } from "@/lib/cetele-tipleri";
-import { useHedefler, useTumAdimlar, hedefIlerleme } from "@/lib/hedef-hooks";
+import { useHedefler, useTumAdimlar } from "@/lib/hedef-hooks";
+import { hedefIlerleme } from "@/lib/hedef-tipleri";
 import { EtkinlikDialog } from "@/components/mizan/takvim/etkinlik-dialog";
 import { GorevDialog } from "@/components/mizan/takvim/gorev-dialog";
 import { format, isSameDay, isToday, isTomorrow, parseISO } from "date-fns";
