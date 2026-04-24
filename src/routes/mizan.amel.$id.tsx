@@ -336,6 +336,7 @@ function ModulSekmesi({ kursId }: { kursId: string }) {
   const guncelle = useAmelModulGuncelle();
   const sil = useAmelModulSil();
   const [yeniBaslik, setYeniBaslik] = React.useState("");
+  const [acikNotlar, setAcikNotlar] = React.useState<Record<string, boolean>>({});
 
   async function ekleModul(e: React.FormEvent) {
     e.preventDefault();
@@ -373,56 +374,127 @@ function ModulSekmesi({ kursId }: { kursId: string }) {
       ) : (
         <ul className="divide-y divide-border rounded-xl border border-border">
           {moduller.map((m, i) => (
-            <li key={m.id} className="flex items-start gap-3 p-3">
-              <button
-                onClick={() =>
-                  guncelle.mutate({
-                    id: m.id,
-                    tamamlandi: !m.tamamlandi,
-                    tamamlanma: !m.tamamlandi ? new Date().toISOString().slice(0, 10) : null,
-                  })
-                }
-                className={cn(
-                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors",
-                  m.tamamlandi
-                    ? "border-[var(--amel)] bg-[var(--amel)]/20"
-                    : "border-border hover:border-foreground/40",
-                )}
-              >
-                {m.tamamlandi && <Check className="h-3 w-3" />}
-              </button>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                    {i + 1}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-sm",
-                      m.tamamlandi && "text-muted-foreground line-through",
-                    )}
-                  >
-                    {m.baslik}
-                  </span>
+            <li key={m.id} className="p-3">
+              <div className="flex items-start gap-3">
+                <button
+                  onClick={() =>
+                    guncelle.mutate({
+                      id: m.id,
+                      tamamlandi: !m.tamamlandi,
+                      tamamlanma: !m.tamamlandi ? new Date().toISOString().slice(0, 10) : null,
+                    })
+                  }
+                  className={cn(
+                    "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors",
+                    m.tamamlandi
+                      ? "border-[var(--amel)] bg-[var(--amel)]/20"
+                      : "border-border hover:border-foreground/40",
+                  )}
+                >
+                  {m.tamamlandi && <Check className="h-3 w-3" />}
+                </button>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                      {i + 1}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-sm",
+                        m.tamamlandi && "text-muted-foreground line-through",
+                      )}
+                    >
+                      {m.baslik}
+                    </span>
+                  </div>
+                  {m.tamamlanma && (
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      Tamamlandı: {new Date(m.tamamlanma).toLocaleDateString("tr-TR")}
+                    </p>
+                  )}
                 </div>
-                {m.tamamlanma && (
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">
-                    Tamamlandı: {new Date(m.tamamlanma).toLocaleDateString("tr-TR")}
-                  </p>
-                )}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className={cn(
+                    "h-7 w-7",
+                    (m.notlar?.trim() || acikNotlar[m.id]) && "text-[var(--amel)]",
+                  )}
+                  title={m.notlar?.trim() ? "Notları göster" : "Not ekle"}
+                  onClick={() =>
+                    setAcikNotlar((s) => ({ ...s, [m.id]: !s[m.id] }))
+                  }
+                >
+                  <StickyNote className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 text-destructive"
+                  onClick={() => sil.mutate(m.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7 text-destructive"
-                onClick={() => sil.mutate(m.id)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              {acikNotlar[m.id] && (
+                <div className="mt-2 pl-8">
+                  <ModulNot
+                    modulId={m.id}
+                    mevcut={m.notlar ?? ""}
+                  />
+                </div>
+              )}
             </li>
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function ModulNot({ modulId, mevcut }: { modulId: string; mevcut: string }) {
+  const guncelle = useAmelModulGuncelle();
+  const [deger, setDeger] = React.useState(mevcut);
+  const [kaydedildi, setKaydedildi] = React.useState(false);
+  const sonKayitliRef = React.useRef(mevcut);
+
+  // mevcut değer dışarıdan değişirse senkronize et
+  React.useEffect(() => {
+    setDeger(mevcut);
+    sonKayitliRef.current = mevcut;
+  }, [mevcut]);
+
+  // Debounced autosave
+  React.useEffect(() => {
+    if (deger === sonKayitliRef.current) return;
+    const t = setTimeout(() => {
+      guncelle.mutate(
+        { id: modulId, notlar: deger.trim() ? deger : null },
+        {
+          onSuccess: () => {
+            sonKayitliRef.current = deger;
+            setKaydedildi(true);
+            setTimeout(() => setKaydedildi(false), 1500);
+          },
+        },
+      );
+    }, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deger, modulId]);
+
+  return (
+    <div className="space-y-1">
+      <Textarea
+        value={deger}
+        onChange={(e) => setDeger(e.target.value)}
+        placeholder="Bu modülde anladıklarını, önemli noktaları, sorularını yaz…"
+        rows={4}
+        className="resize-y text-sm"
+      />
+      <div className="flex h-4 items-center justify-end text-[10px] text-muted-foreground">
+        {guncelle.isPending ? "Kaydediliyor…" : kaydedildi ? "Kaydedildi ✓" : ""}
+      </div>
     </div>
   );
 }
