@@ -9,7 +9,6 @@ import { tarihFormat } from "@/lib/cetele-tarih";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 
 type SatirEtkinlik = {
-  tip: "etkinlik";
   id: string;
   baslik: string;
   baslangic: Date;
@@ -19,17 +18,6 @@ type SatirEtkinlik = {
   aciklama: string | null;
   tumGun: boolean;
 };
-
-type SatirGorev = {
-  tip: "gorev";
-  id: string;
-  baslik: string;
-  alan: CeteleAlan;
-  tamamlandi: boolean;
-  oncelik: "dusuk" | "orta" | "yuksek";
-};
-
-type Satir = SatirEtkinlik | SatirGorev;
 
 function alanRengi(alan: CeteleAlan): string {
   return `var(--${alan})`;
@@ -60,9 +48,8 @@ export function BugunZamanCizelgesi({ simdi }: { simdi: Date }) {
   const bugunStr = tarihFormat(simdi);
   const bugunGorevleri = gorevler.filter((g) => g.vade === bugunStr);
 
-  const satirlar: Satir[] = [
-    ...olaylar.map<SatirEtkinlik>((o) => ({
-      tip: "etkinlik",
+  const satirlar: SatirEtkinlik[] = olaylar
+    .map<SatirEtkinlik>((o) => ({
       id: o.id,
       baslik: o.baslik,
       baslangic: o.olayBaslangic,
@@ -71,8 +58,8 @@ export function BugunZamanCizelgesi({ simdi }: { simdi: Date }) {
       konum: o.konum,
       aciklama: o.aciklama,
       tumGun: o.tum_gun,
-    })),
-  ].sort((a, b) => a.baslangic.getTime() - b.baslangic.getTime());
+    }))
+    .sort((a, b) => a.baslangic.getTime() - b.baslangic.getTime());
 
   // Sıradaki etkinliği bul: şimdiden sonra başlayan ilk etkinlik (veya şu an sürmekte olan)
   const siradakiIdx = satirlar.findIndex(
