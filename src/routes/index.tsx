@@ -12,6 +12,8 @@ import {
   Sparkles,
   Target,
   Plus,
+  MapPin,
+  CalendarPlus,
 } from "lucide-react";
 import { DengeHalkalari } from "@/components/mizan/denge-halkalari";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,15 @@ import {
   haftaToplami,
 } from "@/lib/cetele-hooks";
 import { haftaBaslangici, haftaGunleri, tarihFormat } from "@/lib/cetele-tarih";
+import {
+  useEtkinlikler,
+  useGorevler,
+  genisletEtkinlikleri,
+  type EtkinlikOlay,
+} from "@/lib/takvim-hooks";
+import { ALAN_ETIKET } from "@/lib/cetele-tipleri";
+import { format, isSameDay, isToday, isTomorrow, parseISO } from "date-fns";
+import { tr } from "date-fns/locale";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -45,29 +56,6 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
-const program = [
-  {
-    bolum: "Gündüz — Üniversite",
-    ikon: GraduationCap,
-    renkVar: "--ilim",
-    olaylar: [
-      { saat: "09:00", ad: "BIL 305 — Ağ Yönetimi" },
-      { saat: "11:00", ad: "BIL 412 — İşletim Sistemleri (borç)" },
-      { saat: "14:00", ad: "Lab raporu" },
-    ],
-  },
-  {
-    bolum: "Akşam — Sohbet & Görüşmeler",
-    ikon: Heart,
-    renkVar: "--mana",
-    olaylar: [
-      { saat: "18:30", ad: "Akşam evradı" },
-      { saat: "20:00", ad: "Risale dersi — Lem'alar" },
-      { saat: "21:30", ad: "Ahmet Y. — teke tek görüşme" },
-    ],
-  },
-];
-
 const alanRenk: Record<string, string> = {
   mana: "bg-[var(--mana)]",
   ilim: "bg-[var(--ilim)]",
@@ -85,6 +73,39 @@ function Dashboard() {
   const ekle = useKayitEkle();
   const sil = useKayitSil();
   const bugunStr = tarihFormat(new Date());
+
+  // Takvim — bugün ve sonraki 7 gün penceresi
+  const { takvimBas, takvimBitis, bugunBas, bugunBitis } = React.useMemo(() => {
+    const bb = new Date();
+    bb.setHours(0, 0, 0, 0);
+    const bs = new Date(bb);
+    bs.setDate(bs.getDate() + 7);
+    const tBitis = new Date(bb);
+    tBitis.setHours(23, 59, 59, 999);
+    return { takvimBas: bb, takvimBitis: bs, bugunBas: bb, bugunBitis: tBitis };
+  }, []);
+  const { data: etkinlikler = [] } = useEtkinlikler(takvimBas, takvimBitis);
+  const { data: gorevler = [] } = useGorevler(takvimBas, takvimBitis);
+
+  const bugunOlaylari: EtkinlikOlay[] = React.useMemo(() => {
+    const tumu = genisletEtkinlikleri(etkinlikler, takvimBas, takvimBitis);
+    return tumu
+      .filter((o) => o.olayBaslangic <= bugunBitis && o.olayBitis >= bugunBas)
+      .sort((a, b) => a.olayBaslangic.getTime() - b.olayBaslangic.getTime());
+  }, [etkinlikler, takvimBas, takvimBitis, bugunBas, bugunBitis]);
+
+  const bugunGorevleri = React.useMemo(
+    () => gorevler.filter((g) => isToday(parseISO(g.vade)) && !g.tamamlandi),
+    [gorevler],
+  );
+
+  const yaklasanOlaylar: EtkinlikOlay[] = React.useMemo(() => {
+    const tumu = genisletEtkinlikleri(etkinlikler, takvimBas, takvimBitis);
+    return tumu
+      .filter((o) => o.olayBaslangic > bugunBitis)
+      .sort((a, b) => a.olayBaslangic.getTime() - b.olayBaslangic.getTime())
+      .slice(0, 4);
+  }, [etkinlikler, takvimBas, takvimBitis, bugunBitis]);
 
   const halkalar = React.useMemo(() => {
     const calc = (alan: "mana" | "ilim" | "amel") => {
@@ -316,44 +337,128 @@ function Dashboard() {
             <Calendar className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-medium text-foreground">Bugünün Programı</h2>
           </div>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/takvim" className="gap-1 text-xs">
+              Takvim <ChevronRight className="h-3 w-3" />
+            </Link>
+          </Button>
         </div>
-        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2">
-          {program.map((p) => (
-            <div
-              key={p.bolum}
-              className="rounded-xl border border-border bg-card p-4 sm:p-4"
-            >
-              <div className="mb-3 flex items-center gap-2.5">
+
+        {bugunOlaylari.length === 0 && bugunGorevleri.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center">
+            <p className="text-sm">Bugün için planlanmış bir şey yok.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Takvime etkinlik veya görev ekleyebilirsin.
+            </p>
+            <Button size="sm" variant="outline" asChild className="mt-3">
+              <Link to="/takvim" className="gap-1 text-xs">
+                <CalendarPlus className="h-3 w-3" /> Takvime git
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {bugunOlaylari.map((o) => (
+              <li
+                key={`e-${o.id}-${o.olayBaslangic.getTime()}`}
+                className="flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 transition-all active:scale-[0.99]"
+                style={{
+                  borderLeftColor: `var(--${o.alan})`,
+                  borderLeftWidth: 3,
+                }}
+              >
+                <span className="flex w-14 shrink-0 flex-col text-[12px] font-medium text-foreground">
+                  <span>
+                    {o.tum_gun ? "Tüm gün" : format(o.olayBaslangic, "HH:mm")}
+                  </span>
+                  {!o.tum_gun && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {format(o.olayBitis, "HH:mm")}
+                    </span>
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[14px] font-medium text-foreground">
+                    {o.baslik}
+                  </div>
+                  {(o.konum || o.aciklama) && (
+                    <div className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-muted-foreground">
+                      {o.konum && <MapPin className="h-3 w-3 shrink-0" />}
+                      <span className="truncate">{o.konum ?? o.aciklama}</span>
+                    </div>
+                  )}
+                </div>
                 <span
-                  className="flex h-7 w-7 items-center justify-center rounded-md sm:h-6 sm:w-6"
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
                   style={{
-                    backgroundColor: `color-mix(in oklab, var(${p.renkVar}) 18%, transparent)`,
-                    color: `var(${p.renkVar})`,
+                    backgroundColor: `color-mix(in oklab, var(--${o.alan}) 18%, transparent)`,
+                    color: `var(--${o.alan})`,
                   }}
                 >
-                  <p.ikon className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                  {ALAN_ETIKET[o.alan]}
                 </span>
-                <h3 className="text-sm font-medium text-foreground sm:text-sm">{p.bolum}</h3>
-              </div>
-              <ul className="flex flex-col gap-2">
-                {p.olaylar.map((o) => (
+              </li>
+            ))}
+            {bugunGorevleri.map((g) => (
+              <li
+                key={`g-${g.id}`}
+                className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-card/60 px-3.5 py-3"
+              >
+                <Circle className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[14px] font-medium text-foreground">
+                    {g.baslik}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">Görev · bugün</div>
+                </div>
+                <span
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{
+                    backgroundColor: `color-mix(in oklab, var(--${g.alan}) 18%, transparent)`,
+                    color: `var(--${g.alan})`,
+                  }}
+                >
+                  {ALAN_ETIKET[g.alan]}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {yaklasanOlaylar.length > 0 && (
+          <div className="mt-5">
+            <h3 className="mb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              Yaklaşan
+            </h3>
+            <ul className="flex flex-col gap-1.5">
+              {yaklasanOlaylar.map((o) => {
+                const ne = isTomorrow(o.olayBaslangic)
+                  ? "Yarın"
+                  : format(o.olayBaslangic, "EEE d MMM", { locale: tr });
+                return (
                   <li
-                    key={o.ad}
-                    className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/40 px-3 py-2.5 sm:py-2"
+                    key={`y-${o.id}-${o.olayBaslangic.getTime()}`}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-accent/40"
                   >
-                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="w-12 text-[13px] font-medium text-foreground sm:text-xs">
-                      {o.saat}
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: `var(--${o.alan})` }}
+                    />
+                    <span className="w-20 shrink-0 text-[12px] font-medium text-muted-foreground">
+                      {ne}
                     </span>
-                    <span className="flex-1 truncate text-[13px] text-muted-foreground sm:text-xs">
-                      {o.ad}
+                    <span className="w-12 shrink-0 text-[12px] text-muted-foreground">
+                      {o.tum_gun ? "—" : format(o.olayBaslangic, "HH:mm")}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">
+                      {o.baslik}
                     </span>
                   </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </section>
     </div>
   );
