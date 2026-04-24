@@ -7,9 +7,6 @@ import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-h
 import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { IstikametKart } from "@/components/mizan/istikamet-kart";
 import { IstikametRozeti, rozetiHesapla } from "@/components/mizan/istikamet-rozeti";
-import { BugunCetelesi } from "@/components/mizan/dashboard/bugun-cetelesi";
-import { BugunZamanCizelgesi } from "@/components/mizan/dashboard/bugun-zaman-cizelgesi";
-import { GelecekGunler } from "@/components/mizan/dashboard/gelecek-gunler";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/mizan/")({
@@ -109,15 +106,6 @@ function MizanHub() {
           />
         ))}
       </div>
-
-      {/* Bugünün çetelesi + zaman çizelgesi */}
-      <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        <BugunCetelesi simdi={simdi} />
-        <BugunZamanCizelgesi simdi={simdi} />
-      </div>
-
-      {/* Gelecek günler */}
-      <GelecekGunler simdi={simdi} />
     </div>
   );
 }
