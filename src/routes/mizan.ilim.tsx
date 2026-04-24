@@ -3,6 +3,7 @@ import { ArrowLeft, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AlanHedefleriMini } from "@/components/mizan/hedef/alan-hedefleri-mini";
 
 export const Route = createFileRoute("/mizan/ilim")({
   head: () => ({
@@ -59,6 +60,7 @@ function IlimSayfasi() {
           </div>
         ))}
       </div>
+      <AlanHedefleriMini alan="ilim" />
     </div>
   );
 }
