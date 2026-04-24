@@ -1,5 +1,5 @@
 import * as React from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   addDays,
   addMonths,
@@ -20,6 +20,13 @@ import {
   genisletEtkinlikleri,
   type EtkinlikOlay,
 } from "@/lib/takvim-hooks";
+import {
+  useDersler,
+  useDersSaatleri,
+  useSinavlar,
+  useProjeler,
+} from "@/lib/ilim-hooks";
+import { ilimOlayDersId, ilimOlaylari, isIlimOlay } from "@/lib/ilim-takvim";
 import {
   type TakvimEtkinlik,
   type TakvimGorev,
@@ -60,6 +67,7 @@ function TakvimSayfasi() {
   const [gorevAcik, setGorevAcik] = React.useState(false);
   const [gorevSlot, setGorevSlot] = React.useState<Date | undefined>(undefined);
   const [gorevDuzenle, setGorevDuzenle] = React.useState<TakvimGorev | null>(null);
+  const navigate = useNavigate();
 
   // Aralık hesabı
   const [aralikBas, aralikBitis] = React.useMemo<[Date, Date]>(() => {
@@ -86,10 +94,32 @@ function TakvimSayfasi() {
 
   const etkSorgu = useEtkinlikler(aralikBas, aralikBitis);
   const gorevSorgu = useGorevler(haftaBas, haftaBit);
+  const derslerSorgu = useDersler();
+  const saatSorgu = useDersSaatleri();
+  const sinavSorgu = useSinavlar();
+  const projeSorgu = useProjeler();
 
   const olaylar: EtkinlikOlay[] = React.useMemo(
-    () => genisletEtkinlikleri(etkSorgu.data ?? [], aralikBas, aralikBitis),
-    [etkSorgu.data, aralikBas, aralikBitis],
+    () => [
+      ...genisletEtkinlikleri(etkSorgu.data ?? [], aralikBas, aralikBitis),
+      ...ilimOlaylari(
+        derslerSorgu.data ?? [],
+        saatSorgu.data ?? [],
+        sinavSorgu.data ?? [],
+        projeSorgu.data ?? [],
+        aralikBas,
+        aralikBitis,
+      ),
+    ],
+    [
+      etkSorgu.data,
+      derslerSorgu.data,
+      saatSorgu.data,
+      sinavSorgu.data,
+      projeSorgu.data,
+      aralikBas,
+      aralikBitis,
+    ],
   );
 
   const baslikMetni = React.useMemo(() => {
@@ -116,6 +146,18 @@ function TakvimSayfasi() {
     setEtkAcik(true);
   };
   const olayAc = (o: EtkinlikOlay) => {
+    if (isIlimOlay(o.id)) {
+      const dersId = ilimOlayDersId(
+        o.id,
+        saatSorgu.data ?? [],
+        sinavSorgu.data ?? [],
+        projeSorgu.data ?? [],
+      );
+      if (dersId) {
+        navigate({ to: "/mizan/ilim/$id", params: { id: dersId } });
+        return;
+      }
+    }
     setEtkDuzenle(o);
     setEtkSlot(undefined);
     setEtkAcik(true);
