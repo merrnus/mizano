@@ -38,7 +38,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Bugün — Mizan" },
       {
         property: "og:description",
-        content: "Maneviyat, akademi ve dünyevi alanların haftalık dengesi tek bakışta.",
+        content: "Mana, ilim ve amel — üç alanın haftalık dengesi tek bakışta.",
       },
     ],
   }),
@@ -49,7 +49,7 @@ const program = [
   {
     bolum: "Gündüz — Üniversite",
     ikon: GraduationCap,
-    renkVar: "--akademi",
+    renkVar: "--ilim",
     olaylar: [
       { saat: "09:00", ad: "BIL 305 — Ağ Yönetimi" },
       { saat: "11:00", ad: "BIL 412 — İşletim Sistemleri (borç)" },
@@ -59,7 +59,7 @@ const program = [
   {
     bolum: "Akşam — Sohbet & Görüşmeler",
     ikon: Heart,
-    renkVar: "--maneviyat",
+    renkVar: "--mana",
     olaylar: [
       { saat: "18:30", ad: "Akşam evradı" },
       { saat: "20:00", ad: "Risale dersi — Lem'alar" },
@@ -69,9 +69,9 @@ const program = [
 ];
 
 const alanRenk: Record<string, string> = {
-  maneviyat: "bg-[var(--maneviyat)]",
-  akademi: "bg-[var(--akademi)]",
-  dunyevi: "bg-[var(--dunyevi)]",
+  mana: "bg-[var(--mana)]",
+  ilim: "bg-[var(--ilim)]",
+  amel: "bg-[var(--amel)]",
 };
 
 function Dashboard() {
@@ -86,15 +86,15 @@ function Dashboard() {
   const bugunStr = tarihFormat(new Date());
 
   const halkalar = React.useMemo(() => {
-    const calc = (alan: "maneviyat" | "akademi" | "dunyevi") => {
+    const calc = (alan: "mana" | "ilim" | "amel") => {
       const sb = sablonlar.filter((s) => s.alan === alan);
       const o = haftaSablonOzet(sb, kayitlar, haftaBas);
       return o.toplam > 0 ? Math.round((o.tamamlanan / o.toplam) * 100) : 0;
     };
     return [
-      { ad: "Maneviyat", yuzde: calc("maneviyat"), renkVar: "--maneviyat", ikon: <Heart className="h-3 w-3" /> },
-      { ad: "Akademi", yuzde: 58, renkVar: "--akademi", ikon: <GraduationCap className="h-3 w-3" /> },
-      { ad: "Dünyevi", yuzde: 40, renkVar: "--dunyevi", ikon: <Target className="h-3 w-3" /> },
+      { ad: "Mana", yuzde: calc("mana"), renkVar: "--mana", ikon: <Heart className="h-3 w-3" /> },
+      { ad: "İlim", yuzde: 58, renkVar: "--ilim", ikon: <GraduationCap className="h-3 w-3" /> },
+      { ad: "Amel", yuzde: 32, renkVar: "--amel", ikon: <Target className="h-3 w-3" /> },
     ] as const;
   }, [sablonlar, kayitlar, haftaBas]);
 
@@ -102,7 +102,7 @@ function Dashboard() {
     () =>
       sablonlar.filter(
         (s) =>
-          s.alan === "maneviyat" &&
+          s.alan === "mana" &&
           (s.hedef_tipi === "gunluk" || s.hedef_tipi === "haftalik"),
       ),
     [sablonlar],
@@ -151,9 +151,9 @@ function Dashboard() {
           </div>
           <div className="grid w-full grid-cols-1 gap-2.5 sm:grid-cols-3 md:max-w-md md:flex-1">
             {[
-              { ad: "Maneviyat", yuzde: halkalar[0].yuzde, renkVar: "--maneviyat", ikon: Heart, to: "/mizan/maneviyat" as const },
-              { ad: "Akademi", yuzde: halkalar[1].yuzde, renkVar: "--akademi", ikon: GraduationCap, to: "/mizan/akademi" as const },
-              { ad: "Dünyevi", yuzde: halkalar[2].yuzde, renkVar: "--dunyevi", ikon: Target, to: "/mizan/dunyevi" as const },
+              { ad: "Mana", yuzde: halkalar[0].yuzde, renkVar: "--mana", ikon: Heart, to: "/mizan/mana" as const },
+              { ad: "İlim", yuzde: halkalar[1].yuzde, renkVar: "--ilim", ikon: GraduationCap, to: "/mizan/ilim" as const },
+              { ad: "Amel", yuzde: halkalar[2].yuzde, renkVar: "--amel", ikon: Target, to: "/mizan/amel" as const },
             ].map((a) => (
               <Link
                 key={a.ad}
@@ -192,7 +192,7 @@ function Dashboard() {
             </h2>
           </div>
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/mizan/maneviyat" className="gap-1 text-xs">
+            <Link to="/mizan/mana" className="gap-1 text-xs">
               Tümü <ChevronRight className="h-3 w-3" />
             </Link>
           </Button>
@@ -204,7 +204,7 @@ function Dashboard() {
               Maneviyat sayfasından başlangıç paketini yükleyebilirsin.
             </p>
             <Button size="sm" variant="outline" asChild className="mt-3">
-              <Link to="/mizan/maneviyat" className="gap-1 text-xs">
+              <Link to="/mizan/mana" className="gap-1 text-xs">
                 <Plus className="h-3 w-3" /> Evrad ekle
               </Link>
             </Button>
@@ -251,7 +251,7 @@ function Dashboard() {
                   <button
                     key={s.id}
                     onClick={tikla}
-                    className="flex w-[180px] shrink-0 flex-col gap-2 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-[var(--maneviyat)]/40"
+                    className="flex w-[180px] shrink-0 flex-col gap-2 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-[var(--mana)]/40"
                   >
                     <div className="flex items-center justify-between">
                       <span className="truncate text-xs font-medium text-foreground">
@@ -270,7 +270,7 @@ function Dashboard() {
                           className={cn(
                             "flex h-5 flex-1 items-center justify-center rounded text-[9px]",
                             g
-                              ? alanRenk["maneviyat"] + " text-background"
+                              ? alanRenk["mana"] + " text-background"
                               : "bg-muted/40 text-muted-foreground/50",
                           )}
                         >
