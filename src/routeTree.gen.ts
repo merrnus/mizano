@@ -17,6 +17,7 @@ import { Route as GundemlerRouteImport } from './routes/gundemler'
 import { Route as GirisRouteImport } from './routes/giris'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MizanIndexRouteImport } from './routes/mizan.index'
+import { Route as MizanManeviyatRouteImport } from './routes/mizan.maneviyat'
 import { Route as MizanManaRouteImport } from './routes/mizan.mana'
 import { Route as MizanIlimRouteImport } from './routes/mizan.ilim'
 import { Route as MizanAmelRouteImport } from './routes/mizan.amel'
@@ -61,6 +62,11 @@ const MizanIndexRoute = MizanIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MizanRoute,
 } as any)
+const MizanManeviyatRoute = MizanManeviyatRouteImport.update({
+  id: '/maneviyat',
+  path: '/maneviyat',
+  getParentRoute: () => MizanRoute,
+} as any)
 const MizanManaRoute = MizanManaRouteImport.update({
   id: '/mana',
   path: '/mana',
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/mizan/amel': typeof MizanAmelRoute
   '/mizan/ilim': typeof MizanIlimRoute
   '/mizan/mana': typeof MizanManaRoute
+  '/mizan/maneviyat': typeof MizanManeviyatRoute
   '/mizan/': typeof MizanIndexRoute
 }
 export interface FileRoutesByTo {
@@ -100,6 +107,7 @@ export interface FileRoutesByTo {
   '/mizan/amel': typeof MizanAmelRoute
   '/mizan/ilim': typeof MizanIlimRoute
   '/mizan/mana': typeof MizanManaRoute
+  '/mizan/maneviyat': typeof MizanManeviyatRoute
   '/mizan': typeof MizanIndexRoute
 }
 export interface FileRoutesById {
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   '/mizan/amel': typeof MizanAmelRoute
   '/mizan/ilim': typeof MizanIlimRoute
   '/mizan/mana': typeof MizanManaRoute
+  '/mizan/maneviyat': typeof MizanManeviyatRoute
   '/mizan/': typeof MizanIndexRoute
 }
 export interface FileRouteTypes {
@@ -129,6 +138,7 @@ export interface FileRouteTypes {
     | '/mizan/amel'
     | '/mizan/ilim'
     | '/mizan/mana'
+    | '/mizan/maneviyat'
     | '/mizan/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/mizan/amel'
     | '/mizan/ilim'
     | '/mizan/mana'
+    | '/mizan/maneviyat'
     | '/mizan'
   id:
     | '__root__'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/mizan/amel'
     | '/mizan/ilim'
     | '/mizan/mana'
+    | '/mizan/maneviyat'
     | '/mizan/'
   fileRoutesById: FileRoutesById
 }
@@ -225,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MizanIndexRouteImport
       parentRoute: typeof MizanRoute
     }
+    '/mizan/maneviyat': {
+      id: '/mizan/maneviyat'
+      path: '/maneviyat'
+      fullPath: '/mizan/maneviyat'
+      preLoaderRoute: typeof MizanManeviyatRouteImport
+      parentRoute: typeof MizanRoute
+    }
     '/mizan/mana': {
       id: '/mizan/mana'
       path: '/mana'
@@ -253,6 +272,7 @@ interface MizanRouteChildren {
   MizanAmelRoute: typeof MizanAmelRoute
   MizanIlimRoute: typeof MizanIlimRoute
   MizanManaRoute: typeof MizanManaRoute
+  MizanManeviyatRoute: typeof MizanManeviyatRoute
   MizanIndexRoute: typeof MizanIndexRoute
 }
 
@@ -260,6 +280,7 @@ const MizanRouteChildren: MizanRouteChildren = {
   MizanAmelRoute: MizanAmelRoute,
   MizanIlimRoute: MizanIlimRoute,
   MizanManaRoute: MizanManaRoute,
+  MizanManeviyatRoute: MizanManeviyatRoute,
   MizanIndexRoute: MizanIndexRoute,
 }
 
