@@ -1,165 +1,130 @@
 
 
-# İstikamet Yenilemesi — Mana / İlim / Amel Kartları
+# Hedefler — Modüler Tip Sistemi
 
-## 1. İsimlendirme — tam değişim
+`/mizan/amel` şu an statik dummy listesi. Bunu gerçek, **tipi olan, alandan bağımsız** bir hedef sistemine çeviriyoruz. Hedefler sadece Amel'e değil — **Mana, İlim, Amel** her alana ait olabilir; "Hedefler" ortak bir omurga.
 
-URL'ler dahil her yer:
+## 1. Veri modeli
 
-```text
-ESKİ                              YENİ
-─────────────────────             ──────────────────
-/mizan/maneviyat                  /mizan/mana
-/mizan/akademi                    /mizan/ilim
-/mizan/dunyevi                    /mizan/amel
-
-DB enum: cetele_alan
-'maneviyat' / 'akademi' / 'dunyevi' → 'mana' / 'ilim' / 'amel'
-('kisisel' aynı kalır)
-
-CSS değişkenleri
---maneviyat → --mana
---akademi   → --ilim
---dunyevi   → --amel
-```
-
-Renk eşleştirmesi referans görseldeki gibi:
-- **Mana** → mavi (mevcut maneviyat tonu — zaten mavi)
-- **İlim** → mor (mevcut akademi yeşildi → **mora çekilir**)
-- **Amel** → sarı/altın (mevcut dünyevi sarıydı — kalır)
-
-İkonlar:
-- Mana → `Sprout` (lotus/yaprak — referansa yakın)
-- İlim → `BookOpen` (kitap — referansla aynı)
-- Amel → `Hammer` veya `Wrench` (çekiç-anahtar — referansa yakın)
-
-## 2. Yeni kart bileşeni: `IstikametKart`
-
-Referans birebir:
+İki yeni tablo + bir enum.
 
 ```text
-┌────────────────────────┐
-│                        │
-│        [glow ikon]     │
-│                        │
-│         Mana           │
-│                        │
-│         85%            │
-│                        │
-│   ━━━━━━━━──────       │  ← neon glow bar
-└────────────────────────┘
+ENUM hedef_tip
+  'kurs'        — modül-bazlı (modül listesi ile %)
+  'aliskanlik'  — gün streaki (günlük yap/yapma)
+  'proje'       — milestone listesi
+  'sayisal'     — hedef miktar + birikim
+  'tekil'       — yapıldı/yapılmadı
+
+TABLO hedef
+  id, user_id, ad, aciklama
+  alan          cetele_alan       (mana | ilim | amel | kisisel)
+  tip           hedef_tip
+  baslangic     date
+  bitis         date              (nullable — açık uçlu)
+  durum         'aktif' | 'tamamlandi' | 'arsiv'
+  
+  -- tip-spesifik alanlar (jsonb yerine ayrı kolonlar; null'lanabilir)
+  hedef_miktar  numeric           (sayısal için)
+  birim         text              (sayısal için: kg, km, sayfa…)
+  sablon_id     uuid → cetele_sablon  (sayısal için: çetele bağı, opsiyonel)
+  streak_birim  'gunluk'|'haftalik'   (alışkanlık için)
+  
+  notlar, siralama, created_at, updated_at
+
+TABLO hedef_adim         (kurs modülleri & proje milestone'ları)
+  id, hedef_id → hedef
+  baslik, aciklama
+  tamamlandi    boolean
+  tamamlanma    date
+  vade          date           (nullable)
+  siralama
 ```
 
-- Karanlık arka plan (`bg-card`), yumuşak border
-- Üstte ikon — alanın renginde, hafif `drop-shadow` glow
-- İsim (medium, 14-16px), büyük yüzde (text-4xl, semibold, tracking-tight)
-- Altta neon ilerleme barı: dolan kısım renk + glow, kalan kısım `bg-muted/40`
-- Hover'da hafif parıltı artar, tıklanabilir → ilgili `/mizan/{alan}` sayfasına gider
+**Notlar:**
+- `aliskanlik` için ayrı tablo gerekmez — `cetele_kayit` zaten gün-bazlı kayıt tutuyor; alışkanlık hedefi opsiyonel olarak bir `cetele_sablon`'a bağlanır ve streak oradan hesaplanır.
+- `tekil` için ek tabloya ihtiyaç yok — `durum` alanı yeter.
+- Tüm tablolarda **RLS**: `user_id = auth.uid()` üzerinden CRUD.
 
-## 3. Dinamik rozet — "leading area" yerine bağlamlı mikro-mesaj
+## 2. Tip-bazlı kart render
 
-Üç senaryo, tek rozet (üç kartın **üst hizasında**, ilgili kartın üstüne yapışır):
+Tek `HedefKart` bileşeni, içinde `tip`'e göre iç gövde değişir:
 
 ```text
-1. Bir kart belirgin önde (max - others > 15%)
-   → "ÖNDESİN" rozet, en yüksek kartın üstünde, o alanın renginde
+KURS / PROJE                  ALIŞKANLIK
+┌──────────────────────┐      ┌──────────────────────┐
+│ Ad           [alan]  │      │ Ad           [alan]  │
+│ ▓▓▓▓▓▓▓░░░░ 4/6     │      │ Streak: 12 gün 🔥    │
+│ Sonraki: Modül 5     │      │ ▓▓▓░▓▓▓░▓▓▓ (28 gün) │
+│ Vade: 12 May         │      │ Bu hafta: 5/7        │
+└──────────────────────┘      └──────────────────────┘
 
-2. Bir kart belirgin geride (others - min > 15%)
-   → "EL VER" rozet, en düşük kartın üstünde, kırmızımsı/uyarı tonu
-
-3. Hepsi yakın (max - min ≤ 15%)
-   → "DENGEDE" rozet, ortadaki kartın üstünde, primary/nötr tonda
+SAYISAL                       TEKİL
+┌──────────────────────┐      ┌──────────────────────┐
+│ Ad           [alan]  │      │ Ad           [alan]  │
+│ 245 / 600 sayfa      │      │ Vade: 20 Nis         │
+│ ▓▓▓▓▓░░░░░ 41%       │      │ [✓ Tamamla]          │
+│ Günde ort: 8.2       │      │                      │
+└──────────────────────┘      └──────────────────────┘
 ```
 
-Tek satır metin. Rozet stili: ince border, `rounded-full`, küçük caps (`text-[10px] uppercase tracking-[0.2em]`), referansla aynı oval form.
+Ortak: ad, alan rengi (sol şerit), durum (aktif/tamamlandı/arşiv), tıklayınca detay sayfası.
 
-## 4. Yerleştirme
+## 3. Sayfa yapısı
 
-### `/mizan` (asıl gösteri)
+### `/mizan/amel` (ve genel hedef hub'ı)
 
-`mizan.index.tsx` üç-kart şeridi `IstikametKart` ile değişir. Mevcut `ManeviyatKart` ve `StatikKart` bileşenleri kaldırılır. Üst başlık zaten "İstikamet" — değişmez.
+Üç sekme:
+- **Aktif** — tipi-karışık kart şeridi, üstte filtre çipleri (Tümü / Mana / İlim / Amel / Kişisel) + tip filtresi
+- **Tamamlananlar** — küçük rozet kartları, tamamlanma tarihi
+- **Arşiv** — vazgeçilenler
 
-Sayfa görünümü:
+Üstte **+ Yeni Hedef** butonu → tip seçim diyaloğu → tipe özel form.
 
-```text
-İSTİKAMET
-Üç Alanın Dengesi
+### Hedef detay — `/mizan/hedef/$id`
 
-           [ÖNDESİN]
-┌──────┐ ┌──────┐ ┌──────┐
-│ Mana │ │ İlim │ │ Amel │
-│ 85%  │ │ 89%  │ │ 32%  │   ← örnek; rozet hangi karta yapıştığı dinamik
-└──────┘ └──────┘ └──────┘
+- Kurs/Proje: adım listesi (ekle/sil/tamamla, drag-to-reorder)
+- Sayısal: çetele şablonu seçili ise grafik (son 30 gün) + manuel ekleme
+- Alışkanlık: ısı haritası takvimi (son 90 gün)
+- Tekil: tek tamamla butonu
+- Tüm tipler: notlar, alan değiştirme, vade/bitiş düzenleme, arşivle/sil
 
-(altında alanların kısa detayı — bugünkü ilk 2-3 kalem her alandan)
-```
+## 4. Mevcut sayfaya etkisi
 
-### `/` Bugün anasayfa — sade "burdayım" hattı
+- `/mizan/amel`: dummy `hedefler` array'i kalkar, gerçek hedeflerden Amel alanındakiler + (opsiyonel) tüm hedeflere geçiş linki.
+- `/mizan/mana` ve `/mizan/ilim`: kendi sayfalarında "Bu alandaki hedefler" mini bölümü.
+- `/mizan` ana sayfa: kart altı detayda her alan için tamamlanan/aktif hedef sayısı görünebilir.
+- **Üç-aylık çetele hedefleri** zaten `cetele_sablon.uc_aylik_hedef`'te yaşıyor — bunları "sayısal hedef" olarak otomatik göstermeyeceğiz, ayrı sistemler kalır. İstersen ileride birleştiririz.
 
-Mevcut **DengeHalkalari** kalır (asıl görsel). Onun altında **küçük 3-mini şerit**: ikon + isim + yüzde + kısa bar — rozet yok, glow zayıf, tıklanabilir. Karta gitme kısayolu gibi.
-
-```text
-Haftalık Denge
-[       halkalar       ]  ← mevcut
-
-[Mana 85%] [İlim 89%] [Amel 32%]   ← yeni mini hat, link
-```
-
-Mevcut "alan kart linkleri" listesi (Maneviyat / Akademi / Dünyevi → halkanın sağındaki dikey liste) bu mini hatla **değişir**, daha kompakt durur. Suyunu çıkarmıyoruz.
-
-## 5. Veri modeli değişikliği
-
-`cetele_alan` enum'a yeni 3 değer eklenir, eski veriler güncellenir, eski değerler enum'dan düşürülür.
-
-```sql
--- 1) Yeni değerleri ekle
-ALTER TYPE cetele_alan ADD VALUE 'mana';
-ALTER TYPE cetele_alan ADD VALUE 'ilim';
-ALTER TYPE cetele_alan ADD VALUE 'amel';
-
--- 2) Mevcut satırları güncelle (cetele_sablon, takvim_etkinlik, takvim_gorev)
-UPDATE cetele_sablon SET alan = 'mana' WHERE alan = 'maneviyat';
-UPDATE cetele_sablon SET alan = 'ilim' WHERE alan = 'akademi';
-UPDATE cetele_sablon SET alan = 'amel' WHERE alan = 'dunyevi';
--- aynısı takvim tabloları için
-
--- 3) Eski değerleri enum'dan çıkar (PG'de zor — yeni enum yarat + migrate + swap)
-```
-
-Postgres `ENUM` değer silmeyi doğrudan desteklemediği için: yeni enum (`cetele_alan_v2`) oluştur → kolonları ona migrate et → eskisini drop et → v2'yi `cetele_alan` olarak yeniden adlandır.
-
-## 6. Etkilenecek dosyalar
+## 5. Etkilenecek/yeni dosyalar
 
 | Dosya | Değişiklik |
 |---|---|
-| Migration | enum swap + tüm tablolarda alan değerlerini güncelle |
-| `src/lib/cetele-tipleri.ts` | `Alan` tipi `mana/ilim/amel/kisisel` olur |
-| `src/lib/takvim-tipleri.ts` | aynı |
-| `src/styles.css` | `--maneviyat/--akademi/--dunyevi` → `--mana/--ilim/--amel` (akademi mor olur) |
-| `src/components/mizan/istikamet-kart.tsx` | YENİ — kart bileşeni |
-| `src/components/mizan/istikamet-rozeti.tsx` | YENİ — dinamik rozet mantığı |
-| `src/components/mizan/denge-halkalari.tsx` | renk değişkeni isimleri güncellenir |
-| `src/routes/mizan.index.tsx` | yeni 3 kart + rozet |
-| `src/routes/mizan.maneviyat.tsx` → `mizan.mana.tsx` | rename + iç metinler "Mana" |
-| `src/routes/mizan.akademi.tsx` → `mizan.ilim.tsx` | rename |
-| `src/routes/mizan.dunyevi.tsx` → `mizan.amel.tsx` | rename |
-| `src/routes/index.tsx` | sağdaki alan link listesi → mini 3-kart şerit; başlıklar güncel |
-| Tüm `var(--maneviyat)` vb. CSS referansları | yeni isimlerle değiştir (kapsamlı arama-değiştir) |
+| Migration | `hedef_tip` enum, `hedef`, `hedef_adim` tabloları, RLS politikaları, `updated_at` trigger |
+| `src/lib/hedef-tipleri.ts` | YENİ — tipler, etiketler, tip→ikon haritası |
+| `src/lib/hedef-hooks.ts` | YENİ — `useHedefler`, `useHedefEkle`, `useHedefSil`, `useAdimEkle/Tamamla`, `useStreakHesapla` |
+| `src/components/mizan/hedef/hedef-kart.tsx` | YENİ — tip-anahtarlı kart |
+| `src/components/mizan/hedef/hedef-form.tsx` | YENİ — tip seçim + tipe özel alanlar |
+| `src/components/mizan/hedef/adim-listesi.tsx` | YENİ — kurs/proje için |
+| `src/components/mizan/hedef/streak-isi-haritasi.tsx` | YENİ — alışkanlık için |
+| `src/routes/mizan.amel.tsx` | dummy → gerçek liste, sekmeler, +Yeni |
+| `src/routes/mizan.hedef.$id.tsx` | YENİ — detay sayfası |
+| `src/routes/mizan.mana.tsx` & `mizan.ilim.tsx` | "Bu alandaki hedefler" bölümü ekle |
 
-## 7. Sıralama
+## 6. Sıralama
 
-1. **Migration** — enum swap + veri güncelle (kullanıcı onayı şart)
-2. **Tipler + CSS değişkenleri** — `mana/ilim/amel` her yerde yenilenir
-3. **`IstikametKart` + `IstikametRozeti`** bileşenleri
-4. **`/mizan` ana sayfa** yeni kartlarla yenilenir
-5. **Alt rotaları rename** (`mizan.mana.tsx` vs.) + iç başlıklar
-6. **Bugün anasayfa** — mevcut alan linkleri yerine mini 3-şerit
-7. Eski rotalardan yenilere redirect (`/mizan/maneviyat` → `/mizan/mana`) — eski linkler kırılmasın
+1. **Migration** — enum + iki tablo + RLS + trigger
+2. **Tipler + hooks** — `hedef-tipleri.ts`, `hedef-hooks.ts`
+3. **Kart bileşeni** (4 tip render) + form (tip seçimli)
+4. **`/mizan/amel` sayfası** — sekmeler, filtreler, +Yeni dialog
+5. **Detay sayfası** — adım listesi, ısı haritası, sayısal ekleme
+6. **Mana ve İlim sayfalarına** "alan hedefleri" mini bölüm
 
 ## Notlar
 
-- Akademi yeşilden mora geçtiği için mevcut grafiklerde renk algısı değişir — referansa sadık kalmak istedim, ama istersen mavi-yeşil-sarı kalabilir. Kararını söyle.
-- Rozet metinleri **Türkçe ve mizan diline yakın**: "ÖNDESİN / EL VER / DENGEDE". İngilizce "LEADING AREA" yerine sıcak.
-- "Kisisel" alanı (takvimde kullanılan) bu üçlüye dahil değil, sadece takvim için kalmaya devam eder.
-- Sayfa içeriği (içerideki ders/evrad listeleri, formlar) aynı kalır — sadece kapak ve isim yenilenir.
+- **Sayısal hedefin çetele bağı** opsiyonel — bağlıysa miktar otomatik gelir, bağlı değilse manuel girilir.
+- **Alışkanlık streaki** çetele şablonuna zorunlu bağlı — yoksa hangi günde "yapıldı" sayılacağını bilemeyiz.
+- **Tip değiştirilemez** (oluşturduktan sonra) — temiz veri için. Yanlış tip seçildiyse silip yeniden oluşturulur.
+- Detay sayfasının URL'i `/mizan/hedef/$id` — alana bağımlı değil, çünkü hedef alanı değişebilir.
+- İlk versiyonda **drag-to-reorder, etiket, tekrarlayan hedef** YOK — sade tutuyoruz, ihtiyaç çıkarsa eklenir.
 
