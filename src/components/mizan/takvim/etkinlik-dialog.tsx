@@ -33,13 +33,21 @@ import {
 } from "@/lib/takvim-hooks";
 import { toast } from "sonner";
 
-function toLocalInput(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const pad = (n: number) => String(n).padStart(2, "0");
+
+function toDateInput(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function fromLocalInput(s: string): Date {
-  return new Date(s);
+function toTimeInput(d: Date): string {
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** YYYY-MM-DD + HH:mm → Date (local). Saat boşsa 00:00 alınır. */
+function birlestir(tarih: string, saat: string): Date {
+  const [y, m, g] = tarih.split("-").map(Number);
+  const [sa, dk] = (saat || "00:00").split(":").map(Number);
+  return new Date(y, (m ?? 1) - 1, g ?? 1, sa ?? 0, dk ?? 0, 0, 0);
 }
 
 type Props = {
@@ -56,8 +64,10 @@ export function EtkinlikDialog({ acik, onOpenChange, varsayilanBaslangic, duzenl
 
   const [baslik, setBaslik] = React.useState("");
   const [aciklama, setAciklama] = React.useState("");
-  const [baslangic, setBaslangic] = React.useState("");
-  const [bitis, setBitis] = React.useState("");
+  const [baslangicTarih, setBaslangicTarih] = React.useState("");
+  const [baslangicSaat, setBaslangicSaat] = React.useState("");
+  const [bitisTarih, setBitisTarih] = React.useState("");
+  const [bitisSaat, setBitisSaat] = React.useState("");
   const [tumGun, setTumGun] = React.useState(false);
   const [alan, setAlan] = React.useState<CeteleAlan>("kisisel");
   const [konum, setKonum] = React.useState("");
@@ -66,10 +76,14 @@ export function EtkinlikDialog({ acik, onOpenChange, varsayilanBaslangic, duzenl
   React.useEffect(() => {
     if (!acik) return;
     if (duzenle) {
+      const bas = new Date(duzenle.baslangic);
+      const bit = duzenle.bitis ? new Date(duzenle.bitis) : new Date(bas.getTime() + 60 * 60 * 1000);
       setBaslik(duzenle.baslik);
       setAciklama(duzenle.aciklama ?? "");
-      setBaslangic(toLocalInput(new Date(duzenle.baslangic)));
-      setBitis(duzenle.bitis ? toLocalInput(new Date(duzenle.bitis)) : "");
+      setBaslangicTarih(toDateInput(bas));
+      setBaslangicSaat(toTimeInput(bas));
+      setBitisTarih(toDateInput(bit));
+      setBitisSaat(toTimeInput(bit));
       setTumGun(duzenle.tum_gun);
       setAlan(duzenle.alan);
       setKonum(duzenle.konum ?? "");
@@ -79,8 +93,10 @@ export function EtkinlikDialog({ acik, onOpenChange, varsayilanBaslangic, duzenl
       const bit = new Date(bas.getTime() + 60 * 60 * 1000);
       setBaslik("");
       setAciklama("");
-      setBaslangic(toLocalInput(bas));
-      setBitis(toLocalInput(bit));
+      setBaslangicTarih(toDateInput(bas));
+      setBaslangicSaat(toTimeInput(bas));
+      setBitisTarih(toDateInput(bit));
+      setBitisSaat(toTimeInput(bit));
       setTumGun(false);
       setAlan("kisisel");
       setKonum("");
@@ -88,16 +104,53 @@ export function EtkinlikDialog({ acik, onOpenChange, varsayilanBaslangic, duzenl
     }
   }, [acik, duzenle, varsayilanBaslangic]);
 
+  // Başlangıç değişince bitiş hâlâ önceyse otomatik +1 saat ileri kaydır
+  const baslangicDegisti = (yeniTarih: string, yeniSaat: string) => {
+    setBaslangicTarih(yeniTarih);
+    setBaslangicSaat(yeniSaat);
+    if (!yeniTarih || !bitisTarih) return;
+    const yeniBas = birlestir(yeniTarih, tumGun ? "00:00" : yeniSaat);
+    const mevcutBit = birlestir(bitisTarih, tumGun ? "23:59" : bitisSaat);
+    if (mevcutBit <= yeniBas) {
+      const yeniBit = new Date(yeniBas.getTime() + 60 * 60 * 1000);
+      setBitisTarih(toDateInput(yeniBit));
+      setBitisSaat(toTimeInput(yeniBit));
+    }
+  };
+
+  // Tüm gün açılınca bitiş tarihi yoksa başlangıca eşitle
+  const tumGunDegisti = (yeni: boolean) => {
+    setTumGun(yeni);
+    if (yeni && baslangicTarih && !bitisTarih) {
+      setBitisTarih(baslangicTarih);
+    }
+  };
+
   const kaydet = async () => {
     if (!baslik.trim()) {
       toast.error("Başlık gerekli");
       return;
     }
+    if (!baslangicTarih) {
+      toast.error("Başlangıç tarihi gerekli");
+      return;
+    }
+    const bas = birlestir(baslangicTarih, tumGun ? "00:00" : baslangicSaat || "00:00");
+    const bit = bitisTarih
+      ? birlestir(bitisTarih, tumGun ? "23:59" : bitisSaat || "00:00")
+      : null;
+    if (bit && bit <= bas) {
+      toast.error("Bitiş, başlangıçtan sonra olmalı");
+      const auto = new Date(bas.getTime() + 60 * 60 * 1000);
+      setBitisTarih(toDateInput(auto));
+      setBitisSaat(toTimeInput(auto));
+      return;
+    }
     const payload: Omit<TakvimEtkinlikEkle, "user_id"> = {
       baslik: baslik.trim(),
       aciklama: aciklama.trim() || null,
-      baslangic: fromLocalInput(baslangic).toISOString(),
-      bitis: bitis ? fromLocalInput(bitis).toISOString() : null,
+      baslangic: bas.toISOString(),
+      bitis: bit ? bit.toISOString() : null,
       tum_gun: tumGun,
       alan,
       konum: konum.trim() || null,
@@ -130,7 +183,7 @@ export function EtkinlikDialog({ acik, onOpenChange, varsayilanBaslangic, duzenl
 
   return (
     <Dialog open={acik} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{duzenle ? "Etkinliği düzenle" : "Yeni etkinlik"}</DialogTitle>
           <DialogDescription>
@@ -150,33 +203,73 @@ export function EtkinlikDialog({ acik, onOpenChange, varsayilanBaslangic, duzenl
           </div>
           <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
             <Label htmlFor="tumgun" className="text-sm">Tüm gün</Label>
-            <Switch id="tumgun" checked={tumGun} onCheckedChange={setTumGun} />
+            <Switch id="tumgun" checked={tumGun} onCheckedChange={tumGunDegisti} />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="bas">Başlangıç</Label>
-              <Input
-                id="bas"
-                type={tumGun ? "date" : "datetime-local"}
-                value={tumGun ? baslangic.slice(0, 10) : baslangic}
-                onChange={(e) =>
-                  setBaslangic(tumGun ? `${e.target.value}T00:00` : e.target.value)
-                }
-              />
+          {tumGun ? (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-1.5">
+                <Label htmlFor="bas-tarih">Başlangıç</Label>
+                <Input
+                  id="bas-tarih"
+                  type="date"
+                  value={baslangicTarih}
+                  onChange={(e) => baslangicDegisti(e.target.value, baslangicSaat)}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="bit-tarih">Bitiş</Label>
+                <Input
+                  id="bit-tarih"
+                  type="date"
+                  value={bitisTarih}
+                  min={baslangicTarih || undefined}
+                  onChange={(e) => setBitisTarih(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="bit">Bitiş</Label>
-              <Input
-                id="bit"
-                type={tumGun ? "date" : "datetime-local"}
-                value={tumGun ? bitis.slice(0, 10) : bitis}
-                onChange={(e) =>
-                  setBitis(tumGun ? `${e.target.value}T23:59` : e.target.value)
-                }
-                disabled={tumGun}
-              />
+          ) : (
+            <div className="grid gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="bas-tarih">Başlangıç</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="bas-tarih"
+                    type="date"
+                    className="flex-1"
+                    value={baslangicTarih}
+                    onChange={(e) => baslangicDegisti(e.target.value, baslangicSaat)}
+                  />
+                  <Input
+                    id="bas-saat"
+                    type="time"
+                    className="w-[110px]"
+                    value={baslangicSaat}
+                    onChange={(e) => baslangicDegisti(baslangicTarih, e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="bit-tarih">Bitiş</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="bit-tarih"
+                    type="date"
+                    className="flex-1"
+                    min={baslangicTarih || undefined}
+                    value={bitisTarih}
+                    onChange={(e) => setBitisTarih(e.target.value)}
+                  />
+                  <Input
+                    id="bit-saat"
+                    type="time"
+                    className="w-[110px]"
+                    value={bitisSaat}
+                    onChange={(e) => setBitisSaat(e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <div className="grid gap-1.5">
               <Label>Alan</Label>

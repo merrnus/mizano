@@ -125,8 +125,8 @@ export function GorevDialog({ acik, onOpenChange, varsayilanVade, duzenle }: Pro
               autoFocus
             />
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="col-span-1 grid gap-1.5">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <div className="grid gap-1.5">
               <Label htmlFor="g-vade">Vade</Label>
               <Input
                 id="g-vade"
