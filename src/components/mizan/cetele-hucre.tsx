@@ -29,10 +29,13 @@ function durumHesapla(
 }
 
 const DURUM_BG: Record<HucreDurum, string> = {
-  yesil: "bg-emerald-500/25 text-emerald-200 border-emerald-500/40",
-  sari: "bg-amber-500/20 text-amber-200 border-amber-500/40",
-  kirmizi: "bg-rose-500/15 text-rose-300/70 border-rose-500/30",
-  bos: "bg-muted/30 text-muted-foreground/40 border-border",
+  yesil:
+    "bg-emerald-500/25 text-emerald-900 dark:text-emerald-100 border-emerald-500/50 font-semibold",
+  sari:
+    "bg-amber-500/20 text-amber-900 dark:text-amber-100 border-amber-500/50 font-semibold",
+  kirmizi:
+    "bg-rose-500/15 text-rose-800 dark:text-rose-200 border-rose-500/40",
+  bos: "bg-muted/30 text-muted-foreground/50 border-border",
 };
 
 export function CeteleHucre({
