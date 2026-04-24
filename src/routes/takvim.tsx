@@ -27,6 +27,8 @@ import {
   useProjeler,
 } from "@/lib/ilim-hooks";
 import { ilimOlayDersId, ilimOlaylari, isIlimOlay } from "@/lib/ilim-takvim";
+import { useAmelKurslar, useAmelProjeler } from "@/lib/amel-hooks";
+import { amelOlaylari, amelOlayKursId, amelOlayProjeId, isAmelOlay } from "@/lib/amel-takvim";
 import {
   type TakvimEtkinlik,
   type TakvimGorev,
@@ -98,6 +100,8 @@ function TakvimSayfasi() {
   const saatSorgu = useDersSaatleri();
   const sinavSorgu = useSinavlar();
   const projeSorgu = useProjeler();
+  const amelKursSorgu = useAmelKurslar();
+  const amelProjeSorgu = useAmelProjeler();
 
   const olaylar: EtkinlikOlay[] = React.useMemo(
     () => [
@@ -110,6 +114,12 @@ function TakvimSayfasi() {
         aralikBas,
         aralikBitis,
       ),
+      ...amelOlaylari(
+        amelKursSorgu.data ?? [],
+        amelProjeSorgu.data ?? [],
+        aralikBas,
+        aralikBitis,
+      ),
     ],
     [
       etkSorgu.data,
@@ -117,6 +127,8 @@ function TakvimSayfasi() {
       saatSorgu.data,
       sinavSorgu.data,
       projeSorgu.data,
+      amelKursSorgu.data,
+      amelProjeSorgu.data,
       aralikBas,
       aralikBitis,
     ],
@@ -155,6 +167,18 @@ function TakvimSayfasi() {
       );
       if (dersId) {
         navigate({ to: "/mizan/ilim/$id", params: { id: dersId } });
+        return;
+      }
+    }
+    if (isAmelOlay(o.id)) {
+      const kursId = amelOlayKursId(o.id);
+      if (kursId) {
+        navigate({ to: "/mizan/amel/$id", params: { id: kursId } });
+        return;
+      }
+      const projeId = amelOlayProjeId(o.id);
+      if (projeId) {
+        navigate({ to: "/mizan/amel" });
         return;
       }
     }

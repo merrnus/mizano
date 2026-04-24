@@ -14,6 +14,329 @@ export type Database = {
   }
   public: {
     Tables: {
+      amel_alan: {
+        Row: {
+          aciklama: string | null
+          ad: string
+          arsiv: boolean
+          created_at: string
+          id: string
+          ikon: string | null
+          renk: string | null
+          siralama: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aciklama?: string | null
+          ad: string
+          arsiv?: boolean
+          created_at?: string
+          id?: string
+          ikon?: string | null
+          renk?: string | null
+          siralama?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aciklama?: string | null
+          ad?: string
+          arsiv?: boolean
+          created_at?: string
+          id?: string
+          ikon?: string | null
+          renk?: string | null
+          siralama?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      amel_kaynak: {
+        Row: {
+          baslik: string
+          created_at: string
+          icerik: string | null
+          id: string
+          kurs_id: string
+          siralama: number
+          storage_path: string | null
+          tip: Database["public"]["Enums"]["amel_kaynak_tip"]
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          baslik: string
+          created_at?: string
+          icerik?: string | null
+          id?: string
+          kurs_id: string
+          siralama?: number
+          storage_path?: string | null
+          tip?: Database["public"]["Enums"]["amel_kaynak_tip"]
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          baslik?: string
+          created_at?: string
+          icerik?: string | null
+          id?: string
+          kurs_id?: string
+          siralama?: number
+          storage_path?: string | null
+          tip?: Database["public"]["Enums"]["amel_kaynak_tip"]
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amel_kaynak_kurs_id_fkey"
+            columns: ["kurs_id"]
+            isOneToOne: false
+            referencedRelation: "amel_kurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amel_kurs: {
+        Row: {
+          aciklama: string | null
+          ad: string
+          alan_id: string
+          baslangic: string | null
+          bitis: string | null
+          created_at: string
+          durum: Database["public"]["Enums"]["amel_kurs_durum"]
+          id: string
+          kod: string | null
+          notlar: string | null
+          saglayici: string | null
+          sertifika_konum: string | null
+          sertifika_tarihi: string | null
+          siralama: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aciklama?: string | null
+          ad: string
+          alan_id: string
+          baslangic?: string | null
+          bitis?: string | null
+          created_at?: string
+          durum?: Database["public"]["Enums"]["amel_kurs_durum"]
+          id?: string
+          kod?: string | null
+          notlar?: string | null
+          saglayici?: string | null
+          sertifika_konum?: string | null
+          sertifika_tarihi?: string | null
+          siralama?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aciklama?: string | null
+          ad?: string
+          alan_id?: string
+          baslangic?: string | null
+          bitis?: string | null
+          created_at?: string
+          durum?: Database["public"]["Enums"]["amel_kurs_durum"]
+          id?: string
+          kod?: string | null
+          notlar?: string | null
+          saglayici?: string | null
+          sertifika_konum?: string | null
+          sertifika_tarihi?: string | null
+          siralama?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amel_kurs_alan_id_fkey"
+            columns: ["alan_id"]
+            isOneToOne: false
+            referencedRelation: "amel_alan"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amel_modul: {
+        Row: {
+          aciklama: string | null
+          baslik: string
+          created_at: string
+          id: string
+          kurs_id: string
+          notlar: string | null
+          siralama: number
+          tamamlandi: boolean
+          tamamlanma: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aciklama?: string | null
+          baslik: string
+          created_at?: string
+          id?: string
+          kurs_id: string
+          notlar?: string | null
+          siralama?: number
+          tamamlandi?: boolean
+          tamamlanma?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aciklama?: string | null
+          baslik?: string
+          created_at?: string
+          id?: string
+          kurs_id?: string
+          notlar?: string | null
+          siralama?: number
+          tamamlandi?: boolean
+          tamamlanma?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amel_modul_kurs_id_fkey"
+            columns: ["kurs_id"]
+            isOneToOne: false
+            referencedRelation: "amel_kurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amel_proje: {
+        Row: {
+          aciklama: string | null
+          ad: string
+          alan_id: string | null
+          baslangic: string | null
+          created_at: string
+          deadline: string | null
+          durum: Database["public"]["Enums"]["amel_proje_durum"]
+          id: string
+          kurs_id: string | null
+          notlar: string | null
+          repo_url: string | null
+          siralama: number
+          tamamlanma: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aciklama?: string | null
+          ad: string
+          alan_id?: string | null
+          baslangic?: string | null
+          created_at?: string
+          deadline?: string | null
+          durum?: Database["public"]["Enums"]["amel_proje_durum"]
+          id?: string
+          kurs_id?: string | null
+          notlar?: string | null
+          repo_url?: string | null
+          siralama?: number
+          tamamlanma?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aciklama?: string | null
+          ad?: string
+          alan_id?: string | null
+          baslangic?: string | null
+          created_at?: string
+          deadline?: string | null
+          durum?: Database["public"]["Enums"]["amel_proje_durum"]
+          id?: string
+          kurs_id?: string | null
+          notlar?: string | null
+          repo_url?: string | null
+          siralama?: number
+          tamamlanma?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amel_proje_alan_id_fkey"
+            columns: ["alan_id"]
+            isOneToOne: false
+            referencedRelation: "amel_alan"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amel_proje_kurs_id_fkey"
+            columns: ["kurs_id"]
+            isOneToOne: false
+            referencedRelation: "amel_kurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amel_proje_adim: {
+        Row: {
+          aciklama: string | null
+          baslik: string
+          created_at: string
+          id: string
+          proje_id: string
+          siralama: number
+          tamamlandi: boolean
+          tamamlanma: string | null
+          updated_at: string
+          user_id: string
+          vade: string | null
+        }
+        Insert: {
+          aciklama?: string | null
+          baslik: string
+          created_at?: string
+          id?: string
+          proje_id: string
+          siralama?: number
+          tamamlandi?: boolean
+          tamamlanma?: string | null
+          updated_at?: string
+          user_id: string
+          vade?: string | null
+        }
+        Update: {
+          aciklama?: string | null
+          baslik?: string
+          created_at?: string
+          id?: string
+          proje_id?: string
+          siralama?: number
+          tamamlandi?: boolean
+          tamamlanma?: string | null
+          updated_at?: string
+          user_id?: string
+          vade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amel_proje_adim_proje_id_fkey"
+            columns: ["proje_id"]
+            isOneToOne: false
+            referencedRelation: "amel_proje"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cetele_kayit: {
         Row: {
           created_at: string
@@ -570,6 +893,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      amel_kaynak_tip: "link" | "dosya" | "resim" | "not"
+      amel_kurs_durum: "planli" | "izliyor" | "beklemede" | "tamam" | "birakti"
+      amel_proje_durum: "planli" | "devam" | "beklemede" | "tamam" | "iptal"
       cetele_alan: "mana" | "ilim" | "amel" | "kisisel"
       cetele_birim: "sayfa" | "adet" | "dakika" | "ikili"
       cetele_hedef_tipi: "gunluk" | "haftalik" | "esnek"
@@ -716,6 +1042,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      amel_kaynak_tip: ["link", "dosya", "resim", "not"],
+      amel_kurs_durum: ["planli", "izliyor", "beklemede", "tamam", "birakti"],
+      amel_proje_durum: ["planli", "devam", "beklemede", "tamam", "iptal"],
       cetele_alan: ["mana", "ilim", "amel", "kisisel"],
       cetele_birim: ["sayfa", "adet", "dakika", "ikili"],
       cetele_hedef_tipi: ["gunluk", "haftalik", "esnek"],
