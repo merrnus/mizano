@@ -28,7 +28,7 @@ import type {
 import { toast } from "sonner";
 
 export function SablonForm({
-  varsayilanAlan = "maneviyat",
+  varsayilanAlan = "mana",
   duzenle,
 }: {
   varsayilanAlan?: CeteleAlan;
