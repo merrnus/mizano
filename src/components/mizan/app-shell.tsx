@@ -43,7 +43,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <IconRail />
         <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background xl:pl-12">
           <Topbar />
-          <main className="min-w-0 flex-1 overflow-x-hidden pb-16 xl:pb-0">{children}</main>
+          <main
+            className="min-w-0 flex-1 overflow-x-hidden xl:pb-0"
+            style={{
+              paddingBottom: "calc(4rem + env(safe-area-inset-bottom))",
+            }}
+          >
+            {children}
+          </main>
           <AltTabBar />
         </SidebarInset>
       </SidebarProvider>

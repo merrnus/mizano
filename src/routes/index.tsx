@@ -210,8 +210,8 @@ function Dashboard() {
             </Button>
           </div>
         ) : (
-          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-            <div className="flex gap-3 pb-1">
+          <div className="-mx-4 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+            <div className="flex snap-x snap-mandatory gap-3 pb-1">
               {bugunSablonlar.map((s) => {
                 const ikili = s.birim === "ikili";
                 const haftalik = s.hedef_tipi === "haftalik";
@@ -251,7 +251,7 @@ function Dashboard() {
                   <button
                     key={s.id}
                     onClick={tikla}
-                    className="flex w-[180px] shrink-0 flex-col gap-2 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-[var(--mana)]/40"
+                    className="flex w-[180px] shrink-0 snap-start flex-col gap-2 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-[var(--mana)]/40 active:scale-[0.98]"
                   >
                     <div className="flex items-center justify-between">
                       <span className="truncate text-xs font-medium text-foreground">

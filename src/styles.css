@@ -175,5 +175,43 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    /* iOS overscroll bounce'u kapat — beyaz/siyah flash önler */
+    overscroll-behavior-y: none;
+    /* Yatay tap highlight'ı kaldır (mavi flash) */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    /* Çentikli cihazlarda tarayıcı bar'ının uyum rengi */
+    background-color: var(--color-background);
+  }
+
+  /* iOS'ta input'a focus olunca otomatik zoom'u engelle (font ≥ 16px) */
+  @supports (-webkit-touch-callout: none) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}
+
+@layer utilities {
+  /* Safe-area yardımcıları — iPhone çentik / dinamik ada */
+  .pl-safe {
+    padding-left: max(env(safe-area-inset-left), 0px);
+  }
+  .pr-safe {
+    padding-right: max(env(safe-area-inset-right), 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .px-safe {
+    padding-left: max(env(safe-area-inset-left), 0px);
+    padding-right: max(env(safe-area-inset-right), 0px);
   }
 }

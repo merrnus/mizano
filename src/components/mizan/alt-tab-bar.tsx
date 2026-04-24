@@ -23,7 +23,7 @@ export function AltTabBar() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Ana navigasyon"
     >
-      <ul className="mx-auto flex h-14 max-w-md items-stretch justify-around px-1">
+      <ul className="mx-auto flex h-16 max-w-md items-stretch justify-around px-safe">
         {items.map((item) => {
           const active = item.url === "/" ? pathname === "/" : pathname.startsWith(item.url);
           return (
@@ -33,7 +33,7 @@ export function AltTabBar() {
                 aria-label={item.title}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-md text-[10px] transition-colors",
+                  "relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-md text-[10px] transition-colors active:scale-95 active:bg-accent/40",
                   active
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground",
