@@ -3,7 +3,7 @@ import { ArrowLeft, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
-export const Route = createFileRoute("/mizan/dunyevi")({
+export const Route = createFileRoute("/mizan/amel")({
   head: () => ({
     meta: [
       { title: "Dünyevi Hedefler — Mizan" },

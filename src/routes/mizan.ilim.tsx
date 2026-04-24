@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/mizan/akademi")({
+export const Route = createFileRoute("/mizan/ilim")({
   head: () => ({
     meta: [
       { title: "Akademi — Mizan" },

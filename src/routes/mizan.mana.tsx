@@ -25,7 +25,7 @@ import { ceteleyiPdfeAktar } from "@/lib/cetele-pdf";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/mizan/maneviyat")({
+export const Route = createFileRoute("/mizan/mana")({
   head: () => ({
     meta: [
       { title: "Maneviyat Çetelesi — Mizan" },
