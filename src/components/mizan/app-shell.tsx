@@ -7,6 +7,7 @@ import { Topbar } from "./topbar";
 import { useAuth } from "@/lib/auth-context";
 import { MizanLogo } from "./mizan-logo";
 import { IconRail } from "./icon-rail";
+import { AltTabBar } from "./alt-tab-bar";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -40,9 +41,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SidebarProvider>
         <SolSidebar />
         <IconRail />
-        <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background pl-12">
+        <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background xl:pl-12">
           <Topbar />
-          <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
+          <main className="min-w-0 flex-1 overflow-x-hidden pb-16 xl:pb-0">{children}</main>
+          <AltTabBar />
         </SidebarInset>
       </SidebarProvider>
     </ThemeProvider>
