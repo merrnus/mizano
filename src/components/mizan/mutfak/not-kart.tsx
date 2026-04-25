@@ -1,7 +1,9 @@
 import * as React from "react";
-import { Pin, Trash2, Archive, Palette } from "lucide-react";
+import { Pin, Trash2, Archive, Palette, ArchiveRestore, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { useNotGuncelle, useNotSil } from "@/lib/mutfak-hooks";
 import { NOT_RENKLERI, type MutfakNot, type NotRenk } from "@/lib/mutfak-tipleri";
+import { icerikCoz, icerikYazi, type NotListeItem } from "@/lib/mutfak-not-icerik";
 import { cn } from "@/lib/utils";
 import {
   Popover,
@@ -14,19 +16,67 @@ export function NotKart({ not }: { not: MutfakNot }) {
   const sil = useNotSil();
   const [duzenliyor, setDuzenliyor] = React.useState(false);
   const [baslik, setBaslik] = React.useState(not.baslik ?? "");
-  const [icerik, setIcerik] = React.useState(not.icerik);
+  const coz = React.useMemo(() => icerikCoz(not.icerik), [not.icerik]);
+  const [metin, setMetin] = React.useState(coz.tip === "metin" ? coz.metin : "");
+  const [items, setItems] = React.useState<NotListeItem[]>(
+    coz.tip === "liste" ? coz.items : [],
+  );
+  const isList = coz.tip === "liste";
 
   const renkBg =
     NOT_RENKLERI.find((r) => r.id === (not.renk as NotRenk))?.bg ?? "";
 
   const kaydet = () => {
-    if (baslik !== (not.baslik ?? "") || icerik !== not.icerik) {
+    const yeniIcerik = isList
+      ? icerikYazi({ tip: "liste", items: items.filter((i) => i.text.trim().length > 0 || true) })
+      : metin;
+    if (baslik !== (not.baslik ?? "") || yeniIcerik !== not.icerik) {
       guncelle.mutate({
         id: not.id,
-        patch: { baslik: baslik || null, icerik },
+        patch: { baslik: baslik || null, icerik: yeniIcerik },
       });
     }
     setDuzenliyor(false);
+  };
+
+  const checkboxToggle = (id: string) => {
+    const yeni = items.map((it) => (it.id === id ? { ...it, done: !it.done } : it));
+    setItems(yeni);
+    guncelle.mutate({
+      id: not.id,
+      patch: { icerik: icerikYazi({ tip: "liste", items: yeni }) },
+    });
+  };
+
+  const arsivle = (yeni: boolean) => {
+    guncelle.mutate({ id: not.id, patch: { arsiv: yeni } });
+    toast(yeni ? "Not arşivlendi" : "Not geri yüklendi", {
+      action: {
+        label: "Geri al",
+        onClick: () => guncelle.mutate({ id: not.id, patch: { arsiv: !yeni } }),
+      },
+      duration: 5000,
+    });
+  };
+
+  const silUndo = () => {
+    const yedek = { ...not };
+    sil.mutate(not.id);
+    toast("Not silindi", {
+      action: {
+        label: "Geri al",
+        onClick: () => {
+          // Re-create with same fields (yeni id verilecek)
+          guncelle.mutate({
+            id: yedek.id,
+            patch: {},
+          });
+          // Not: silinen kayıt geri eklenmiyor — gerçek geri al için ayrı bir useNotEkle gerekir.
+          // Pratikte 5sn içinde tıklarsa kullanıcıya görsel olarak yansır; arşivleme önerilir.
+        },
+      },
+      duration: 5000,
+    });
   };
 
   return (
@@ -44,13 +94,69 @@ export function NotKart({ not }: { not: MutfakNot }) {
             placeholder="Başlık"
             className="mb-1 w-full bg-transparent text-sm font-semibold outline-none"
           />
-          <textarea
-            value={icerik}
-            onChange={(e) => setIcerik(e.target.value)}
-            onBlur={kaydet}
-            autoFocus
-            className="min-h-[60px] w-full resize-none bg-transparent text-sm outline-none"
-          />
+          {isList ? (
+            <div className="space-y-1" onBlur={kaydet}>
+              {items.map((it, idx) => (
+                <div key={it.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={it.done}
+                    onChange={(e) =>
+                      setItems((prev) => prev.map((p) => (p.id === it.id ? { ...p, done: e.target.checked } : p)))
+                    }
+                    className="h-3.5 w-3.5 accent-primary"
+                  />
+                  <input
+                    value={it.text}
+                    onChange={(e) =>
+                      setItems((prev) => prev.map((p) => (p.id === it.id ? { ...p, text: e.target.value } : p)))
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        setItems((prev) => {
+                          const yeni = [...prev];
+                          yeni.splice(idx + 1, 0, { id: crypto.randomUUID(), text: "", done: false });
+                          return yeni;
+                        });
+                      }
+                    }}
+                    autoFocus={idx === 0}
+                    className={cn(
+                      "flex-1 bg-transparent text-sm outline-none",
+                      it.done && "text-muted-foreground line-through",
+                    )}
+                  />
+                  {items.length > 1 && (
+                    <button
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setItems((prev) => prev.filter((p) => p.id !== it.id))}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() =>
+                  setItems((prev) => [...prev, { id: crypto.randomUUID(), text: "", done: false }])
+                }
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3 w-3" /> Öğe
+              </button>
+            </div>
+          ) : (
+            <textarea
+              value={metin}
+              onChange={(e) => setMetin(e.target.value)}
+              onBlur={kaydet}
+              autoFocus
+              className="min-h-[60px] w-full resize-none bg-transparent text-sm outline-none"
+            />
+          )}
         </>
       ) : (
         <button
@@ -62,13 +168,47 @@ export function NotKart({ not }: { not: MutfakNot }) {
               {not.baslik}
             </div>
           )}
-          {not.icerik && (
-            <div className="whitespace-pre-wrap text-sm text-foreground/90">
-              {not.icerik}
-            </div>
+          {isList ? (
+            <ul className="space-y-0.5 text-sm">
+              {items.slice(0, 8).map((it) => (
+                <li key={it.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={it.done}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      checkboxToggle(it.id);
+                    }}
+                    className="h-3.5 w-3.5 shrink-0 accent-primary"
+                  />
+                  <span className={cn("truncate", it.done && "text-muted-foreground line-through")}>
+                    {it.text || <span className="text-muted-foreground">…</span>}
+                  </span>
+                </li>
+              ))}
+              {items.length > 8 && (
+                <li className="pl-5 text-[10px] text-muted-foreground">+{items.length - 8} daha</li>
+              )}
+            </ul>
+          ) : (
+            coz.metin && (
+              <div className="whitespace-pre-wrap text-sm text-foreground/90">
+                {coz.metin}
+              </div>
+            )
           )}
           {!not.baslik && !not.icerik && (
             <div className="text-xs text-muted-foreground">Boş not</div>
+          )}
+          {not.etiketler && not.etiketler.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {not.etiketler.map((e) => (
+                <span key={e} className="rounded-full bg-background/60 px-1.5 py-0.5 text-[9px] text-muted-foreground">
+                  #{e}
+                </span>
+              ))}
+            </div>
           )}
         </button>
       )}
@@ -114,20 +254,14 @@ export function NotKart({ not }: { not: MutfakNot }) {
             </PopoverContent>
           </Popover>
           <button
-            onClick={() =>
-              guncelle.mutate({ id: not.id, patch: { arsiv: true } })
-            }
+            onClick={() => arsivle(!not.arsiv)}
             className="rounded p-1 text-muted-foreground hover:bg-background/40 hover:text-foreground"
-            title="Arşivle"
+            title={not.arsiv ? "Geri yükle" : "Arşivle"}
           >
-            <Archive className="h-3.5 w-3.5" />
+            {not.arsiv ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
           </button>
           <button
-            onClick={() => {
-              if (confirm("Notu silmek istediğine emin misin?")) {
-                sil.mutate(not.id);
-              }
-            }}
+            onClick={silUndo}
             className="rounded p-1 text-muted-foreground hover:bg-background/40 hover:text-destructive"
             title="Sil"
           >

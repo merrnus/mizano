@@ -1,158 +1,138 @@
 
-# Mutfak — Google Workspace Tarzı Hub
+# Mutfak — Tam Google Ekosistemi Dokunuşu
 
-## 1. Veritabanı (tek migration)
+Hedef: Notlar (Keep), Belge (Docs), Tablo (Sheets), Sürücü (Drive) ve Pomodoro modüllerini Google'ın "akıcı, sade, fonksiyonel" hissini taşıyacak şekilde derinleştirmek. Yeni paket gerekmiyor — TipTap, Tailwind, lucide ve Supabase mevcut.
 
-**4 yeni tablo + RLS + updated_at trigger:**
+---
+
+## 1) Hub (`workspace.index.tsx`) — Google Apps launcher hissi
+
+- Üstte: arama çubuğu (tüm not/belge/tablo başlıklarında client-side arama → sonuca tıkla, doğrudan ilgili sayfaya).
+- "Son kullanılanlar" şeridi: notlar+belgeler+tablolar `updated_at desc` (ilk 6) — küçük renkli kart şeridi.
+- Mevcut HubTile'ler korunur ama `rounded-3xl`, ince border, hover'da hafif `shadow-lg` + ikonun arka planı yumuşar (Google Apps tile hissi).
+- "Hızlı oluştur" FAB (sağ alt, mobilde de) → DropdownMenu: Yeni not / Yeni belge / Yeni tablo.
+
+## 2) Notlar (Keep) — `workspace.notlar.tsx` + `not-kart.tsx` + `not-composer.tsx`
+
+- **Etiket (label) sistemi:**
+  - Composer'a "Etiket ekle" chip-input (Enter ile ekle, x ile çıkar).
+  - Sol kenarda (mobilde üstte yatay scroll) etiket çubuğu: tüm etiketler + sayaçları, tıkla = filtre, Tümü/Arşiv linkleri.
+  - Kart üstünde mini etiket badge'leri.
+- **Çoklu seçim + toplu eylem:** uzun bas / hover'da checkbox → seçilen notları toplu arşivle/sil/renk değiştir (üstte ince action bar belirir).
+- **Onay/madde işareti notu:** Composer'da "Liste" toggle → `icerik` JSON `{type:"list", items:[{text,done}]}` olarak saklanır (mevcut `text` ile geri uyumlu — string ise düz metin, JSON parse edilebiliyorsa liste). Kartlarda checkbox tıklanabilir.
+- **Arşiv görünümü:** `/workspace/notlar?arsiv=1` (search param), aynı sayfa, başlık değişir, "Geri yükle" butonu eklenir.
+- **Geri al (undo) toast:** Sil/arşivle sonrası 5sn'lik Sonner toast, "Geri al" tıklanırsa state restore.
+
+## 3) Belge (Docs) — `belge-editor.tsx` + `workspace.belge.$id.tsx`
+
+Mevcut TipTap genişletilir (paket eklemeden, sadece StarterKit ve mevcut Link/Placeholder ile):
+- **Toolbar genişletme:** Hizalama (sol/orta/sağ), kod bloğu, yatay çizgi, görev listesi (StarterKit'in TaskList'ini açıyoruz; zaten paket içinde).
+- **Floating bubble menu:** Metin seçilince yukarıda mini formatlama bar (B/I/U/Link) — `BubbleMenu` extension StarterKit'e ait değil, **eklemeden** bunun yerine selection üzerine sticky toolbar zaten var → bu yüzden onun yerine "/" slash komutu yapıyoruz:
+- **Slash menü (/):** Boş satırda `/` yazınca floating popover: Başlık 1/2/3, Liste, Sıralı liste, Alıntı, Kod, Çizgi. (Custom suggestion → ProseMirror plugin, paket gerekmez; basit DOM popover ile editor.commands çağrılır.)
+- **Sayfa düzeni:** A4 hissi — `max-w-[816px]`, beyaz kart, gölge, üstte ince ruler değil ama kenar boşluğu daha geniş → Docs hissi.
+- **Kelime/karakter sayacı:** sağ alt sabit küçük rozet.
+- **Outline (içindekiler):** sol kolon (lg+) — H1/H2/H3 başlıklarını listeler, tıkla → smooth scroll.
+- **Kaydetme rozeti:** "Drive'da kaydedildi" yerine "Buluta kaydedildi · şimdi" + zaman.
+
+## 4) Tablo (Sheets) — `tablo-editor.tsx` + `workspace.tablo.$id.tsx`
+
+- **Yeni kolon tipleri:**
+  - `secim` (tek seçim, renkli pill — kolon ayarında seçenekler tanımlanır)
+  - `cok_secim` (çoklu pill)
+  - `url` (link ikonu, tıkla → yeni sekme)
+  - `email`
+  - `dosya` opsiyonel (sürücüden bağla — ileri faz, şimdilik atlıyoruz)
+- **Hücre düzenleme:** Sheets hissi — tek tık seç (border highlight), çift tık düzenle, Enter alta git, Tab sağa git, ok tuşları gezinme.
+- **Satır/kolon sürükle-bırak:** native HTML5 DnD ile yeniden sıralama (paket gerekmez). Tutamak hover'da görünür (⋮⋮).
+- **Toplam satırı:** alt çizgi üstünde "Toplam" satırı — sayı kolonları için Sum/Avg/Count/Min/Max (kolon header'ından seçilebilir).
+- **Sıralama & filtre:** kolon header'da küçük chevron → asc/desc; metin/sayı için filtre input.
+- **Donmuş ilk kolon ve header:** `sticky` ile (yatay/dikey scroll'da kalır).
+- **Hücre formülü (basit):** `=A1+B1` veya `=SUM(C:C)` mini parser (opsiyonel, ileri — şimdilik temel SUM/AVG/COUNT toplam satırına bırakılır, hücre formülü ileride).
+
+## 5) Sürücü (Drive) — `workspace.surucu.tsx`
+
+- **Görünüm geçişi:** Grid ↔ Liste toggle (üst sağ). Liste görünümünde tablo: ad / tip / boyut / değiştirilme / aksiyon.
+- **Görsel önizleme:** image mime → kart üstünde signed URL ile thumbnail (`object-cover`, `aspect-square`).
+- **Dosya önizleme dialog:** tıkla → büyük modal: image inline, pdf iframe, diğerleri için "İndir".
+- **Yeniden adlandır:** dropdown menu → prompt → `mutfak_dosya.ad` update.
+- **Taşı:** dropdown → klasör seç → `klasor` update.
+- **Klasör silme/yeniden adlandırma:** breadcrumb yanında … menü.
+- **Sıralama:** ad / tarih / boyut.
+- **Kullanım çubuğu:** alt çubukta "Toplam X dosya · YY MB kullanılıyor".
+- **Çoklu seçim + toplu sil/taşı.**
+
+## 6) Pomodoro — `pomodoro-ring.tsx` + `workspace.pomodoro.tsx`
+
+- **Ayarlar paneli:** Odak/Kısa mola/Uzun mola süreleri (varsayılan 25/5/15), `localStorage`.
+- **Oturum sayacı:** Bugün tamamlanan pomodoro sayısı + 4'te bir uzun mola otomatik geçiş.
+- **Görev bağlantısı:** "Şu an üzerinde çalıştığım" başlığı (input) — bittiğinde `localStorage` log'una düşer (ileride `takvim_gorev` ile bağlanabilir).
+- **Bildirim & ses:** Notification API + ufak beep (Web Audio, dosya gerekmez).
+- **Tam ekran modu:** "Sadece zamanlayıcı" — distraction-free.
+
+## 7) Genel "Google hissi" dokunuşları
+
+- Tipografi: başlıklar `tracking-tight font-semibold`, body `text-sm/relaxed` — mevcut zaten yakın, küçük ayarlar.
+- Renk: Google'ın sarı/mavi/yeşil/kırmızı vurguları zaten hub gradient'lerinde var — kart hover'larında ilgili renkten çok ince halo (`ring-1 ring-{renk}/20`).
+- Material-vari ripple yerine: aktif tıkla → 120ms scale-95 (Tailwind `active:scale-[0.98]`).
+- Boş durumlar: Google'ın illustrasyon-light tonu — emoji + tek cümle CTA.
+- Klavye kısayolları (yardım modal `?`):
+  - `g h` Hub, `g n` Notlar, `g d` Belge, `g t` Tablo, `g s` Sürücü, `g p` Pomodoro
+  - `c` yeni öğe (bağlama göre), `/` arama, `Esc` kapat.
+
+## 8) Veritabanı değişiklikleri
+
+Tek migrasyon gerekiyor:
 
 ```sql
--- mutfak_not (Keep tarzı)
-create table public.mutfak_not (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  baslik text,
-  icerik text not null default '',
-  renk text not null default 'sari',  -- sari, pembe, mavi, yesil, mor, gri
-  pinned boolean not null default false,
-  etiketler text[] not null default '{}',
-  arsiv boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+-- Notlarda checkbox-listesi için icerik artık opsiyonel JSON da tutabilsin.
+-- Mevcut text alanı korunuyor; istemcide JSON.parse dene, başarısızsa düz metin.
+-- (Şema değişikliği gerekmiyor — text yeterli.)
 
--- mutfak_belge (Docs - TipTap JSON)
-create table public.mutfak_belge (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  baslik text not null default 'Adsız belge',
-  icerik jsonb not null default '{"type":"doc","content":[]}'::jsonb,
-  emoji text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
+-- Tablo kolon tipleri için sadece TS tipi genişliyor; kolonlar JSONB olduğundan DB değişmez.
 
--- mutfak_tablo (Sheets - dinamik kolon/satır JSONB)
-create table public.mutfak_tablo (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  baslik text not null default 'Adsız tablo',
-  kolonlar jsonb not null default '[]'::jsonb,  -- [{id, ad, tip}]
-  satirlar jsonb not null default '[]'::jsonb,  -- [{id, hucreler:{kolonId:value}}]
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
--- mutfak_dosya (Drive metadata)
-create table public.mutfak_dosya (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  ad text not null,
-  mime_type text,
-  boyut bigint not null default 0,
-  klasor text not null default '/',  -- "/", "/projeler", "/projeler/2024"
-  storage_path text not null,
-  created_at timestamptz not null default now()
-);
+-- Pomodoro için DB yok (localStorage).
 ```
 
-- Her tabloda RLS (auth.uid() = user_id, mevcut pattern aynen).
-- Her tabloda `set_updated_at` trigger (mevcut fonksiyon).
-- Yeni storage bucket: `mutfak-dosya` (private, RLS ile).
+→ **Migrasyon gerekmez.** Tüm yeni özellikler mevcut şemayla çalışır. (Notes etiketler `text[]` zaten var; Tablo `kolonlar`/`satirlar` JSONB zaten esnek.)
 
-## 2. Yönlendirme (Routing)
+## 9) Yeni/değişen dosyalar (özet)
 
-`src/routes/workspace.tsx` → layout route + `<Outlet />`. Alt route'lar:
+Yeni:
+- `src/components/mizan/mutfak/etiket-cubuk.tsx` — Notlar etiket sidebar
+- `src/components/mizan/mutfak/not-liste-icerik.tsx` — Liste tipi not içerik render/edit
+- `src/components/mizan/mutfak/slash-menu.tsx` — Belge slash komut popover
+- `src/components/mizan/mutfak/belge-outline.tsx` — Sol içindekiler
+- `src/components/mizan/mutfak/tablo-hucre/*.tsx` — Yeni tip hücreler (secim, cok_secim, url, email)
+- `src/components/mizan/mutfak/tablo-toplam.tsx` — Toplam satırı
+- `src/components/mizan/mutfak/dosya-onizleme.tsx` — Drive preview modal
+- `src/components/mizan/mutfak/hub-arama.tsx` — Üst arama
+- `src/components/mizan/mutfak/hub-fab.tsx` — Hızlı oluştur FAB
+- `src/components/mizan/mutfak/pomodoro-ayarlar.tsx` — Ayarlar paneli
+- `src/lib/mutfak-kisayollar.ts` — Klavye kısayol hook'u
 
-| Route | İçerik |
-|---|---|
-| `/workspace` | Hub launcher (5 büyük tile, gradient, sayaçlar) |
-| `/workspace/notlar` | Keep tarzı masonry grid |
-| `/workspace/belge` | Belge listesi |
-| `/workspace/belge/$id` | Tek belge editörü (TipTap) |
-| `/workspace/tablo` | Tablo listesi |
-| `/workspace/tablo/$id` | Tek tablo editörü |
-| `/workspace/surucu` | Drive: klasör + dosya navigasyonu |
-| `/workspace/pomodoro` | SVG ring'li gelişmiş timer |
+Değişen:
+- `src/lib/mutfak-tipleri.ts` — `TabloKolonTip`'e `secim|cok_secim|url|email` ekle, `TabloKolon`'a opsiyonel `secenekler:{id,etiket,renk}[]`
+- `src/components/mizan/mutfak/not-kart.tsx`, `not-composer.tsx` — etiket + liste desteği
+- `src/components/mizan/mutfak/belge-editor.tsx` — toolbar + slash + sayaç
+- `src/components/mizan/mutfak/tablo-editor.tsx` — yeni tip + DnD + sticky + sıralama + filtre + toplam
+- `src/components/mizan/mutfak/pomodoro-ring.tsx` — ayar/sayaç/ses
+- `src/routes/workspace.index.tsx` — arama + son kullanılanlar + FAB
+- `src/routes/workspace.notlar.tsx` — etiket çubuk + arşiv view + toplu eylem
+- `src/routes/workspace.belge.$id.tsx` — outline kolonu + A4 layout
+- `src/routes/workspace.surucu.tsx` — grid/liste + preview + yeniden adlandır + toplu
 
-Sol sidebar'a tek "Mutfak" linki + alt-tab bar mobilde gizli (zaten gizli).
+## 10) Uygulama sırası (atomik adımlar)
 
-## 3. Modül Detayları
+1. **Tipleri genişlet** (`mutfak-tipleri.ts`) ve hub arama+FAB+son kullanılanlar.
+2. **Notlar:** etiket sistemi + liste tipi not + arşiv view + undo toast.
+3. **Belge:** TipTap toolbar genişletme + slash menü + outline + sayaç + A4 layout.
+4. **Tablo:** yeni kolon tipleri + sticky + sıralama/filtre + DnD + toplam.
+5. **Sürücü:** grid/liste + thumbnail + önizleme + yeniden adlandır + taşı + kullanım.
+6. **Pomodoro:** ayarlar + oturum sayacı + bildirim/ses + tam ekran.
+7. **Klavye kısayolları + son cila** (boş durumlar, animasyon, hover halo).
 
-### A) Notlar (Keep)
-- Masonry grid (CSS columns), pastel kart renkleri (sari/pembe/mavi/yesil/mor/gri).
-- Pin toggle, renk seçici, etiket chip'leri, arşiv butonu.
-- Üstte "Hızlı not ekle" composer (Google Keep gibi tek satır → expand).
-- Arama ve etiket filtresi.
+Her adım kendi başına çalışır halde teslim edilir; build her adımda yeşil kalır.
 
-### B) Belge (Docs)
-- `@tiptap/react` + `@tiptap/starter-kit` + `@tiptap/extension-placeholder`.
-- 800ms debounce autosave, üstte "Kaydedildi · 2 sn önce" indicator.
-- Slash command yok (basit tutuyoruz), ama: H1/H2/H3, bold, italic, liste, kod, alıntı, link toolbar.
-- Emoji picker'lı başlık.
+---
 
-### C) Tablo (Sheets)
-- Dinamik kolon ekle/sil, kolon tipi: metin/sayı/tarih/checkbox.
-- Hücre tıklayınca inline edit, Enter ile sıradaki satıra geç.
-- "+ Satır" / "+ Kolon" butonları.
-- Tüm değişiklikler 600ms debounce ile JSONB olarak kaydedilir.
-
-### D) Sürücü (Drive)
-- Klasör breadcrumb (örn: Mutfak / projeler / 2024).
-- Drag-and-drop yükleme zone + klasik buton.
-- Grid/list toggle, dosya türüne göre ikon (image/pdf/docx/zip).
-- Sağ tık menüsü: indir, taşı, sil, yeniden adlandır.
-- Yeni klasör oluştur (sadece path-based, fiziksel folder yok).
-
-### E) Pomodoro
-- SVG circular progress ring (animated stroke-dashoffset).
-- Pre-set: 25/5, 50/10, 90/20.
-- Browser notification + ses ipucu.
-- Bugünkü tamamlanan pomodoro sayacı (localStorage).
-
-## 4. Hub UI (`/workspace` ana sayfa)
-
-- 3×2 grid: Notlar, Belge, Tablo, Sürücü, Pomodoro, (boş/coming soon).
-- Her tile: gradient bg + icon + başlık + canlı sayaç ("12 not · 3 sabitli").
-- Mesh gradient hover effect, 16:10 aspect.
-- Üstte arama: "Mutfakta ara..." (tüm modüllerde fulltext arama, faz 2'de).
-
-## 5. Hooks
-
-`src/lib/mutfak-hooks.ts` — TanStack Query ile:
-- `useNotlar()`, `useNotEkle()`, `useNotGuncelle()`, `useNotSil()`
-- `useBelgeler()`, `useBelge(id)`, `useBelgeKaydet()`
-- `useTablolar()`, `useTablo(id)`, `useTabloKaydet()`
-- `useDosyalar(klasor)`, `useDosyaYukle()`, `useDosyaSil()`
-
-`src/lib/mutfak-tipleri.ts` — TypeScript tipler.
-
-## 6. Bağımlılıklar
-
-Yeni paketler: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-placeholder`, `@tiptap/extension-link`.
-
-## 7. Dosya Listesi
-
-**Yeni:**
-- `src/lib/mutfak-tipleri.ts`
-- `src/lib/mutfak-hooks.ts`
-- `src/components/mizan/mutfak/not-kart.tsx`
-- `src/components/mizan/mutfak/not-composer.tsx`
-- `src/components/mizan/mutfak/belge-editor.tsx`
-- `src/components/mizan/mutfak/tablo-editor.tsx`
-- `src/components/mizan/mutfak/dosya-grid.tsx`
-- `src/components/mizan/mutfak/dosya-upload.tsx`
-- `src/components/mizan/mutfak/pomodoro-ring.tsx`
-- `src/components/mizan/mutfak/hub-tile.tsx`
-- `src/routes/workspace.tsx` (refactor → layout)
-- `src/routes/workspace.index.tsx` (hub)
-- `src/routes/workspace.notlar.tsx`
-- `src/routes/workspace.belge.tsx`
-- `src/routes/workspace.belge.$id.tsx`
-- `src/routes/workspace.tablo.tsx`
-- `src/routes/workspace.tablo.$id.tsx`
-- `src/routes/workspace.surucu.tsx`
-- `src/routes/workspace.pomodoro.tsx`
-
-**Sırasıyla yapım:** Migration → Tipler+Hooks → Hub+Layout → Notlar → Pomodoro → Belge (TipTap) → Tablo → Sürücü.
-
-Tek loop'ta hepsini bitiriyorum. Onayla yazman yeterli.
+Onayla → sırayla uygulamaya başlıyorum.
