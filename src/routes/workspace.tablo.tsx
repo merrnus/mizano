@@ -82,11 +82,12 @@ function TabloPage() {
               <button
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   if (confirm("Tabloyu silmek istediğine emin misin?")) {
                     sil.mutate(t.id);
                   }
                 }}
-                className="absolute right-2 top-2 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-destructive group-hover:opacity-100"
+                className="absolute right-2 top-2 rounded p-1 text-muted-foreground opacity-70 transition-opacity hover:bg-muted hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>

@@ -72,7 +72,7 @@ export function NotKart({ not }: { not: MutfakNot }) {
           )}
         </button>
       )}
-      <div className="mt-2 flex items-center justify-between opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="mt-2 flex items-center justify-between opacity-60 transition-opacity group-hover:opacity-100 sm:opacity-0">
         <div className="flex items-center gap-0.5">
           <button
             onClick={() =>
@@ -123,7 +123,11 @@ export function NotKart({ not }: { not: MutfakNot }) {
             <Archive className="h-3.5 w-3.5" />
           </button>
           <button
-            onClick={() => sil.mutate(not.id)}
+            onClick={() => {
+              if (confirm("Notu silmek istediğine emin misin?")) {
+                sil.mutate(not.id);
+              }
+            }}
             className="rounded p-1 text-muted-foreground hover:bg-background/40 hover:text-destructive"
             title="Sil"
           >
