@@ -1,4 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
 import { ArrowLeft, Plus, Sheet, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTablolar, useTabloEkle, useTabloSil } from "@/lib/mutfak-hooks";
@@ -8,10 +14,15 @@ export const Route = createFileRoute("/workspace/tablo")({
 });
 
 function TabloPage() {
+  const location = useLocation();
   const { data: tablolar, isLoading } = useTablolar();
   const ekle = useTabloEkle();
   const sil = useTabloSil();
   const navigate = useNavigate();
+
+  if (location.pathname !== "/workspace/tablo") {
+    return <Outlet />;
+  }
 
   const yeniTablo = () => {
     ekle.mutate(
