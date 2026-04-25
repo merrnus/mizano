@@ -56,16 +56,13 @@ function TabloPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {tablolar.map((t) => (
-            <div
-              key={t.id}
-              className="group relative rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
-            >
+            <div key={t.id} className="group relative">
               <Link
                 to="/workspace/tablo/$id"
                 params={{ id: t.id }}
-                className="block"
+                className="block rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 pr-8">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
                     <Sheet className="h-4 w-4" />
                   </div>
@@ -80,6 +77,7 @@ function TabloPage() {
                 </div>
               </Link>
               <button
+                type="button"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -87,7 +85,7 @@ function TabloPage() {
                     sil.mutate(t.id);
                   }
                 }}
-                className="absolute right-2 top-2 rounded p-1 text-muted-foreground opacity-70 transition-opacity hover:bg-muted hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100"
+                className="absolute right-2 top-2 z-10 rounded-md bg-background/80 p-1.5 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:bg-muted hover:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
