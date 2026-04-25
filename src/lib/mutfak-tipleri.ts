@@ -32,13 +32,58 @@ export type MutfakBelge = {
   updated_at: string;
 };
 
-export type TabloKolonTip = "metin" | "sayi" | "tarih" | "checkbox";
+export type TabloKolonTip =
+  | "metin"
+  | "sayi"
+  | "tarih"
+  | "checkbox"
+  | "secim"
+  | "cok_secim"
+  | "url"
+  | "email";
+
+export type TabloSecenek = {
+  id: string;
+  etiket: string;
+  renk: string; // ör: "sky" | "amber" | "rose" | "emerald" | "violet" | "zinc"
+};
+
+export type TabloOzet = "yok" | "sum" | "avg" | "count" | "min" | "max";
 
 export type TabloKolon = {
   id: string;
   ad: string;
   tip: TabloKolonTip;
+  secenekler?: TabloSecenek[];
+  ozet?: TabloOzet;
+  genislik?: number;
 };
+
+export const SECENEK_RENKLERI = [
+  "sky",
+  "amber",
+  "rose",
+  "emerald",
+  "violet",
+  "zinc",
+] as const;
+
+export function secenekRenkSinifi(renk: string): string {
+  switch (renk) {
+    case "sky":
+      return "bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200";
+    case "amber":
+      return "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200";
+    case "rose":
+      return "bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200";
+    case "emerald":
+      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200";
+    case "violet":
+      return "bg-violet-100 text-violet-800 dark:bg-violet-950/50 dark:text-violet-200";
+    default:
+      return "bg-zinc-100 text-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-200";
+  }
+}
 
 export type TabloSatir = {
   id: string;
