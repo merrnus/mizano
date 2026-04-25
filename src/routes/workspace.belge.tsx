@@ -1,4 +1,10 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
 import { ArrowLeft, FileText, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBelgeler, useBelgeEkle, useBelgeSil } from "@/lib/mutfak-hooks";
@@ -8,10 +14,15 @@ export const Route = createFileRoute("/workspace/belge")({
 });
 
 function BelgePage() {
+  const location = useLocation();
   const { data: belgeler, isLoading } = useBelgeler();
   const ekle = useBelgeEkle();
   const sil = useBelgeSil();
   const navigate = useNavigate();
+
+  if (location.pathname !== "/workspace/belge") {
+    return <Outlet />;
+  }
 
   const yeniBelge = () => {
     ekle.mutate(
