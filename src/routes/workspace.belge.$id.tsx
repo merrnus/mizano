@@ -1,8 +1,9 @@
 import * as React from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Cloud, Loader2 } from "lucide-react";
 import { useBelge, useBelgeKaydet } from "@/lib/mutfak-hooks";
 import { BelgeEditor } from "@/components/mizan/mutfak/belge-editor";
+import { BelgeOutline } from "@/components/mizan/mutfak/belge-outline";
 
 export const Route = createFileRoute("/workspace/belge/$id")({
   component: BelgeDetay,
@@ -78,8 +79,8 @@ function BelgeDetay() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
-      <header className="mb-6 flex items-center justify-between gap-3">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+      <header className="mb-4 flex items-center justify-between gap-3">
         <button
           onClick={() => navigate({ to: "/workspace/belge" })}
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
@@ -94,30 +95,42 @@ function BelgeDetay() {
           )}
           {durum === "kaydedildi" && (
             <>
-              <Check className="h-3 w-3 text-emerald-500" /> Kaydedildi
+              <Check className="h-3 w-3 text-emerald-500" />
+              <Cloud className="h-3 w-3" /> Buluta kaydedildi
             </>
           )}
         </div>
       </header>
 
-      <div className="mb-4 flex items-center gap-2">
-        <input
-          value={emoji}
-          onChange={(e) => setEmoji(e.target.value.slice(0, 2))}
-          placeholder="😀"
-          className="w-10 rounded-lg border border-transparent bg-transparent text-center text-2xl outline-none hover:border-border focus:border-primary"
-        />
-        <input
-          value={baslik}
-          onChange={(e) => setBaslik(e.target.value)}
-          placeholder="Adsız belge"
-          className="flex-1 bg-transparent text-3xl font-semibold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50"
-        />
+      <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
+        <aside className="hidden lg:block">
+          <div className="sticky top-4">
+            <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              İçindekiler
+            </div>
+            <BelgeOutline icerik={icerik} />
+          </div>
+        </aside>
+        <div className="mx-auto w-full max-w-[816px] rounded-2xl border border-border bg-card px-6 py-8 shadow-sm sm:px-12 sm:py-12">
+          <div className="mb-6 flex items-center gap-2">
+            <input
+              value={emoji}
+              onChange={(e) => setEmoji(e.target.value.slice(0, 2))}
+              placeholder="😀"
+              className="w-10 rounded-lg border border-transparent bg-transparent text-center text-2xl outline-none hover:border-border focus:border-primary"
+            />
+            <input
+              value={baslik}
+              onChange={(e) => setBaslik(e.target.value)}
+              placeholder="Adsız belge"
+              className="flex-1 bg-transparent text-3xl font-semibold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50"
+            />
+          </div>
+          {icerik !== null && (
+            <BelgeEditor icerik={icerik} onDegisim={setIcerik} />
+          )}
+        </div>
       </div>
-
-      {icerik !== null && (
-        <BelgeEditor icerik={icerik} onDegisim={setIcerik} />
-      )}
     </div>
   );
 }
