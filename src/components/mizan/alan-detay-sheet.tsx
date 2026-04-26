@@ -226,42 +226,80 @@ export function AlanDetaySheet({ alan, onOpenChange, yuzde }: Props) {
             </section>
           ) : null}
 
-          {/* Hedef tablosundaki aktif hedefler — Mana'da gizli (3 aylık çetele zaten ana içerik) */}
-          {aktifAlan !== "mana" ? (
-          <section>
-            <div className="mb-3 flex items-center gap-2">
-              <Target className="h-3.5 w-3.5" style={{ color: renk }} />
-              <h3 className="text-sm font-medium">Aktif Hedefler</h3>
-              <span className="ml-auto text-[11px] text-muted-foreground">
-                {ilgili.length} adet
-              </span>
-            </div>
-
-            {isLoading ? (
-              <p className="py-6 text-center text-xs text-muted-foreground">
-                Yükleniyor…
-              </p>
-            ) : ilgili.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border py-10 text-center">
-                <p className="text-xs text-muted-foreground">
-                  Bu alanda henüz aktif hedef yok.
-                </p>
-                <Button asChild size="sm" variant="outline" className="h-7 text-xs">
-                  <Link to={route} onClick={() => onOpenChange(false)}>
-                    <Plus className="mr-1 h-3 w-3" /> Hedef ekle
-                  </Link>
-                </Button>
+          {/* AMEL — aktif müfredat (kurslar + ilerleme) */}
+          {aktifAlan === "amel" ? (
+            <section>
+              <div className="mb-3 flex items-center gap-2">
+                <Layers className="h-3.5 w-3.5" style={{ color: renk }} />
+                <h3 className="text-sm font-medium">Aktif Müfredat</h3>
+                <span className="ml-auto text-[11px] text-muted-foreground">
+                  {aktifKurslar.length} kurs
+                </span>
               </div>
-            ) : (
-              <div className="grid gap-3">
-                {ilgili.map((h) => (
-                  <div key={h.id} onClick={() => onOpenChange(false)}>
-                    <HedefKart hedef={h} adimlar={adimlar} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+              {aktifKurslar.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border py-10 text-center">
+                  <p className="text-xs text-muted-foreground">
+                    Henüz aktif kursun yok.
+                  </p>
+                  <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                    <Link to={route} onClick={() => onOpenChange(false)}>
+                      <ArrowRight className="mr-1 h-3 w-3" /> Müfredata git
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {aktifKurslar.map(({ kurs, toplam, tamam, yuzde: ky }) => (
+                    <Link
+                      key={kurs.id}
+                      to="/mizan/amel/$id"
+                      params={{ id: kurs.id }}
+                      onClick={() => onOpenChange(false)}
+                      className="group flex flex-col gap-2 rounded-xl border border-border bg-card/40 px-4 py-3 transition hover:border-border/70 hover:bg-card"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <BookOpen
+                              className="h-3.5 w-3.5 shrink-0"
+                              style={{ color: renk }}
+                            />
+                            <span className="truncate text-sm font-medium">
+                              {kurs.kod ?? kurs.ad}
+                              {kurs.kod ? (
+                                <span className="ml-1.5 text-muted-foreground font-normal">
+                                  · {kurs.ad}
+                                </span>
+                              ) : null}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-2 pl-5 text-[11px] text-muted-foreground tabular-nums">
+                            <span>{KURS_DURUM_ETIKET[kurs.durum]}</span>
+                            <span aria-hidden="true">·</span>
+                            <span>
+                              {tamam}/{toplam} modül
+                            </span>
+                          </div>
+                        </div>
+                        <span
+                          className="text-sm font-semibold tabular-nums"
+                          style={{ color: renk }}
+                        >
+                          %{ky}
+                        </span>
+                      </div>
+                      <Progress
+                        value={ky}
+                        className="h-1 bg-muted"
+                        style={
+                          { ["--progress-fg" as string]: renk } as React.CSSProperties
+                        }
+                      />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
           ) : null}
 
           {/* Alt aksiyon */}
