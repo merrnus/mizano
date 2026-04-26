@@ -11,7 +11,7 @@ const ALAN_ROTA: Record<CeteleAlan, "/mizan/mana" | "/mizan/ilim" | "/mizan/amel
   mana: "/mizan/mana",
   ilim: "/mizan/ilim",
   amel: "/mizan/amel",
-  kisisel: "/mizan/mana", // fallback — şu an dashboardda gösterilmiyor
+  kisisel: "/mizan/mana", // fallback — dashboardda kişisel çetele gösterilmiyor
 };
 
 /**
@@ -24,8 +24,9 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
   const { data: sablonlar = [] } = useSablonlar();
   const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
 
-  // Amel artık modüllerden besleniyor → "Bugünün Müfredatı" kartında gösteriliyor
-  const alanlar: CeteleAlan[] = ["mana", "ilim"];
+  // Amel artık "Bugünün Müfredatı" kartında; İlim ders/sınav modeli kullanıyor.
+  // Çetele dashboardı sadece Mana evrâdını gösterir.
+  const alanlar: CeteleAlan[] = ["mana"];
   const gruplu = alanlar
     .map((alan) => ({
       alan,
