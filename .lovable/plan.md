@@ -1,44 +1,74 @@
+# Network Rapor Sayfası + PDF
+
 ## Amaç
+Gündemler, kardeş faaliyetleri ve (opsiyonel) maneviyat verilerini tek yerden filtreleyip görmek; aynı görünümü PDF olarak dışa aktarmak.
 
-Kişi detay sayfasında profil formunu sadeleştir. Tekrar eden ve gereksiz alanları kaldır.
+## Yapılacaklar
 
-## Tespit edilen tekrarlar
+### 1. Yeni rota: `src/routes/network.rapor.tsx`
+- Network sekmesinin altında 4. sekme olarak "Rapor" eklenir (Kişiler · İstişareler · Gündemler · Rapor).
+- `validateSearch` ile filtreler URL'de tutulur (paylaşılabilir/yer imine alınabilir):
+  - `from`, `to` → tarih aralığı (ISO string, varsayılan: son 30 gün)
+  - `kisiId` → tek kişi filtresi (opsiyonel)
+  - `kategoriId` → kategori filtresi (opsiyonel; kişiler üzerinden)
+  - `kapsam` → `["gundem","faaliyet","maneviyat"]` çoklu seçim (varsayılan: gündem + faaliyet)
+  - `sonucDurumu` → `tumu | dolu | bos` (sonuç/karar yazılı mı?)
+  - `gundemDurumu` → `tumu | bekliyor | yapildi`
 
-1. **Derin takip switch'i** (form altı) ile **"Derin takibi kapat" butonu** (üst header) — ikisi de aynı `kisi.derin_takip` alanını değiştiriyor. **Tam tekrar.**
-2. **Kategoriler** — üst kartta badge olarak görünüyor (sadece okuma), formda düzenlenebiliyor. Bölünmüş ama tek edit yeri var.
-3. **Notlar** — sadece formda var, tekrar değil ama "Kategoriler & Notlar" başlığı altında olması mantıksız.
+### 2. Üst filtre çubuğu
+- Tarih aralığı: hızlı butonlar (Bu hafta · Bu ay · Son 3 ay · Özel) + iki date input.
+- Kişi seçici (Combobox, "Tümü" varsayılan).
+- Kategori chip listesi (çoklu seçim).
+- Kapsam toggle'ları (Gündemler / Faaliyetler / Maneviyat).
+- "Sonuç dolu / boş / tümü" segmented.
+- Sağda: **PDF indir** butonu.
 
-## Yapılacak değişiklikler
+### 3. Özet kartlar (üstte)
+- Toplam gündem · Tamamlanan · Sonuç yazılı oran %
+- Toplam faaliyet · Sonuç yazılı oran % · En aktif kardeş
+- Maneviyat seçiliyse: aktif müfredat sayısı, son 7 gün evrad doluluk oranı
 
-**Dosya: `src/components/mizan/network/kardes-profil-form.tsx`**
+### 4. İçerik blokları (kapsama göre)
+- **Gündemler bölümü:** İstişare bazlı gruplandırma. Her gündem: içerik, karar (sonuç), sorumlular, durum, tarih. Kararı boş olanlar görsel olarak işaretli (kırmızı nokta).
+- **Faaliyetler bölümü:** Kişi bazlı gruplandırma (veya tarih bazlı, toggle ile). Her faaliyet: tip, tarih, başlık, sonuç. Sonuç boşsa "Sonuç eksik" rozeti.
+- **Maneviyat bölümü (opsiyonel):** Kişi başına aktif müfredat ilerlemesi (% madde tamamlanma) + son 30 gün evrad heatmap özeti.
 
-- **Kaldır:** "Kategoriler & Notlar" bölümünün tamamı (`<Bolum ikon={Sparkles}>` bloğu, satır 224-265).
-  - Kategoriler: zaten üst kartta görünüyor; düzenleme için ayrı bir UX gerekiyorsa o ayrı iş.
-  - Notlar: kaldırılıyor.
-  - Derin takip switch: zaten üst header'daki buton ile yapılıyor.
-- **State temizliği:** `secKategoriler`, `derin`, `notlar`, `setSecKategoriler`, `setDerin`, `setNotlar`, `toggleKat` ve `useKisiKategoriAyarla` import + kullanımları kaldırılacak.
-- **`kaydet` fonksiyonu:** `ayarla.mutateAsync` çağrısı kaldırılacak; `guncelle.mutateAsync` payload'ından `derin_takip` ve `notlar` çıkarılacak.
-- **Props:** `kategoriler` artık kullanılmadığı için prop'tan kaldırılacak.
+### 5. Veri katmanı
+`src/lib/network-hooks.ts` içine ekle:
+- `useRaporGundemler(filtreler)` — `gundem` + `istisare` + `gundem_sorumlu` + `gundem_kisi` join, tarih ve kişi filtresi server-side.
+- `useRaporFaaliyetler(filtreler)` — `kardes_etkinlik` + `gundem_kisi` + `gundem_kisi_kategori` join.
+- `useRaporManeviyat(filtreler)` — `kardes_mufredat` + `kardes_evrad_madde` + `kardes_evrad_kayit`.
+- Her hook tek `useQuery`, queryKey filtreleri içerir.
 
-**Dosya: `src/routes/network.kisi.$id.tsx`**
+### 6. PDF dışa aktarımı
+- Lib: **`jspdf` + `jspdf-autotable`** (Worker uyumlu, tamamen client-side, mevcut filtrelenmiş veriden çalışır — ek server function gerektirmez).
+- `src/lib/network-rapor-pdf.ts` modülü:
+  - `raporPdfUret({ filtreler, gundemler, faaliyetler, maneviyat })` fonksiyonu.
+  - Başlık: "Mizan Rapor — {tarih aralığı}", filtre özeti.
+  - Bölümler: Özet → Gündemler tablosu → Faaliyetler tablosu → (varsa) Maneviyat tablosu.
+  - Türkçe karakter desteği için Inter veya Noto Sans font embed (jsPDF'e base64 ile yüklenir).
+  - Sayfa altı: oluşturulma tarihi, sayfa no.
+- "PDF indir" butonu mevcut React Query verisini fonksiyona geçer, `rapor-{from}-{to}.pdf` olarak indirir.
 
-- `<KardesProfilForm>` çağrısından `kategoriler` prop'u kaldırılacak.
-- `useKategoriler()` hook çağrısı yine de gerekli (üst kart `kisiKategoriler` için kullanıyor) — dokunulmayacak.
+### 7. Network sekmesi entegrasyonu
+- `src/routes/network.tsx`: `TabKey` tipine `"rapor"` eklenir, `TabsList`'e yeni trigger eklenir, route altyapısı zaten var (alt rotalar gibi `Outlet` ile değil; doğrudan tab içeriği olarak `<RaporTab />` render edilir).
+- Alternatif: ayrı `/network/rapor` route'u — daha temiz URL ve loader avantajı için bunu tercih ediyorum. Sekme değişimi `navigate({ to: "/network/rapor" })` ile.
 
-## Kategoriler düzenleme — ayrı not
+### 8. Boş/yükleniyor/hata durumları
+- Tarih aralığında veri yoksa: "Bu kriterlerle kayıt bulunamadı" + filtre sıfırlama butonu.
+- Yükleniyor: skeleton kartlar.
+- Hata: retry butonlu uyarı.
 
-Kategoriler artık sadece üst kartta gösterim olacak. Düzenleme için ileride üst karta inline edit (badge'e tıkla → açılır) eklenebilir. Şimdilik kapsam dışı; istersen ayrı iş olarak ele alırız.
+## Dosya değişiklikleri özet
+- **Yeni:** `src/routes/network.rapor.tsx`, `src/components/mizan/network/rapor-filtreler.tsx`, `src/components/mizan/network/rapor-ozet-kartlar.tsx`, `src/components/mizan/network/rapor-icerik.tsx`, `src/lib/network-rapor-pdf.ts`
+- **Güncel:** `src/lib/network-hooks.ts` (3 yeni hook), `src/routes/network.tsx` (4. sekme)
+- **Bağımlılık:** `bun add jspdf jspdf-autotable`
 
-## Eksikler listesi (hatırlatma)
+## Veritabanı değişikliği
+**Yok.** Mevcut tablolar (`gundem`, `istisare`, `gundem_sorumlu`, `kardes_etkinlik`, `gundem_kisi`, `gundem_kisi_kategori`, `kardes_mufredat`, `kardes_evrad_*`) yeterli.
 
-Önceki turda listelediğim, henüz yapılmamış potansiyel iyileştirmeler:
-
-1. Takvim etkinliğinden kardeş profiline dönüş linki
-2. Çakışma uyarısı (aynı saatte başka etkinlik)
-3. Tekrarlayan faaliyet (haftalık/aylık rutin)
-4. Faaliyet öncesi hatırlatıcı/bildirim
-5. Belirli kardeşin faaliyetlerini takvimde filtreli görme
-6. Saat aralığı validasyonu (bitiş < başlangıç engeli) — **bu bir bug, öncelikli**
-7. UX cilaları (tooltip, silme onay mesajları)
-
-Profil temizliği onaylanırsa devamında hangisini yapalım, sen seç.
+## Onay sonrası ilk iterasyon
+1. Rota + filtre çubuğu + gündem/faaliyet hook'ları + liste görünümü.
+2. Özet kartlar.
+3. PDF indirme.
+4. Maneviyat bölümü (kapsam seçilirse).
