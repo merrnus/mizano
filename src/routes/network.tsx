@@ -39,8 +39,9 @@ function Network() {
   const navigate = useNavigate();
   const matchRoute = useMatchRoute();
   const childActive = !!matchRoute({ to: "/network/istisare/$id" });
+  const kisiDetayActive = !!matchRoute({ to: "/network/kisi/$id" });
 
-  if (childActive) {
+  if (childActive || kisiDetayActive) {
     return <Outlet />;
   }
 
