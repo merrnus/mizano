@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, X, User, GraduationCap, Heart, Sparkles, Trash2 } from "lucide-react";
+import { Check, X, User, GraduationCap, Heart, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -303,6 +303,3 @@ function Alan({ label, children }: { label: string; children: React.ReactNode })
     </div>
   );
 }
-
-// (Trash2 import edildi ama kullanılmıyor — gelecekteki "kişiyi sil" için tutuluyor; eslint için noop)
-void Trash2;
