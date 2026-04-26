@@ -70,7 +70,7 @@ function Network() {
           </h1>
         </div>
         <Button asChild size="sm" variant="outline" className="gap-1.5">
-          <Link to="/network/rapor" search={{}}>
+          <Link to="/network/rapor" search={() => ({})}>
             <FileText className="h-3.5 w-3.5" />
             Rapor
           </Link>
