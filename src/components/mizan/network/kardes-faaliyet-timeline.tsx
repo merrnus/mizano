@@ -52,19 +52,17 @@ export function KardesFaaliyetTimeline({ kisiId }: { kisiId: string }) {
   const [takvimeEkle, setTakvimeEkle] = React.useState(true);
 
   const ekleEtkinlik = async () => {
-    if (!baslik.trim()) {
-      toast.error("Başlık gerekli");
-      return;
-    }
     if (baslangicSaati && bitisSaati && bitisSaati <= baslangicSaati) {
       toast.error("Bitiş saati başlangıçtan sonra olmalı");
       return;
     }
+    const otomatikBaslik = `${ETKINLIK_TIP_MAP[tip].ad}${kisi?.ad ? ` — ${kisi.ad}` : ""}`;
+    const finalBaslik = baslik.trim() || otomatikBaslik;
     await ekle.mutateAsync({
       kisi_id: kisiId,
       tip,
       tarih,
-      baslik: baslik.trim(),
+      baslik: finalBaslik,
       notlar: notlar.trim() || null,
       sonuc: sonuc.trim() || null,
       baslangic_saati: baslangicSaati || null,
@@ -123,7 +121,7 @@ export function KardesFaaliyetTimeline({ kisiId }: { kisiId: string }) {
           </Select>
           <Input type="date" value={tarih} onChange={(e) => setTarih(e.target.value)} />
           <Input
-            placeholder="Başlık (örn: Çay sohbeti, Doğum günü kutlaması…)"
+            placeholder={`Başlık (ops.) — boşsa "${ETKINLIK_TIP_MAP[tip].ad}${kisi?.ad ? ` — ${kisi.ad}` : ""}"`}
             value={baslik}
             onChange={(e) => setBaslik(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && ekleEtkinlik()}
@@ -177,7 +175,7 @@ export function KardesFaaliyetTimeline({ kisiId }: { kisiId: string }) {
             <CalendarPlus className="h-3.5 w-3.5" />
             Mizan Takvim'e ekle
           </label>
-          <Button size="sm" onClick={ekleEtkinlik} disabled={!baslik.trim() || ekle.isPending}>
+          <Button size="sm" onClick={ekleEtkinlik} disabled={ekle.isPending}>
             <Plus className="h-3.5 w-3.5" /> Ekle
           </Button>
         </div>
