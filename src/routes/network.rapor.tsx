@@ -7,13 +7,25 @@ import {
   Activity,
   Sparkles,
   AlertCircle,
-  Users,
-  ChevronRight,
+  Calendar as CalendarIcon,
+  Folder,
+  SlidersHorizontal,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   useKategoriler,
   useKisiler,
