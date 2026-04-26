@@ -1,25 +1,16 @@
 import * as React from "react";
-import { Check, X, User, GraduationCap, Heart, Sparkles } from "lucide-react";
+import { Check, X, User, GraduationCap, Heart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useKisiGuncelleDetay, useKisiKategoriAyarla } from "@/lib/network-hooks";
-import type { KisiDetay, Kategori } from "@/lib/network-tipleri";
-import { cn } from "@/lib/utils";
+import { useKisiGuncelleDetay } from "@/lib/network-hooks";
+import type { KisiDetay } from "@/lib/network-tipleri";
 import { toast } from "sonner";
 
-export function KardesProfilForm({
-  kisi,
-  kategoriler,
-}: {
-  kisi: KisiDetay;
-  kategoriler: Kategori[];
-}) {
+export function KardesProfilForm({ kisi }: { kisi: KisiDetay }) {
   const guncelle = useKisiGuncelleDetay();
-  const ayarla = useKisiKategoriAyarla();
 
   const [ad, setAd] = React.useState(kisi.ad);
   const [foto_url, setFoto] = React.useState(kisi.foto_url ?? "");
@@ -33,9 +24,6 @@ export function KardesProfilForm({
   const [akademik_durum, setAkademik] = React.useState(kisi.akademik_durum ?? "");
   const [ilgi, setIlgi] = React.useState<string[]>(kisi.ilgi_alanlari ?? []);
   const [yeniIlgi, setYeniIlgi] = React.useState("");
-  const [secKategoriler, setSecKategoriler] = React.useState<string[]>(kisi.kategori_ids);
-  const [derin, setDerin] = React.useState(kisi.derin_takip);
-  const [notlar, setNotlar] = React.useState(kisi.notlar ?? "");
 
   React.useEffect(() => {
     setAd(kisi.ad);
@@ -49,9 +37,6 @@ export function KardesProfilForm({
     setGano(kisi.gano?.toString() ?? "");
     setAkademik(kisi.akademik_durum ?? "");
     setIlgi(kisi.ilgi_alanlari ?? []);
-    setSecKategoriler(kisi.kategori_ids);
-    setDerin(kisi.derin_takip);
-    setNotlar(kisi.notlar ?? "");
   }, [kisi.id]);
 
   const ilgiEkle = () => {
@@ -67,30 +52,22 @@ export function KardesProfilForm({
       toast.error("GANO geçerli bir sayı olmalı");
       return;
     }
-    await Promise.all([
-      guncelle.mutateAsync({
-        id: kisi.id,
-        ad: ad.trim() || kisi.ad,
-        foto_url: foto_url.trim() || null,
-        telefon: telefon.trim() || null,
-        dogum_tarihi: dogum_tarihi || null,
-        sorumluluk_notu: sorumluluk_notu || null,
-        universite: universite.trim() || null,
-        bolum: bolum.trim() || null,
-        sinif: sinif.trim() || null,
-        gano: ganoNum,
-        akademik_durum: akademik_durum.trim() || null,
-        ilgi_alanlari: ilgi,
-        derin_takip: derin,
-        notlar: notlar || null,
-      }),
-      ayarla.mutateAsync({ kisi_id: kisi.id, kategori_ids: secKategoriler }),
-    ]);
+    await guncelle.mutateAsync({
+      id: kisi.id,
+      ad: ad.trim() || kisi.ad,
+      foto_url: foto_url.trim() || null,
+      telefon: telefon.trim() || null,
+      dogum_tarihi: dogum_tarihi || null,
+      sorumluluk_notu: sorumluluk_notu || null,
+      universite: universite.trim() || null,
+      bolum: bolum.trim() || null,
+      sinif: sinif.trim() || null,
+      gano: ganoNum,
+      akademik_durum: akademik_durum.trim() || null,
+      ilgi_alanlari: ilgi,
+    });
     toast.success("Profil kaydedildi");
   };
-
-  const toggleKat = (id: string) =>
-    setSecKategoriler((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
   const initials = ad
     .split(" ")
@@ -218,49 +195,6 @@ export function KardesProfilForm({
           <Button size="sm" variant="outline" onClick={ilgiEkle} disabled={!yeniIlgi.trim()}>
             Ekle
           </Button>
-        </div>
-      </Bolum>
-
-      {/* Kategoriler */}
-      <Bolum ikon={Sparkles} baslik="Kategoriler & Notlar">
-        <Alan label="Kategoriler">
-          <div className="flex flex-wrap gap-1.5">
-            {kategoriler.map((k) => {
-              const sel = secKategoriler.includes(k.id);
-              return (
-                <button
-                  key={k.id}
-                  type="button"
-                  onClick={() => toggleKat(k.id)}
-                  className={cn(
-                    "rounded-full border px-2.5 py-1 text-xs transition-colors",
-                    sel
-                      ? "border-primary bg-primary/15 text-foreground"
-                      : "border-border bg-background text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {k.ad}
-                </button>
-              );
-            })}
-          </div>
-        </Alan>
-        <Alan label="Genel notlar">
-          <Textarea
-            rows={3}
-            value={notlar}
-            onChange={(e) => setNotlar(e.target.value)}
-            placeholder="Bu kişiyle ilgili genel notlar…"
-          />
-        </Alan>
-        <div className="flex items-center justify-between rounded-lg border border-border bg-card/50 p-3">
-          <div className="min-w-0">
-            <Label className="text-sm font-medium">Derin takip</Label>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Açıkken bu kişi tam sayfa profil ile açılır ve "Bu hafta Evdekiler" widget'ında görünür.
-            </p>
-          </div>
-          <Switch checked={derin} onCheckedChange={setDerin} />
         </div>
       </Bolum>
 
