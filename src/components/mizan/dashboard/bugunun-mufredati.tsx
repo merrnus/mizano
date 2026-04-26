@@ -49,7 +49,7 @@ export function BugununMufredati() {
   const [akisBaslangicId, setAkisBaslangicId] = React.useState<string | null>(null);
 
   const bugunModulleri: GunlukModulOge[] = React.useMemo(() => {
-    const izlenen = kurslar.filter((k) => k.durum === "izliyor");
+    const izlenen = kurslar.filter((k) => k.durum === "aktif");
     return izlenen
       .map<GunlukModulOge | null>((kurs) => {
         const kursModulleri = tumModuller

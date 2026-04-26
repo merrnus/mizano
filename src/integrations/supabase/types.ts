@@ -1446,7 +1446,7 @@ export type Database = {
     }
     Enums: {
       amel_kaynak_tip: "link" | "dosya" | "resim" | "not" | "lab"
-      amel_kurs_durum: "planli" | "izliyor" | "beklemede" | "tamam" | "birakti"
+      amel_kurs_durum: "planli" | "aktif" | "tamam"
       amel_proje_durum: "planli" | "devam" | "beklemede" | "tamam" | "iptal"
       cetele_alan: "mana" | "ilim" | "amel" | "kisisel"
       cetele_birim: "sayfa" | "adet" | "dakika" | "ikili"
@@ -1612,7 +1612,7 @@ export const Constants = {
   public: {
     Enums: {
       amel_kaynak_tip: ["link", "dosya", "resim", "not", "lab"],
-      amel_kurs_durum: ["planli", "izliyor", "beklemede", "tamam", "birakti"],
+      amel_kurs_durum: ["planli", "aktif", "tamam"],
       amel_proje_durum: ["planli", "devam", "beklemede", "tamam", "iptal"],
       cetele_alan: ["mana", "ilim", "amel", "kisisel"],
       cetele_birim: ["sayfa", "adet", "dakika", "ikili"],
