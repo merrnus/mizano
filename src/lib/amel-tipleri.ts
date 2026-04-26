@@ -30,10 +30,8 @@ export type AmelProjeDurum = Database["public"]["Enums"]["amel_proje_durum"];
 
 export const KURS_DURUM_ETIKET: Record<AmelKursDurum, string> = {
   planli: "Planlı",
-  izliyor: "İzliyorum",
-  beklemede: "Beklemede",
-  tamam: "Tamamlandı",
-  birakti: "Bıraktım",
+  aktif: "Aktif",
+  tamam: "Tamam",
 };
 
 export const PROJE_DURUM_ETIKET: Record<AmelProjeDurum, string> = {

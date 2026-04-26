@@ -61,7 +61,7 @@ function AnaDashboard() {
 
   // Amel: izlenen kursların ortalama ilerleme yüzdesi
   const amelYuzde = React.useMemo(() => {
-    const izlenen = amelKurslar.filter((k) => k.durum === "izliyor");
+    const izlenen = amelKurslar.filter((k) => k.durum === "aktif");
     if (izlenen.length === 0) return 0;
     const toplam = izlenen.reduce((acc, k) => {
       const km = amelModuller.filter((m) => m.kurs_id === k.id);

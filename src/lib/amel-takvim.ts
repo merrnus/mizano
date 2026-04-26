@@ -17,7 +17,7 @@ export function amelOlaylari(
   // 1) Kurs sertifika sınavları — tüm gün
   for (const k of kurslar) {
     if (!k.sertifika_tarihi) continue;
-    if (k.durum === "tamam" || k.durum === "birakti") continue;
+    if (k.durum === "tamam") continue;
     const bas = new Date(k.sertifika_tarihi + "T00:00:00");
     if (bas < aralikBas || bas > aralikBitis) continue;
     const bit = addDays(bas, 1);
