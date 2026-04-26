@@ -3,9 +3,7 @@ export type GundemOncelik = "ana" | "yan";
 
 export const GUNDEM_DURUMLAR: { id: GundemDurum; ad: string; renk: string }[] = [
   { id: "bekliyor", ad: "Bekliyor", renk: "bg-muted-foreground/40" },
-  { id: "yapiliyor", ad: "Yapılıyor", renk: "bg-primary" },
   { id: "yapildi", ad: "Yapıldı", renk: "bg-[var(--maneviyat)]" },
-  { id: "ertelendi", ad: "Ertelendi", renk: "bg-[var(--dunyevi)]" },
 ];
 
 export const VARSAYILAN_KATEGORILER: { ad: string; renk: string; siralama: number }[] = [
