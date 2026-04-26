@@ -25,15 +25,11 @@ function sayfaBasligi(pathname: string): string {
     ["/mizan/hedef/", "Hedef"],
     ["/mizan/mana", "Mana"],
     ["/mizan/ilim", "İlim"],
-    ["/mizan/amel", "Hedefler"],
-    ["/mizan/akademi", "Akademi"],
-    ["/mizan/dunyevi", "Dünyevi"],
-    ["/mizan/maneviyat", "Maneviyat"],
+    ["/mizan/amel", "Müfredat"],
     ["/mizan", "İstikamet"],
     ["/takvim", "Planlama"],
     ["/network", "Rehberlik"],
     ["/workspace", "Mutfak"],
-    ["/gundemler", "Gündemler"],
   ];
   for (const [prefix, etiket] of map) {
     if (pathname.startsWith(prefix)) return etiket;

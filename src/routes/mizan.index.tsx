@@ -8,6 +8,9 @@ import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { IstikametKart } from "@/components/mizan/istikamet-kart";
 import { IstikametRozeti, rozetiHesapla } from "@/components/mizan/istikamet-rozeti";
 import { useAuth } from "@/lib/auth-context";
+import { useAmelKurslar, useTumAmelModuller } from "@/lib/amel-hooks";
+import { useDersler, useSinavlar } from "@/lib/ilim-hooks";
+import { amelYuzdesi, ilimYuzdesi } from "@/lib/istikamet-yuzde";
 
 export const Route = createFileRoute("/mizan/")({
   head: () => ({
@@ -29,6 +32,10 @@ function MizanHub() {
   const haftaBas = haftaBaslangici(simdi);
   const { data: sablonlar = [] } = useSablonlar();
   const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
+  const { data: amelKurslar = [] } = useAmelKurslar();
+  const { data: amelModuller = [] } = useTumAmelModuller();
+  const { data: dersler = [] } = useDersler();
+  const { data: sinavlar = [] } = useSinavlar();
 
   const yuzdeHesapla = (alan: "mana" | "ilim" | "amel"): number => {
     const sb = sablonlar.filter((s) => s.alan === alan);
@@ -37,10 +44,16 @@ function MizanHub() {
     return o.toplam > 0 ? Math.round((o.tamamlanan / o.toplam) * 100) : 0;
   };
 
-  // Mana gerçek veri; İlim & Amel henüz placeholder (statik hedefler)
   const manaYuzde = yuzdeHesapla("mana");
-  const ilimYuzde = 58;
-  const amelYuzde = 32;
+  const ilimYuzdeRaw = React.useMemo(
+    () => ilimYuzdesi(dersler, sinavlar),
+    [dersler, sinavlar],
+  );
+  const ilimYuzde = ilimYuzdeRaw ?? 0;
+  const amelYuzde = React.useMemo(
+    () => amelYuzdesi(amelKurslar, amelModuller),
+    [amelKurslar, amelModuller],
+  );
 
   const veriler = [
     { ad: "Mana", yuzde: manaYuzde, renkVar: "--mana" },
@@ -51,9 +64,16 @@ function MizanHub() {
   const rozet = rozetiHesapla(veriler);
 
   const kartlar = [
-    { ad: "Mana", yuzde: manaYuzde, ikon: Sprout, renkVar: "--mana", to: "/mizan/mana" as const },
-    { ad: "İlim", yuzde: ilimYuzde, ikon: BookOpen, renkVar: "--ilim", to: "/mizan/ilim" as const },
-    { ad: "Amel", yuzde: amelYuzde, ikon: Hammer, renkVar: "--amel", to: "/mizan/amel" as const },
+    { ad: "Mana", yuzde: manaYuzde, metin: `${manaYuzde}%`, ikon: Sprout, renkVar: "--mana", to: "/mizan/mana" as const },
+    {
+      ad: "İlim",
+      yuzde: ilimYuzde,
+      metin: ilimYuzdeRaw === null ? "—" : `${ilimYuzde}%`,
+      ikon: BookOpen,
+      renkVar: "--ilim",
+      to: "/mizan/ilim" as const,
+    },
+    { ad: "Amel", yuzde: amelYuzde, metin: `${amelYuzde}%`, ikon: Hammer, renkVar: "--amel", to: "/mizan/amel" as const },
   ];
 
   const saat = simdi.getHours();
@@ -95,6 +115,7 @@ function MizanHub() {
             key={k.ad}
             ad={k.ad}
             yuzde={k.yuzde}
+            metin={k.metin}
             ikon={k.ikon}
             renkVar={k.renkVar}
             to={k.to}

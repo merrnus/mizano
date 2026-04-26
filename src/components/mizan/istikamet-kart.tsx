@@ -5,6 +5,8 @@ import type { LucideIcon } from "lucide-react";
 type Props = {
   ad: string;
   yuzde: number;
+  /** Yüzdenin ekranda görünen metni. Verilmezse `${Math.round(yuzde)}%`. */
+  metin?: string;
   ikon: LucideIcon;
   renkVar: string; // "--mana" | "--ilim" | "--amel"
   to: "/mizan/mana" | "/mizan/ilim" | "/mizan/amel";
@@ -17,7 +19,7 @@ type Props = {
  * Üstte opsiyonel rozet (ÖNDESİN / EL VER / DENGEDE).
  * onClick verilirse Link yerine buton olarak render edilir (sheet açmak için).
  */
-export function IstikametKart({ ad, yuzde, ikon: Ikon, renkVar, to, rozet, onClick }: Props) {
+export function IstikametKart({ ad, yuzde, metin, ikon: Ikon, renkVar, to, rozet, onClick }: Props) {
   const renk = `var(${renkVar})`;
   const yumusakBg = `color-mix(in oklab, ${renk} 14%, transparent)`;
   const dolgu = Math.max(0, Math.min(100, yuzde));
@@ -58,7 +60,7 @@ export function IstikametKart({ ad, yuzde, ikon: Ikon, renkVar, to, rozet, onCli
           className="text-4xl font-semibold tracking-tight"
           style={{ color: renk, textShadow: `0 0 18px color-mix(in oklab, ${renk} 35%, transparent)` }}
         >
-          {Math.round(yuzde)}%
+          {metin ?? `${Math.round(yuzde)}%`}
         </div>
       </div>
 

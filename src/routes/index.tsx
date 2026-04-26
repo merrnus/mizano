@@ -16,7 +16,8 @@ import { EtkinlikDialog } from "@/components/mizan/takvim/etkinlik-dialog";
 import { Button } from "@/components/ui/button";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { useAmelKurslar, useTumAmelModuller } from "@/lib/amel-hooks";
-import { kursIlerleme } from "@/lib/amel-tipleri";
+import { useDersler, useSinavlar } from "@/lib/ilim-hooks";
+import { amelYuzdesi, ilimYuzdesi } from "@/lib/istikamet-yuzde";
 import type { TakvimGorev } from "@/lib/takvim-tipleri";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,8 @@ function AnaDashboard() {
   const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
   const { data: amelKurslar = [] } = useAmelKurslar();
   const { data: amelModuller = [] } = useTumAmelModuller();
+  const { data: dersler = [] } = useDersler();
+  const { data: sinavlar = [] } = useSinavlar();
 
   const yuzdeHesapla = (alan: "mana" | "ilim" | "amel"): number => {
     const sb = sablonlar.filter((s) => s.alan === alan);
@@ -61,23 +64,32 @@ function AnaDashboard() {
   };
 
   const manaYuzde = yuzdeHesapla("mana");
-  const ilimYuzde = 58;
+  const ilimYuzdeRaw = React.useMemo(
+    () => ilimYuzdesi(dersler, sinavlar),
+    [dersler, sinavlar],
+  );
+  const ilimYuzde = ilimYuzdeRaw ?? 0;
+  const amelYuzde = React.useMemo(
+    () => amelYuzdesi(amelKurslar, amelModuller),
+    [amelKurslar, amelModuller],
+  );
 
-  // Amel: izlenen kursların ortalama ilerleme yüzdesi
-  const amelYuzde = React.useMemo(() => {
-    const izlenen = amelKurslar.filter((k) => k.durum === "aktif");
-    if (izlenen.length === 0) return 0;
-    const toplam = izlenen.reduce((acc, k) => {
-      const km = amelModuller.filter((m) => m.kurs_id === k.id);
-      return acc + kursIlerleme(km);
-    }, 0);
-    return Math.round(toplam / izlenen.length);
-  }, [amelKurslar, amelModuller]);
-
-  const rozetler: Array<{ ad: string; yuzde: number; renkVar: string; alan: CeteleAlan }> = [
-    { ad: "Mana", yuzde: manaYuzde, renkVar: "--mana", alan: "mana" },
-    { ad: "İlim", yuzde: ilimYuzde, renkVar: "--ilim", alan: "ilim" },
-    { ad: "Amel", yuzde: amelYuzde, renkVar: "--amel", alan: "amel" },
+  const rozetler: Array<{
+    ad: string;
+    yuzde: number;
+    metin: string;
+    renkVar: string;
+    alan: CeteleAlan;
+  }> = [
+    { ad: "Mana", yuzde: manaYuzde, metin: `${manaYuzde}%`, renkVar: "--mana", alan: "mana" },
+    {
+      ad: "İlim",
+      yuzde: ilimYuzde,
+      metin: ilimYuzdeRaw === null ? "—" : `${ilimYuzde}%`,
+      renkVar: "--ilim",
+      alan: "ilim",
+    },
+    { ad: "Amel", yuzde: amelYuzde, metin: `${amelYuzde}%`, renkVar: "--amel", alan: "amel" },
   ];
 
   const [acikAlan, setAcikAlan] = React.useState<CeteleAlan | null>(null);
@@ -164,7 +176,7 @@ function AnaDashboard() {
                 className="font-semibold tabular-nums"
                 style={{ color: `var(${r.renkVar})` }}
               >
-                {r.yuzde}%
+                {r.metin}
               </span>
             </button>
           ))}
