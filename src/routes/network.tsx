@@ -11,7 +11,7 @@ import { GundemlerTab } from "@/components/mizan/network/gundemler-tab";
 import { KisilerTab } from "@/components/mizan/network/kisiler-tab";
 import { IstisarelerTab } from "@/components/mizan/network/istisareler-tab";
 
-type TabKey = "kisiler" | "istisareler" | "gundemler";
+type TabKey = "kisiler" | "istisareler" | "gundemler" | "rapor";
 type NetworkSearch = { tab?: TabKey };
 
 export const Route = createFileRoute("/network")({
@@ -26,7 +26,12 @@ export const Route = createFileRoute("/network")({
   }),
   validateSearch: (s: Record<string, unknown>): NetworkSearch => {
     const t = s.tab;
-    if (t === "gundemler" || t === "istisareler" || t === "kisiler") {
+    if (
+      t === "gundemler" ||
+      t === "istisareler" ||
+      t === "kisiler" ||
+      t === "rapor"
+    ) {
       return { tab: t };
     }
     return { tab: "gundemler" };
@@ -40,14 +45,20 @@ function Network() {
   const matchRoute = useMatchRoute();
   const childActive = !!matchRoute({ to: "/network/istisare/$id" });
   const kisiDetayActive = !!matchRoute({ to: "/network/kisi/$id" });
+  const raporActive = !!matchRoute({ to: "/network/rapor" });
 
-  if (childActive || kisiDetayActive) {
+  if (childActive || kisiDetayActive || raporActive) {
     return <Outlet />;
   }
 
   const tab: TabKey = search.tab ?? "gundemler";
-  const setTab = (v: TabKey) =>
+  const setTab = (v: TabKey) => {
+    if (v === "rapor") {
+      navigate({ to: "/network/rapor", replace: true });
+      return;
+    }
     navigate({ to: "/network", search: { tab: v }, replace: true });
+  };
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
@@ -65,6 +76,7 @@ function Network() {
           <TabsTrigger value="kisiler">Kişiler</TabsTrigger>
           <TabsTrigger value="istisareler">İstişareler</TabsTrigger>
           <TabsTrigger value="gundemler">Gündemler</TabsTrigger>
+          <TabsTrigger value="rapor">Rapor</TabsTrigger>
         </TabsList>
 
         <TabsContent value="kisiler">
