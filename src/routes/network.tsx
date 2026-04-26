@@ -5,7 +5,6 @@ import {
   useSearch,
   Outlet,
   useMatchRoute,
-  Link,
 } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -69,11 +68,20 @@ function Network() {
             Yol Arkadaşları
           </h1>
         </div>
-        <Button asChild size="sm" variant="outline" className="gap-1.5">
-          <Link to="/network/rapor" search={() => ({})}>
-            <FileText className="h-3.5 w-3.5" />
-            Rapor
-          </Link>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() =>
+            navigate({
+              to: "/network/rapor",
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              search: (() => ({})) as any,
+            })
+          }
+        >
+          <FileText className="h-3.5 w-3.5" />
+          Rapor
         </Button>
       </header>
 
