@@ -3,11 +3,10 @@ import { createPortal } from "react-dom";
 import {
   X,
   Check,
-  SkipForward,
-  SkipBack,
   Minus,
   Plus,
   Sparkles,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +20,9 @@ import {
 import { useKayitEkle } from "@/lib/cetele-hooks";
 
 /**
- * AkışModu — alan başına tam ekran, kart kart hızlı işaretleme.
- * Sadece bugüne ait, henüz hedefe ulaşmamış şablonları sırayla gösterir.
+ * AkışModu — YouTube Shorts tarzı dikey kaydırmalı tam ekran çetele akışı.
+ * Her şablon kendi viewport-yüksekliğinde slide; native scroll-snap ile geçiş.
+ * Kontroller: dikey swipe (mobil), wheel/trackpad (desktop), ↑↓ + Space (klavye), ESC kapatır.
  */
 export function AkisModu({
   acik,
@@ -41,35 +41,12 @@ export function AkisModu({
 }) {
   const ekle = useKayitEkle();
 
-  // Mount + ESC + body scroll lock
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  // Klavye handler ref'leri — useEffect erken-return'den önce çalışsın diye
-  // gerçek fonksiyonları ref üzerinden çağırıyoruz.
-  const geriRef = React.useRef<() => void>(() => {});
-  const atlaRef = React.useRef<() => void>(() => {});
-
-  // ESC + ok tuşları + body scroll lock — koşulsuz hook
-  React.useEffect(() => {
-    if (!acik) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowLeft") geriRef.current();
-      else if (e.key === "ArrowRight") atlaRef.current();
-    };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [acik, onClose]);
-
-  // Alanın bugüne ait, hedefe ulaşmamış şablon listesini sabitle (oturum başında)
+  // Oturumun sırası — açılışta sabitlenir, canlı kayıt değişikliğinde kart kaymasın
   const baslangictakiSira = React.useMemo(() => {
-    if (!alan) return [];
+    if (!alan) return [] as CeteleSablon[];
     return sablonlar
       .filter((s) => s.alan === alan)
       .filter((s) => {
@@ -78,203 +55,483 @@ export function AkisModu({
           .reduce((a, k) => a + Number(k.miktar), 0);
         return toplam < Number(s.hedef_deger);
       });
-    // Önemli: kayitlar değiştiğinde sırayı kaydırmamak için sadece açılışta hesapla
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acik, alan]);
 
-  const [idx, setIdx] = React.useState(0);
-  const [tamamlananIds, setTamamlananIds] = React.useState<Set<string>>(
-    () => new Set(),
-  );
-  const [atlananIds, setAtlananIds] = React.useState<Set<string>>(
-    () => new Set(),
-  );
-  const [yeniMiktar, setYeniMiktar] = React.useState("");
-  const [flash, setFlash] = React.useState(false);
+  // Kart sayısı + 1 (sondaki "tamamlandı" ekranı). Hiç kart yoksa direkt tamamlandı.
+  const toplamKart = baslangictakiSira.length;
+  const sonIdx = toplamKart; // tamamlandı ekranının indexi
+
+  const [aktifIdx, setAktifIdx] = React.useState(0);
+  const [tamamlananIds, setTamamlananIds] = React.useState<Set<string>>(() => new Set());
+  const [atlananIds, setAtlananIds] = React.useState<Set<string>>(() => new Set());
+  const [yeniMiktarlar, setYeniMiktarlar] = React.useState<Record<string, string>>({});
+  const [flashId, setFlashId] = React.useState<string | null>(null);
+  const [tikSn, setTikSn] = React.useState(0);
   const baslangicZamani = React.useRef<number>(Date.now());
 
+  const scrollerRef = React.useRef<HTMLDivElement | null>(null);
+  const cardRefs = React.useRef<Array<HTMLElement | null>>([]);
+
+  // Açılış reset
   React.useEffect(() => {
     if (acik) {
-      setIdx(0);
+      setAktifIdx(0);
       setTamamlananIds(new Set());
       setAtlananIds(new Set());
-      setYeniMiktar("");
+      setYeniMiktarlar({});
+      setFlashId(null);
       baslangicZamani.current = Date.now();
+      // İlk karta scroll
+      requestAnimationFrame(() => {
+        scrollerRef.current?.scrollTo({ top: 0, behavior: "auto" });
+      });
     }
-  }, [acik, alan]);
+  }, [acik]);
+
+  // Süre tiki
+  React.useEffect(() => {
+    if (!acik) return;
+    const id = setInterval(() => setTikSn((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [acik]);
+
+  // Belirli karta yumuşak scroll
+  const kartaGit = React.useCallback((idx: number) => {
+    const el = cardRefs.current[idx];
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  // Klavye + body scroll lock + ESC
+  React.useEffect(() => {
+    if (!acik) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      // Form içindeyken ↑↓/space ele alma — kullanıcı miktar yazıyor olabilir
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) {
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key === "PageDown" || (e.key === " " && !e.shiftKey)) {
+        e.preventDefault();
+        kartaGit(Math.min(aktifIdx + 1, sonIdx));
+      } else if (e.key === "ArrowUp" || e.key === "PageUp" || (e.key === " " && e.shiftKey)) {
+        e.preventDefault();
+        kartaGit(Math.max(aktifIdx - 1, 0));
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        kartaGit(0);
+      } else if (e.key === "End") {
+        e.preventDefault();
+        kartaGit(sonIdx);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [acik, onClose, kartaGit, aktifIdx, sonIdx]);
+
+  // IntersectionObserver — hangi kart görünür?
+  React.useEffect(() => {
+    if (!acik) return;
+    const root = scrollerRef.current;
+    if (!root) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        // En çok görünen kartı seç
+        let enIyi: { idx: number; oran: number } | null = null;
+        entries.forEach((en) => {
+          const idxStr = (en.target as HTMLElement).dataset.idx;
+          if (idxStr == null) return;
+          const i = Number(idxStr);
+          if (en.isIntersecting && (!enIyi || en.intersectionRatio > enIyi.oran)) {
+            enIyi = { idx: i, oran: en.intersectionRatio };
+          }
+        });
+        if (enIyi && enIyi.oran > 0.6) {
+          setAktifIdx((prev) => {
+            if (prev === enIyi!.idx) return prev;
+            // İleri kaydırıldıysa ve önceki kart tamamlanmadıysa "atlandı" işaretle
+            if (enIyi!.idx > prev) {
+              const oncekiSablon = baslangictakiSira[prev];
+              if (oncekiSablon && !tamamlananIds.has(oncekiSablon.id)) {
+                setAtlananIds((s) => {
+                  if (s.has(oncekiSablon.id)) return s;
+                  const ns = new Set(s);
+                  ns.add(oncekiSablon.id);
+                  return ns;
+                });
+              }
+            } else {
+              // Geri kaydırıldıysa hedef kartı atlananlardan çıkar
+              const hedefSablon = baslangictakiSira[enIyi!.idx];
+              if (hedefSablon && atlananIds.has(hedefSablon.id)) {
+                setAtlananIds((s) => {
+                  const ns = new Set(s);
+                  ns.delete(hedefSablon.id);
+                  return ns;
+                });
+              }
+            }
+            return enIyi!.idx;
+          });
+        }
+      },
+      { root, threshold: [0.3, 0.6, 0.9] },
+    );
+    cardRefs.current.forEach((el) => el && obs.observe(el));
+    return () => obs.disconnect();
+  }, [acik, baslangictakiSira, tamamlananIds, atlananIds]);
 
   if (!mounted || !acik || !alan) return null;
 
   const renkVar = `var(--${alan})`;
-  const aktif = baslangictakiSira[idx];
-  const ikili = aktif?.birim === "ikili";
-  const adim = aktif?.birim === "dakika" ? 5 : 1;
+  const tumuBitti = toplamKart === 0 || aktifIdx >= sonIdx;
 
-  // Bu kartın anlık toplamı (canlı kayıtlardan)
-  const aktifToplam = aktif
-    ? kayitlar
-        .filter((k) => k.sablon_id === aktif.id && k.tarih === tarihStr)
-        .reduce((a, k) => a + Number(k.miktar), 0)
-    : 0;
+  // Aktif kart bilgisi (tamamlandı ekranında null)
+  const aktif = aktifIdx < toplamKart ? baslangictakiSira[aktifIdx] : null;
 
-  const tumuBitti = baslangictakiSira.length === 0 || idx >= baslangictakiSira.length;
   const sureSn = Math.max(1, Math.round((Date.now() - baslangicZamani.current) / 1000));
-  const sureMetin =
-    sureSn < 60 ? `${sureSn} sn` : `${Math.round(sureSn / 60)} dk`;
+  const sureMetin = sureSn < 60 ? `${sureSn} sn` : `${Math.round(sureSn / 60)} dk`;
+  // tikSn dependency placeholder — yeniden render tetikler
+  void tikSn;
 
-  const sonrakiKart = () => {
-    setYeniMiktar("");
-    setIdx((i) => i + 1);
+  const flashGoster = (id: string) => {
+    setFlashId(id);
+    window.setTimeout(() => setFlashId((cur) => (cur === id ? null : cur)), 700);
   };
 
-  const flashGoster = () => {
-    setFlash(true);
-    window.setTimeout(() => setFlash(false), 700);
+  const sonrakineGec = (mevcutIdx: number) => {
+    window.setTimeout(() => kartaGit(Math.min(mevcutIdx + 1, sonIdx)), 250);
   };
 
-  const tamamla = async () => {
-    if (!aktif) return;
-    const eksik = Math.max(1, Number(aktif.hedef_deger) - aktifToplam);
+  const tamamla = async (s: CeteleSablon, idx: number) => {
+    const ikili = s.birim === "ikili";
+    const toplam = kayitlar
+      .filter((k) => k.sablon_id === s.id && k.tarih === tarihStr)
+      .reduce((a, k) => a + Number(k.miktar), 0);
+    const eksik = Math.max(1, Number(s.hedef_deger) - toplam);
     const miktar = ikili ? 1 : eksik;
     try {
-      await ekle.mutateAsync({
-        sablon_id: aktif.id,
-        tarih: tarihStr,
-        miktar,
+      await ekle.mutateAsync({ sablon_id: s.id, tarih: tarihStr, miktar });
+      setTamamlananIds((set) => {
+        const ns = new Set(set);
+        ns.add(s.id);
+        return ns;
       });
-      setTamamlananIds((s) => new Set(s).add(aktif.id));
-      flashGoster();
-      window.setTimeout(sonrakiKart, 250);
+      // Tamamlanınca atlanmışsa kaldır
+      setAtlananIds((set) => {
+        if (!set.has(s.id)) return set;
+        const ns = new Set(set);
+        ns.delete(s.id);
+        return ns;
+      });
+      flashGoster(s.id);
+      sonrakineGec(idx);
     } catch (_e) {
-      // sessizce bırak; CeteleHucre'deki hata flow'unu burada da basit tutuyoruz
+      /* sessizce yut */
     }
   };
 
-  const ozelEkle = async () => {
-    if (!aktif) return;
-    const m = Number(yeniMiktar);
+  const ozelEkle = async (s: CeteleSablon, idx: number) => {
+    const m = Number(yeniMiktarlar[s.id] ?? "");
     if (!Number.isFinite(m) || m <= 0) return;
+    const toplamSimdi = kayitlar
+      .filter((k) => k.sablon_id === s.id && k.tarih === tarihStr)
+      .reduce((a, k) => a + Number(k.miktar), 0);
     try {
-      await ekle.mutateAsync({
-        sablon_id: aktif.id,
-        tarih: tarihStr,
-        miktar: m,
-      });
-      const yeniToplam = aktifToplam + m;
-      if (yeniToplam >= Number(aktif.hedef_deger)) {
-        setTamamlananIds((s) => new Set(s).add(aktif.id));
-        flashGoster();
-        window.setTimeout(sonrakiKart, 250);
+      await ekle.mutateAsync({ sablon_id: s.id, tarih: tarihStr, miktar: m });
+      const yeniToplam = toplamSimdi + m;
+      if (yeniToplam >= Number(s.hedef_deger)) {
+        setTamamlananIds((set) => {
+          const ns = new Set(set);
+          ns.add(s.id);
+          return ns;
+        });
+        setAtlananIds((set) => {
+          if (!set.has(s.id)) return set;
+          const ns = new Set(set);
+          ns.delete(s.id);
+          return ns;
+        });
+        flashGoster(s.id);
+        sonrakineGec(idx);
       } else {
-        setYeniMiktar("");
+        setYeniMiktarlar((m) => ({ ...m, [s.id]: "" }));
       }
     } catch (_e) {
       /* no-op */
     }
   };
 
-  const atla = () => {
-    if (!aktif) return;
-    setAtlananIds((s) => new Set(s).add(aktif.id));
-    sonrakiKart();
-  };
-
-  const geri = () => {
-    if (idx <= 0) return;
-    const oncekiIdx = idx - 1;
-    const onceki = baslangictakiSira[oncekiIdx];
-    if (onceki) {
-      // Atlanmış kayıttan çıkar — kullanıcı tekrar değerlendirmek istiyor
-      setAtlananIds((s) => {
-        if (!s.has(onceki.id)) return s;
-        const yeni = new Set(s);
-        yeni.delete(onceki.id);
-        return yeni;
-      });
-    }
-    setYeniMiktar("");
-    setFlash(false);
-    setIdx(oncekiIdx);
-  };
-
-  // Klavye handler ref'lerini her render'da güncel tut
-  geriRef.current = geri;
-  atlaRef.current = atla;
-
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex flex-col"
       style={{
-        // Hafif tonlu zemin — alanın renginden krem/koyuya doğru
         background: `radial-gradient(120% 80% at 50% 0%, color-mix(in oklab, ${renkVar} 14%, var(--background)) 0%, var(--background) 60%)`,
-        // pill-glow renk değişkeni: flash ve nefes efektleri burada okur
         ["--pill-glow" as string]: renkVar,
       }}
       role="dialog"
       aria-modal="true"
       aria-label={`${ALAN_ETIKET[alan]} akış modu`}
     >
-      {/* Üst bar */}
-      <header className="flex items-center justify-between gap-3 px-5 py-4 sm:px-8 sm:py-5">
-        <div className="flex items-center gap-2">
+      {/* Sabit üst bar */}
+      <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-3 px-5 py-4 sm:px-8 sm:py-5">
+        <div className="flex items-center gap-2 rounded-full border border-border/60 bg-card/70 px-3 py-1.5 backdrop-blur">
           <span
             className="h-2 w-2 rounded-full"
             style={{ backgroundColor: renkVar, boxShadow: `0 0 10px ${renkVar}` }}
           />
           <span
-            className="text-xs font-semibold uppercase tracking-[0.22em]"
+            className="text-[11px] font-semibold uppercase tracking-[0.22em]"
             style={{ color: renkVar }}
           >
-            {ALAN_ETIKET[alan]} akışı
+            {ALAN_ETIKET[alan]}
           </span>
-          {!tumuBitti && baslangictakiSira.length > 0 && (
-            <span className="ml-2 text-xs text-muted-foreground tabular-nums">
-              {Math.min(idx + 1, baslangictakiSira.length)} / {baslangictakiSira.length}
+          {toplamKart > 0 && (
+            <span className="ml-1 text-[11px] text-muted-foreground tabular-nums">
+              {Math.min(aktifIdx + 1, toplamKart)} / {toplamKart}
             </span>
           )}
         </div>
-        <button
-          onClick={onClose}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/80 text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="Kapat"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="hidden rounded-full border border-border/60 bg-card/70 px-3 py-1.5 text-[11px] tabular-nums text-muted-foreground backdrop-blur sm:inline-block">
+            {sureMetin}
+          </span>
+          <button
+            onClick={onClose}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/80 text-muted-foreground backdrop-blur transition-colors hover:text-foreground"
+            aria-label="Kapat"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </header>
 
-      {/* İlerleme noktaları */}
-      {!tumuBitti && baslangictakiSira.length > 0 && (
-        <div className="flex items-center justify-center gap-1.5 px-5 pb-2">
-          {baslangictakiSira.map((s, i) => {
-            const tamam = tamamlananIds.has(s.id);
-            const atlandi = atlananIds.has(s.id);
-            const aktifMi = i === idx;
-            return (
-              <span
-                key={s.id}
-                className={cn(
-                  "h-1.5 rounded-full transition-all",
-                  aktifMi ? "w-6" : "w-1.5",
-                )}
-                style={{
-                  backgroundColor: tamam
-                    ? renkVar
-                    : atlandi
-                      ? "color-mix(in oklab, var(--muted-foreground) 50%, transparent)"
+      {/* Sağ dikey ilerleme şeridi (Shorts tarzı) */}
+      {toplamKart > 0 && (
+        <div className="pointer-events-none absolute right-2 top-1/2 z-20 hidden -translate-y-1/2 sm:block">
+          <div className="pointer-events-auto flex flex-col items-center gap-1.5 rounded-full border border-border/60 bg-card/70 p-1.5 backdrop-blur">
+            {baslangictakiSira.map((s, i) => {
+              const tamam = tamamlananIds.has(s.id);
+              const atlandi = atlananIds.has(s.id);
+              const aktifMi = i === aktifIdx;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => kartaGit(i)}
+                  className={cn(
+                    "flex h-3 w-3 items-center justify-center rounded-full transition-all",
+                    aktifMi && "scale-125",
+                  )}
+                  style={{
+                    backgroundColor: tamam
+                      ? renkVar
                       : aktifMi
-                        ? `color-mix(in oklab, ${renkVar} 60%, transparent)`
-                        : "color-mix(in oklab, var(--muted-foreground) 25%, transparent)",
-                }}
-              />
-            );
-          })}
+                        ? `color-mix(in oklab, ${renkVar} 70%, transparent)`
+                        : atlandi
+                          ? "color-mix(in oklab, var(--muted-foreground) 35%, transparent)"
+                          : "color-mix(in oklab, var(--muted-foreground) 22%, transparent)",
+                    boxShadow: aktifMi ? `0 0 10px ${renkVar}` : undefined,
+                  }}
+                  aria-label={`${s.ad} kartına git`}
+                  title={s.ad}
+                >
+                  {tamam && <Check className="h-2 w-2 text-background" strokeWidth={4} />}
+                </button>
+              );
+            })}
+            {/* Bitiş noktası */}
+            <button
+              type="button"
+              onClick={() => kartaGit(sonIdx)}
+              className={cn(
+                "mt-0.5 flex h-3 w-3 items-center justify-center rounded-full transition-all",
+                aktifIdx === sonIdx && "scale-125",
+              )}
+              style={{
+                backgroundColor:
+                  aktifIdx === sonIdx
+                    ? renkVar
+                    : "color-mix(in oklab, var(--muted-foreground) 22%, transparent)",
+                boxShadow: aktifIdx === sonIdx ? `0 0 10px ${renkVar}` : undefined,
+              }}
+              aria-label="Bitir"
+            >
+              <Sparkles className="h-2 w-2 text-background" />
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Gövde */}
-      <main className="flex flex-1 items-center justify-center px-5 py-6 sm:px-8">
-        {tumuBitti ? (
-          <div className="mx-auto flex w-full max-w-md flex-col items-center text-center animate-fade-in">
+      {/* Kaydırıcı — tüm kartlar dikey snap içinde */}
+      <div
+        ref={scrollerRef}
+        className="h-[100dvh] flex-1 snap-y snap-mandatory overflow-y-auto overscroll-contain scroll-smooth"
+        style={{ scrollbarWidth: "none" }}
+      >
+        <style>{`
+          .mizan-shorts-scroller::-webkit-scrollbar { display: none; }
+        `}</style>
+
+        {/* Kartlar */}
+        {baslangictakiSira.map((s, i) => {
+          const ikili = s.birim === "ikili";
+          const adim = s.birim === "dakika" ? 5 : 1;
+          const toplam = kayitlar
+            .filter((k) => k.sablon_id === s.id && k.tarih === tarihStr)
+            .reduce((a, k) => a + Number(k.miktar), 0);
+          const yeniMiktar = yeniMiktarlar[s.id] ?? "";
+
+          return (
+            <section
+              key={s.id}
+              ref={(el) => {
+                cardRefs.current[i] = el;
+              }}
+              data-idx={i}
+              className="flex h-[100dvh] w-full snap-start snap-always items-center justify-center px-5 pb-20 pt-24 sm:px-8"
+            >
+              <div
+                className={cn(
+                  "mx-auto flex w-full max-w-md flex-col rounded-2xl border border-border bg-card p-7 sm:p-9",
+                  flashId === s.id && "mizan-flow-flash",
+                )}
+              >
+                <p
+                  className="text-[11px] font-medium uppercase tracking-[0.22em]"
+                  style={{ color: renkVar }}
+                >
+                  {ALAN_ETIKET[alan]}
+                </p>
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-[2rem]">
+                  {s.ad}
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Hedef{" "}
+                  <span className="font-medium text-foreground">
+                    {Number(s.hedef_deger)}
+                  </span>{" "}
+                  {s.birim === "ikili" ? "" : s.birim}
+                  {toplam > 0 && !ikili && (
+                    <>
+                      {" • "}şu an{" "}
+                      <span className="font-medium text-foreground">{toplam}</span>
+                    </>
+                  )}
+                </p>
+
+                {!ikili && (
+                  <div className="mt-5 flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      disabled={toplam <= 0 || ekle.isPending}
+                      onClick={() => {
+                        const azalt = Math.min(adim, toplam);
+                        if (azalt <= 0) return;
+                        ekle.mutate({
+                          sablon_id: s.id,
+                          tarih: tarihStr,
+                          miktar: -azalt,
+                        });
+                      }}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9"
+                      disabled={ekle.isPending}
+                      onClick={() => {
+                        ekle.mutate({
+                          sablon_id: s.id,
+                          tarih: tarihStr,
+                          miktar: adim,
+                        });
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                    <span className="text-xs text-muted-foreground">+/- {adim}</span>
+                    <div className="ml-auto flex items-center gap-1.5">
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder={s.birim}
+                        value={yeniMiktar}
+                        onChange={(e) =>
+                          setYeniMiktarlar((m) => ({ ...m, [s.id]: e.target.value }))
+                        }
+                        className="h-9 w-20 text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-9 px-3 text-xs"
+                        disabled={
+                          !yeniMiktar ||
+                          isNaN(Number(yeniMiktar)) ||
+                          Number(yeniMiktar) <= 0 ||
+                          ekle.isPending
+                        }
+                        onClick={() => ozelEkle(s, i)}
+                      >
+                        Ekle
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <Button
+                  onClick={() => tamamla(s, i)}
+                  disabled={ekle.isPending}
+                  className="mt-6 h-12 w-full text-base font-semibold"
+                  style={{
+                    backgroundColor: renkVar,
+                    color: "var(--background)",
+                  }}
+                >
+                  <Check className="mr-2 h-5 w-5" />
+                  {ikili
+                    ? "Tamamlandı"
+                    : toplam > 0
+                      ? `Hedefi tamamla (+${Math.max(1, Number(s.hedef_deger) - toplam)})`
+                      : `Hedefi tamamla (+${Number(s.hedef_deger)})`}
+                </Button>
+
+                {/* İpucu: ilk kart ise swipe işareti */}
+                {i === 0 && (
+                  <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+                    <ChevronUp className="h-3.5 w-3.5 animate-bounce" />
+                    <span>Atlamak için yukarı kaydır</span>
+                  </div>
+                )}
+              </div>
+            </section>
+          );
+        })}
+
+        {/* Bitiş ekranı (her zaman var — kart yoksa direkt burada) */}
+        <section
+          ref={(el) => {
+            cardRefs.current[sonIdx] = el;
+          }}
+          data-idx={sonIdx}
+          className="flex h-[100dvh] w-full snap-start snap-always items-center justify-center px-5 pb-20 pt-24 sm:px-8"
+        >
+          <div className="mx-auto flex w-full max-w-md flex-col items-center text-center">
             <div
               className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full"
               style={{
@@ -285,153 +542,43 @@ export function AkisModu({
               <Sparkles className="h-7 w-7" style={{ color: renkVar }} />
             </div>
             <h2 className="text-2xl font-semibold tracking-tight">
-              {tamamlananIds.size > 0 ? "Akış tamamlandı" : "Bugün için hepsi tamam"}
+              {tamamlananIds.size > 0
+                ? "Akış tamamlandı"
+                : toplamKart === 0
+                  ? "Bugün için hepsi tamam"
+                  : "Akışın sonuna geldin"}
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              {tamamlananIds.size > 0 ? (
+              {toplamKart === 0 ? (
+                <>{ALAN_ETIKET[alan]} alanında bugün için işaretlenecek bir şey kalmamış.</>
+              ) : (
                 <>
                   {tamamlananIds.size} öğe işaretlendi
                   {atlananIds.size > 0 ? `, ${atlananIds.size} atlandı` : ""}.
                   <span className="ml-1 text-foreground/80">{sureMetin} sürdü.</span>
                 </>
-              ) : (
-                <>{ALAN_ETIKET[alan]} alanında bugün için işaretlenecek bir şey kalmamış.</>
               )}
             </p>
             <Button onClick={onClose} className="mt-6 h-10 px-6">
               Kapat
             </Button>
-          </div>
-        ) : aktif ? (
-          <div
-            key={aktif.id}
-            className={cn(
-              "mx-auto flex w-full max-w-md flex-col rounded-2xl border border-border bg-card p-7 sm:p-9 animate-fade-in",
-              flash && "mizan-flow-flash",
-            )}
-          >
-            <p
-              className="text-[11px] font-medium uppercase tracking-[0.22em]"
-              style={{ color: renkVar }}
-            >
-              {ALAN_ETIKET[alan]}
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-[2rem]">
-              {aktif.ad}
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Hedef <span className="font-medium text-foreground">{Number(aktif.hedef_deger)}</span>{" "}
-              {aktif.birim === "ikili" ? "" : aktif.birim}
-              {aktifToplam > 0 && !ikili && (
-                <>
-                  {" • "}şu an{" "}
-                  <span className="font-medium text-foreground">{aktifToplam}</span>
-                </>
-              )}
-            </p>
-
-            {!ikili && (
-              <div className="mt-5 flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9"
-                  disabled={aktifToplam <= 0 || ekle.isPending}
-                  onClick={() => {
-                    const azalt = Math.min(adim, aktifToplam);
-                    if (azalt <= 0) return;
-                    ekle.mutate({
-                      sablon_id: aktif.id,
-                      tarih: tarihStr,
-                      miktar: -azalt,
-                    });
-                  }}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9"
-                  disabled={ekle.isPending}
-                  onClick={() => {
-                    ekle.mutate({
-                      sablon_id: aktif.id,
-                      tarih: tarihStr,
-                      miktar: adim,
-                    });
-                  }}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-                <span className="text-xs text-muted-foreground">+/- {adim}</span>
-                <div className="ml-auto flex items-center gap-1.5">
-                  <Input
-                    type="number"
-                    min={0}
-                    placeholder={aktif.birim}
-                    value={yeniMiktar}
-                    onChange={(e) => setYeniMiktar(e.target.value)}
-                    className="h-9 w-20 text-sm"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-9 px-3 text-xs"
-                    disabled={
-                      !yeniMiktar ||
-                      isNaN(Number(yeniMiktar)) ||
-                      Number(yeniMiktar) <= 0 ||
-                      ekle.isPending
-                    }
-                    onClick={ozelEkle}
-                  >
-                    Ekle
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <Button
-              onClick={tamamla}
-              disabled={ekle.isPending}
-              className="mt-6 h-12 w-full text-base font-semibold"
-              style={{
-                backgroundColor: renkVar,
-                color: "var(--background)",
-              }}
-            >
-              <Check className="mr-2 h-5 w-5" />
-              {ikili
-                ? "Tamamlandı"
-                : aktifToplam > 0
-                  ? `Hedefi tamamla (+${Math.max(1, Number(aktif.hedef_deger) - aktifToplam)})`
-                  : `Hedefi tamamla (+${Number(aktif.hedef_deger)})`}
-            </Button>
-
-            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+            {tumuBitti && atlananIds.size > 0 && (
               <button
-                onClick={geri}
-                disabled={idx <= 0}
-                className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Önceki kart"
+                onClick={() => {
+                  // İlk atlanan karta dön
+                  const ilkAtlananIdx = baslangictakiSira.findIndex((s) =>
+                    atlananIds.has(s.id),
+                  );
+                  if (ilkAtlananIdx >= 0) kartaGit(ilkAtlananIdx);
+                }}
+                className="mt-3 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
               >
-                <SkipBack className="h-3.5 w-3.5" />
-                Geri
+                Atlananlara dön ({atlananIds.size})
               </button>
-              <button
-                onClick={atla}
-                className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
-                aria-label="Sonraki kart"
-              >
-                Atla
-                <SkipForward className="h-3.5 w-3.5" />
-              </button>
-              <span className="tabular-nums">{sureMetin}</span>
-            </div>
+            )}
           </div>
-        ) : null}
-      </main>
+        </section>
+      </div>
     </div>,
     document.body,
   );
