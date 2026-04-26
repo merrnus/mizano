@@ -758,25 +758,58 @@ export type Database = {
       gundem_kisi: {
         Row: {
           ad: string
+          akademik_durum: string | null
+          bolum: string | null
           created_at: string
+          derin_takip: boolean
+          dogum_tarihi: string | null
+          foto_url: string | null
+          gano: number | null
           id: string
+          ilgi_alanlari: string[]
           notlar: string | null
+          sinif: string | null
+          sorumluluk_notu: string | null
+          telefon: string | null
+          universite: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           ad: string
+          akademik_durum?: string | null
+          bolum?: string | null
           created_at?: string
+          derin_takip?: boolean
+          dogum_tarihi?: string | null
+          foto_url?: string | null
+          gano?: number | null
           id?: string
+          ilgi_alanlari?: string[]
           notlar?: string | null
+          sinif?: string | null
+          sorumluluk_notu?: string | null
+          telefon?: string | null
+          universite?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           ad?: string
+          akademik_durum?: string | null
+          bolum?: string | null
           created_at?: string
+          derin_takip?: boolean
+          dogum_tarihi?: string | null
+          foto_url?: string | null
+          gano?: number | null
           id?: string
+          ilgi_alanlari?: string[]
           notlar?: string | null
+          sinif?: string | null
+          sorumluluk_notu?: string | null
+          telefon?: string | null
+          universite?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -994,6 +1027,45 @@ export type Database = {
           id?: string
           notlar?: string | null
           tarih?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      kardes_etkinlik: {
+        Row: {
+          baslik: string
+          created_at: string
+          id: string
+          kisi_id: string
+          notlar: string | null
+          sonuc: string | null
+          tarih: string
+          tip: Database["public"]["Enums"]["kardes_etkinlik_tip"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          baslik: string
+          created_at?: string
+          id?: string
+          kisi_id: string
+          notlar?: string | null
+          sonuc?: string | null
+          tarih?: string
+          tip: Database["public"]["Enums"]["kardes_etkinlik_tip"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          baslik?: string
+          created_at?: string
+          id?: string
+          kisi_id?: string
+          notlar?: string | null
+          sonuc?: string | null
+          tarih?: string
+          tip?: Database["public"]["Enums"]["kardes_etkinlik_tip"]
           updated_at?: string
           user_id?: string
         }
@@ -1248,6 +1320,21 @@ export type Database = {
         | "pazar"
       hedef_durum: "aktif" | "tamamlandi" | "arsiv"
       hedef_tip: "kurs" | "aliskanlik" | "proje" | "sayisal" | "tekil"
+      kardes_etkinlik_tip:
+        | "sohbet"
+        | "istisare"
+        | "kuran"
+        | "sophia"
+        | "kamp"
+        | "sinav"
+        | "yarisma"
+        | "hediye"
+        | "gezi"
+        | "spor"
+        | "teke_tek"
+        | "dogum_gunu"
+        | "kandil"
+        | "zoom"
       streak_birim: "gunluk" | "haftalik"
       takvim_tekrar: "yok" | "haftalik" | "aylik"
     }
@@ -1400,6 +1487,22 @@ export const Constants = {
       ],
       hedef_durum: ["aktif", "tamamlandi", "arsiv"],
       hedef_tip: ["kurs", "aliskanlik", "proje", "sayisal", "tekil"],
+      kardes_etkinlik_tip: [
+        "sohbet",
+        "istisare",
+        "kuran",
+        "sophia",
+        "kamp",
+        "sinav",
+        "yarisma",
+        "hediye",
+        "gezi",
+        "spor",
+        "teke_tek",
+        "dogum_gunu",
+        "kandil",
+        "zoom",
+      ],
       streak_birim: ["gunluk", "haftalik"],
       takvim_tekrar: ["yok", "haftalik", "aylik"],
     },
