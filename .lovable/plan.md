@@ -1,74 +1,67 @@
-# Network Rapor Sayfası + PDF
+
+# Raporu kategori bazlı hiyerarşik yapıya dönüştür
 
 ## Amaç
-Gündemler, kardeş faaliyetleri ve (opsiyonel) maneviyat verilerini tek yerden filtreleyip görmek; aynı görünümü PDF olarak dışa aktarmak.
+Şu anki rapor "düz tablo + tek kişi filtresi" mantığında. Kullanıcı şunu istiyor: rapor **kategoriler** üzerinden okunsun (Evdekiler, GG, OMM…), her kategorinin içinde **o kategoriye düşen her kardeşin** o aralıktaki gündem kararları + faaliyet sonuçları görülsün. Yani bir kategori = bir bölüm; içinde kişi başına alt kart.
 
-## Yapılacaklar
+Hiyerarşi:
+```
+[KATEGORİ: Evdekiler]
+  └─ Ahmet Y.
+       • Gündemler (kararlar): …
+       • Faaliyetler (sonuçlar): …
+  └─ Mehmet K.
+       • Gündemler …
+       • Faaliyetler …
+[KATEGORİ: GG]
+  …
+```
 
-### 1. Yeni rota: `src/routes/network.rapor.tsx`
-- Network sekmesinin altında 4. sekme olarak "Rapor" eklenir (Kişiler · İstişareler · Gündemler · Rapor).
-- `validateSearch` ile filtreler URL'de tutulur (paylaşılabilir/yer imine alınabilir):
-  - `from`, `to` → tarih aralığı (ISO string, varsayılan: son 30 gün)
-  - `kisiId` → tek kişi filtresi (opsiyonel)
-  - `kategoriId` → kategori filtresi (opsiyonel; kişiler üzerinden)
-  - `kapsam` → `["gundem","faaliyet","maneviyat"]` çoklu seçim (varsayılan: gündem + faaliyet)
-  - `sonucDurumu` → `tumu | dolu | bos` (sonuç/karar yazılı mı?)
-  - `gundemDurumu` → `tumu | bekliyor | yapildi`
+## Değişiklikler
 
-### 2. Üst filtre çubuğu
-- Tarih aralığı: hızlı butonlar (Bu hafta · Bu ay · Son 3 ay · Özel) + iki date input.
-- Kişi seçici (Combobox, "Tümü" varsayılan).
-- Kategori chip listesi (çoklu seçim).
-- Kapsam toggle'ları (Gündemler / Faaliyetler / Maneviyat).
-- "Sonuç dolu / boş / tümü" segmented.
-- Sağda: **PDF indir** butonu.
+### 1. `src/routes/network.rapor.tsx`
+- **Kişi filtresini kaldır** (`kisiId` search paramı + Select). Kişi artık sonuç içindeki bir grup başlığı, filtre değil.
+- **Kategori filtresi mevcut** — birden fazla seçilebilir; hiçbiri seçilmezse "tüm kategoriler" gibi davransın (bütün kategoriler bölüm olarak çıksın). Bu şekilde varsayılan deneyim de hiyerarşik olur.
+- "Gündemler ve Kararlar" + "Kardeş Faaliyetleri" bölümlerini iki ayrı düz tablo olmaktan çıkar; tek bir **"Kategori bazlı rehberlik"** bölümüne dönüştür:
+  - Her kategori için bir kart (renk noktası + ad + toplam kişi sayısı).
+  - Kategori altında, o kategorideki her kişi için bir alt blok.
+  - Alt blokta iki mini tablo / liste:
+    - **Gündem kararları:** o kişinin sorumlu olduğu, aralıktaki gündemler — tarih · içerik · karar (boşsa "Sonuç eksik" rozeti) · durum.
+    - **Faaliyetler & sonuçlar:** o kişiye ait `kardes_etkinlik` — tarih · tip · başlık · sonuç (boşsa "Sonuç eksik").
+  - Kişide hiç gündem/faaliyet yoksa "bu aralıkta kayıt yok" notu (kapsam seçimine göre).
+- Maneviyat kapsamı seçiliyse, her kişi bloğunun altına küçük bir maneviyat satırı ekle (müfredat % + evrad doluluk %). Kategoriye göre filtrelenmiş halde.
+- "Bir kategoriye düşmeyen" kişiler için en altta opsiyonel **"Kategorisiz"** bölümü (sadece o kişilerin de gündem/faaliyeti varsa görünür).
+- Üst özet kartlar aynen kalır (toplam gündem, toplam faaliyet, maneviyat ortalamaları).
+- Hızlı tarih butonları, kapsam toggle'ları, sonuç doluluğu ve gündem durumu filtreleri **aynen kalır**.
 
-### 3. Özet kartlar (üstte)
-- Toplam gündem · Tamamlanan · Sonuç yazılı oran %
-- Toplam faaliyet · Sonuç yazılı oran % · En aktif kardeş
-- Maneviyat seçiliyse: aktif müfredat sayısı, son 7 gün evrad doluluk oranı
+### 2. `src/lib/network-hooks.ts`
+- `RaporFiltre`'den `kisiId` alanını kaldır (artık kullanılmıyor).
+- `useRaporGundemler` & `useRaporFaaliyetler` & `useRaporManeviyat` query key'lerinden `kisiId` çıkar.
+- `useRaporGundemler` ve `useRaporFaaliyetler` içindeki `if (filtre.kisiId)` bloklarını sil — gruplandırma artık component tarafında yapılacak.
+- Hook'ların döndürdüğü satırlar zaten `kisi_id` / `sorumlu_ids` içeriyor, gruplandırma için yeterli. **Şema değişikliği yok.**
+- Yeni yardımcı: `useKisiKategoriBaglari()` — `gundem_kisi_kategori` tablosundan tüm `(kisi_id, kategori_id)` çiftlerini tek seferde çekip Map döner; rapor sayfası kişi → kategori eşlemesini bundan yapar (aksi halde her kişi için ayrı sorgu olurdu). Var olan `useKisiler()` zaten `KisiDetay` döndürüyor mu kontrol edilecek; dönüyorsa onu kullanırız, yeni hook'a gerek kalmayabilir.
 
-### 4. İçerik blokları (kapsama göre)
-- **Gündemler bölümü:** İstişare bazlı gruplandırma. Her gündem: içerik, karar (sonuç), sorumlular, durum, tarih. Kararı boş olanlar görsel olarak işaretli (kırmızı nokta).
-- **Faaliyetler bölümü:** Kişi bazlı gruplandırma (veya tarih bazlı, toggle ile). Her faaliyet: tip, tarih, başlık, sonuç. Sonuç boşsa "Sonuç eksik" rozeti.
-- **Maneviyat bölümü (opsiyonel):** Kişi başına aktif müfredat ilerlemesi (% madde tamamlanma) + son 30 gün evrad heatmap özeti.
+### 3. `src/lib/network-rapor-pdf.ts`
+- PDF'i de aynı hiyerarşiyle üret:
+  - Her kategori için yeni bölüm başlığı.
+  - Her kişi için alt başlık + iki küçük tablo (Gündemler / Faaliyetler).
+- `RaporPdfGirdi`'ye `gruplar: { kategori: {id, ad, renk}, kisiler: { kisi_id, kisi_ad, gundemler, faaliyetler, maneviyat? }[] }[]` şeklinde önceden gruplandırılmış veri gelsin (gruplandırma component tarafında bir kez yapılır, PDF'e hazır verilir). Eski "düz gundemler/faaliyetler" alanlarını kaldır.
+- Türkçe karakter sadeleştirme (`trText`) korunur.
 
-### 5. Veri katmanı
-`src/lib/network-hooks.ts` içine ekle:
-- `useRaporGundemler(filtreler)` — `gundem` + `istisare` + `gundem_sorumlu` + `gundem_kisi` join, tarih ve kişi filtresi server-side.
-- `useRaporFaaliyetler(filtreler)` — `kardes_etkinlik` + `gundem_kisi` + `gundem_kisi_kategori` join.
-- `useRaporManeviyat(filtreler)` — `kardes_mufredat` + `kardes_evrad_madde` + `kardes_evrad_kayit`.
-- Her hook tek `useQuery`, queryKey filtreleri içerir.
-
-### 6. PDF dışa aktarımı
-- Lib: **`jspdf` + `jspdf-autotable`** (Worker uyumlu, tamamen client-side, mevcut filtrelenmiş veriden çalışır — ek server function gerektirmez).
-- `src/lib/network-rapor-pdf.ts` modülü:
-  - `raporPdfUret({ filtreler, gundemler, faaliyetler, maneviyat })` fonksiyonu.
-  - Başlık: "Mizan Rapor — {tarih aralığı}", filtre özeti.
-  - Bölümler: Özet → Gündemler tablosu → Faaliyetler tablosu → (varsa) Maneviyat tablosu.
-  - Türkçe karakter desteği için Inter veya Noto Sans font embed (jsPDF'e base64 ile yüklenir).
-  - Sayfa altı: oluşturulma tarihi, sayfa no.
-- "PDF indir" butonu mevcut React Query verisini fonksiyona geçer, `rapor-{from}-{to}.pdf` olarak indirir.
-
-### 7. Network sekmesi entegrasyonu
-- `src/routes/network.tsx`: `TabKey` tipine `"rapor"` eklenir, `TabsList`'e yeni trigger eklenir, route altyapısı zaten var (alt rotalar gibi `Outlet` ile değil; doğrudan tab içeriği olarak `<RaporTab />` render edilir).
-- Alternatif: ayrı `/network/rapor` route'u — daha temiz URL ve loader avantajı için bunu tercih ediyorum. Sekme değişimi `navigate({ to: "/network/rapor" })` ile.
-
-### 8. Boş/yükleniyor/hata durumları
-- Tarih aralığında veri yoksa: "Bu kriterlerle kayıt bulunamadı" + filtre sıfırlama butonu.
-- Yükleniyor: skeleton kartlar.
-- Hata: retry butonlu uyarı.
-
-## Dosya değişiklikleri özet
-- **Yeni:** `src/routes/network.rapor.tsx`, `src/components/mizan/network/rapor-filtreler.tsx`, `src/components/mizan/network/rapor-ozet-kartlar.tsx`, `src/components/mizan/network/rapor-icerik.tsx`, `src/lib/network-rapor-pdf.ts`
-- **Güncel:** `src/lib/network-hooks.ts` (3 yeni hook), `src/routes/network.tsx` (4. sekme)
-- **Bağımlılık:** `bun add jspdf jspdf-autotable`
+### 4. UX detayları
+- Boş kategoriler (o aralıkta hiçbir kişide kayıt yok) varsayılan olarak gizli; toggle ile gösterilebilir ("Boş kategorileri göster").
+- Bir kişi birden fazla kategoride ise, **her kategoride tekrar listelenir** (kasıtlı — kategori bazlı okuma için). İstersek "her kişi tek bir birincil kategoride" kuralı eklenebilir ama mevcut veri modeli buna uygun değil; tekrar listeleme daha doğru.
+- Kişi başlığına tıklayınca `/network/kisi/$id` profiline gider (mevcut link kullanılabilir).
 
 ## Veritabanı değişikliği
-**Yok.** Mevcut tablolar (`gundem`, `istisare`, `gundem_sorumlu`, `kardes_etkinlik`, `gundem_kisi`, `gundem_kisi_kategori`, `kardes_mufredat`, `kardes_evrad_*`) yeterli.
+**Yok.** Mevcut `gundem_kisi_kategori` tablosu kişi-kategori eşlemesini zaten tutuyor.
 
-## Onay sonrası ilk iterasyon
-1. Rota + filtre çubuğu + gündem/faaliyet hook'ları + liste görünümü.
-2. Özet kartlar.
-3. PDF indirme.
-4. Maneviyat bölümü (kapsam seçilirse).
+## Dosya değişiklikleri
+- **Güncel:** `src/routes/network.rapor.tsx` (büyük yeniden düzenleme — kişi filtresi çıkar, hiyerarşik render eklenir)
+- **Güncel:** `src/lib/network-hooks.ts` (`RaporFiltre.kisiId` kaldır, `kisiId` filtreleme bloklarını sil, gerekiyorsa `useKisiKategoriBaglari` ekle)
+- **Güncel:** `src/lib/network-rapor-pdf.ts` (gruplandırılmış veriye göre yeniden yapılandır)
+
+## İlk iteresyon
+1. Hook'lardan `kisiId` temizliği + (gerekirse) kişi-kategori eşleme yardımcısı.
+2. Rapor sayfası: kişi filtresi kaldır, kategori → kişi hiyerarşik render.
+3. PDF'i yeni veri yapısına göre güncelle.
