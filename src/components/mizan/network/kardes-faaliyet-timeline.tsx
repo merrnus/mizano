@@ -1,10 +1,12 @@
 import * as React from "react";
-import { Plus, Trash2, Pencil, Check, X, Filter } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, Filter, CalendarPlus } from "lucide-react";
 import { format, parseISO, isThisWeek, isThisMonth, isToday } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -17,6 +19,7 @@ import {
   useKardesEtkinlikEkle,
   useKardesEtkinlikGuncelle,
   useKardesEtkinlikSil,
+  useKisi,
 } from "@/lib/network-hooks";
 import {
   ETKINLIK_TIP_LISTE,
@@ -31,6 +34,7 @@ const SONUC_GEREKEN: KardesEtkinlikTip[] = ["sinav", "yarisma"];
 
 export function KardesFaaliyetTimeline({ kisiId }: { kisiId: string }) {
   const { data: etkinlikler = [], isLoading } = useKardesEtkinlikler(kisiId);
+  const { data: kisi } = useKisi(kisiId);
   const ekle = useKardesEtkinlikEkle();
   const sil = useKardesEtkinlikSil();
 
@@ -43,10 +47,17 @@ export function KardesFaaliyetTimeline({ kisiId }: { kisiId: string }) {
   const [baslik, setBaslik] = React.useState("");
   const [notlar, setNotlar] = React.useState("");
   const [sonuc, setSonuc] = React.useState("");
+  const [baslangicSaati, setBaslangicSaati] = React.useState("");
+  const [bitisSaati, setBitisSaati] = React.useState("");
+  const [takvimeEkle, setTakvimeEkle] = React.useState(true);
 
   const ekleEtkinlik = async () => {
     if (!baslik.trim()) {
       toast.error("Başlık gerekli");
+      return;
+    }
+    if (baslangicSaati && bitisSaati && bitisSaati <= baslangicSaati) {
+      toast.error("Bitiş saati başlangıçtan sonra olmalı");
       return;
     }
     await ekle.mutateAsync({
@@ -56,10 +67,16 @@ export function KardesFaaliyetTimeline({ kisiId }: { kisiId: string }) {
       baslik: baslik.trim(),
       notlar: notlar.trim() || null,
       sonuc: sonuc.trim() || null,
+      baslangic_saati: baslangicSaati || null,
+      bitis_saati: bitisSaati || null,
+      takvime_ekle: takvimeEkle,
+      kisi_ad: kisi?.ad,
     });
     setBaslik("");
     setNotlar("");
     setSonuc("");
+    setBaslangicSaati("");
+    setBitisSaati("");
     toast.success("Etkinlik eklendi");
   };
 
