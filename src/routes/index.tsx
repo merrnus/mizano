@@ -2,17 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
-import { Sun, Sunset, Moon } from "lucide-react";
+import { Sun, Sunset, Moon, Plus, CalendarPlus } from "lucide-react";
 import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-hooks";
 import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { BugunCetelesi } from "@/components/mizan/dashboard/bugun-cetelesi";
 import { BugunZamanCizelgesi } from "@/components/mizan/dashboard/bugun-zaman-cizelgesi";
-import { BugunGorevleri } from "@/components/mizan/dashboard/bugun-gorevleri";
 import { GelecekGunler } from "@/components/mizan/dashboard/gelecek-gunler";
 import { EvdekilerWidget } from "@/components/mizan/dashboard/evdekiler-widget";
 import { BugununMufredati } from "@/components/mizan/dashboard/bugunun-mufredati";
 import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
 import { GorevDialog } from "@/components/mizan/takvim/gorev-dialog";
+import { EtkinlikDialog } from "@/components/mizan/takvim/etkinlik-dialog";
+import { Button } from "@/components/ui/button";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { useAmelKurslar, useTumAmelModuller } from "@/lib/amel-hooks";
 import { kursIlerleme } from "@/lib/amel-tipleri";
@@ -85,6 +86,7 @@ function AnaDashboard() {
 
   const [gorevDialogAcik, setGorevDialogAcik] = React.useState(false);
   const [duzenlenenGorev, setDuzenlenenGorev] = React.useState<TakvimGorev | null>(null);
+  const [etkinlikDialogAcik, setEtkinlikDialogAcik] = React.useState(false);
 
   const saat = simdi.getHours();
   const selamlama =
@@ -170,20 +172,32 @@ function AnaDashboard() {
       </header>
 
       {/* Bugünün çetelesi + zaman çizelgesi */}
-      <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,4fr)_minmax(0,5fr)_minmax(0,3fr)]">
+      <div className="mb-3 grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <BugunCetelesi simdi={simdi} />
         <BugunZamanCizelgesi simdi={simdi} />
-        <BugunGorevleri
-          simdi={simdi}
-          onYeni={() => {
+      </div>
+
+      {/* Hızlı ekleme butonları */}
+      <div className="mb-6 flex flex-wrap items-center justify-end gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
             setDuzenlenenGorev(null);
             setGorevDialogAcik(true);
           }}
-          onDuzenle={(g) => {
-            setDuzenlenenGorev(g);
-            setGorevDialogAcik(true);
-          }}
-        />
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Görev ekle
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setEtkinlikDialogAcik(true)}
+        >
+          <CalendarPlus className="h-3.5 w-3.5" />
+          Etkinlik ekle
+        </Button>
       </div>
 
       {/* Bugünün Müfredatı (Amel) */}
@@ -211,6 +225,12 @@ function AnaDashboard() {
         }}
         varsayilanVade={simdi}
         duzenle={duzenlenenGorev}
+      />
+
+      <EtkinlikDialog
+        acik={etkinlikDialogAcik}
+        onOpenChange={setEtkinlikDialogAcik}
+        varsayilanBaslangic={simdi}
       />
     </div>
   );
