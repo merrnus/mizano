@@ -49,6 +49,7 @@ export const KAYNAK_TIP_ETIKET: Record<AmelKaynakTip, string> = {
   dosya: "Dosya",
   resim: "Resim",
   not: "Not",
+  lab: "Lab",
 };
 
 export function kursIlerleme(moduller: AmelModul[]): number {

@@ -1445,7 +1445,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      amel_kaynak_tip: "link" | "dosya" | "resim" | "not"
+      amel_kaynak_tip: "link" | "dosya" | "resim" | "not" | "lab"
       amel_kurs_durum: "planli" | "izliyor" | "beklemede" | "tamam" | "birakti"
       amel_proje_durum: "planli" | "devam" | "beklemede" | "tamam" | "iptal"
       cetele_alan: "mana" | "ilim" | "amel" | "kisisel"
@@ -1611,7 +1611,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      amel_kaynak_tip: ["link", "dosya", "resim", "not"],
+      amel_kaynak_tip: ["link", "dosya", "resim", "not", "lab"],
       amel_kurs_durum: ["planli", "izliyor", "beklemede", "tamam", "birakti"],
       amel_proje_durum: ["planli", "devam", "beklemede", "tamam", "iptal"],
       cetele_alan: ["mana", "ilim", "amel", "kisisel"],

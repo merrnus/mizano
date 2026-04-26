@@ -1,98 +1,104 @@
+# Müfredat (Amel) — İyileştirme + Seed Planı
 
-# Rapor sayfasını sadeleştir — "tek bakışta okunur" hale getir
+Claude'un önerisini mevcut sisteme göre sadeleştirdim. Hiyerarşi (Alan → Kurs → Modül/Kaynak/Not) zaten doğru kurulu; sadece **eksik UI parçaları** + **bir kerelik veri ekleme** yapılacak. "Progress bug" gerçek bir bug değil (CCNA'da sadece 1 modül olduğu için %0 doğru); modüller eklenince düzelecek. "Notlar" sekmesi de zaten mevcut.
 
-## Sorun
-Şu an sayfada çok fazla görsel yük var:
-- Filtre bloğu 4 alt bölümden oluşuyor (tarih + hızlı butonlar, sonuç doluluğu toggle, gündem durumu toggle, kategori chip'leri, kapsam toggle, "boş göster" checkbox) ve büyük bir kart kaplıyor.
-- 3 özet kart yan yana (her biri başlık + büyük rakam + 2 alt satır) — ekranda ayrı bir bölüm daha açıyor.
-- Her kategori bir kart, içinde her kişi için ayrı bir blok, her blokta 4 kolonlu mini tablolar (tarih · sol · sağ · rozet) — derinlik 3 seviye, satırlar dar olduğu için metin kırılıyor.
-- Sonuç: kullanıcı "şu an aralık ne, kim ne yapmış" sorusuna 2-3 saniyede cevap bulamıyor.
+---
 
-## Hedef
-Tek bir okunabilir akış: **Üstte tek satır kontrol → tek satır özet → kategori → kişi kart listesi.** Her şey isteğe bağlı/gizlenebilir, varsayılan görünüm minimal.
+## 1) Şema değişikliği — yeni kaynak tipi
 
-## Değişiklikler
+**Migration:** `amel_kaynak_tip` enum'una `lab` değerini ekle.
 
-### 1. Filtre bloğunu **tek satır kontrol çubuğuna** indir (`network.rapor.tsx`)
-- Büyük "Filtreler" kartını kaldır. Yerine başlığın hemen altında **yapışkan/kompakt bir çubuk** koy:
-  - **Tarih:** tek bir Popover butonu (`"Son 30 gün ▾"`). Açılınca: hızlı seçenekler (Bu hafta / Bu ay / Son 30 gün / Son 3 ay) + altında iki date input (özel aralık).
-  - **Kategori:** tek bir Popover butonu (`"Kategoriler · 2 seçili"` veya `"Tüm kategoriler"`). Açılınca chip listesi.
-  - **Kapsam:** kompakt 3'lü segment (Gündem · Faaliyet · Maneviyat) ikon + çok kısa etiket. Varsayılan sadece "Gündem + Faaliyet".
-  - **"Daha fazla filtre"** açılır menüsü (isteğe bağlı): sonuç doluluğu (Tümü/Dolu/Boş), gündem durumu (Tümü/Bekliyor/Yapıldı), "boş kategorileri göster" checkbox. **Varsayılan kapalı** — çoğu kullanıcı bunlara hiç dokunmuyor.
-  - Sağda **PDF indir** butonu.
-- Çubuk `sticky top-0` olabilir, sayfa kayarken erişilebilir kalır.
-
-### 2. Özet bölümünü **tek satır şeride** indir
-- 3 ayrı kartı kaldır. Yerine tek bir ince bant:
-  ```
-  📅 30 gün  ·  📂 Tüm kategoriler  ·  📋 12 gündem (8 sonuçlu, %67)  ·  ⚡ 24 faaliyet (18 sonuçlu, %75)  ·  ✨ 6 kişi
-  ```
-- Aktif kapsama göre alanlar görünür/gizli. Yer az, bilgi yoğun, yatay tek satır (mobilde sarsın).
-
-### 3. Kategori → kişi listesini **akordiyon + kompakt satıra** çevir
-Şu anki yapı: her kategori bir kart, içinde her kişi için ayrı bölüm, her bölümde mini tablolar. Çok derin.
-
-Yeni yapı:
-- Her **kategori** = bir başlık satırı (renk noktası · ad · "5 kardeş, 12 kayıt"). Tıklayınca açılır/kapanır (varsayılan açık).
-- Her **kişi** = ince bir satır:
-  ```
-  ▸ Ahmet Y.        3 gündem · 2 faaliyet · ✨ %80           [→ profil]
-  ```
-  Tıklayınca aşağı doğru detay açılır (kişi bazlı akordiyon).
-- Kişi detayı açıldığında tek bir **birleşik zaman çizelgesi** göster:
-  - Gündem ve faaliyet karışık, tarih sırasıyla.
-  - Her satır: `[ikon] [tarih] başlık → sonuç/karar` (sonuç boşsa kırmızı `Sonuç eksik` rozeti).
-  - 4 kolonlu mini tablo yok, sadece liste. Daha az çizgi, daha az kolon ayracı.
-- Maneviyat varsa kişi başlığı satırının sağına küçük rozet (`✨ %80`).
-
-### 4. Boş durum & yükleme
-- "Bu kriterlerle kayıt yok" mesajı tek satır, ikon yok, sade.
-- Yüklenirken inline skeleton (3-4 boş satır), büyük "Yükleniyor…" kutusu kullanılmaz.
-
-### 5. Kart/border yoğunluğunu azalt
-- Kategori başlıkları artık `bg-muted` şerit yerine sade ayraç (`border-b`) + biraz boşluk.
-- Kişi satırları arasında ince ayraç (`divide-y divide-border/50`) yeterli, her birine `rounded-xl border` koyma.
-- Mini tablolardaki `rounded-md border bg-background/40` kalkar — sadece tarih + metin.
-
-## Bilgi mimarisi karşılaştırması
-
-**Önce (şu an):**
-```
-[Filtre Kartı: tarih · hızlı · sonuç · gündem · kategoriler · kapsam · checkbox]
-[Özet Kart 1] [Özet Kart 2] [Özet Kart 3]
-[Kategori Kartı]
-  ┗ Kişi Bloğu
-      ┗ Mini Tablo: Gündemler (4 kolon)
-      ┗ Mini Tablo: Faaliyetler (4 kolon)
-      ┗ Maneviyat şeridi
-  ┗ Kişi Bloğu …
+```sql
+ALTER TYPE amel_kaynak_tip ADD VALUE IF NOT EXISTS 'lab';
 ```
 
-**Sonra (önerilen):**
+`src/lib/amel-tipleri.ts` → `KAYNAK_TIP_ETIKET` map'ine `lab: "Lab"` ekle.
+
+---
+
+## 2) UI iyileştirmeleri
+
+### `src/routes/mizan.amel.$id.tsx`
+
+**a) Kaynak formu (KaynakSekmesi)**  
+Zaten "link" tipi için URL var. Tipi `Select` ile seçilebilir hale getir (Video / PDF / Link / Lab / Resim / Not). Tüm tiplerde başlık + opsiyonel URL alanı bulunsun (Lab tipinde URL Packet Tracer linki olabilir).
+
+**b) Sertifika tarihi uyarısı**  
+Header'da sertifika tarihi gösterilirken, tarih bugünden geçmişse `text-amber-600` + `⚠ geçmiş tarih` rozeti göster. Tarih `Pencil` butonundan zaten düzenlenebiliyor; ek bir şey gerekmiyor.
+
+```tsx
+{kurs.sertifika_tarihi && (
+  <span className={cn(
+    "flex items-center gap-1",
+    new Date(kurs.sertifika_tarihi) < new Date() && "text-amber-600"
+  )}>
+    Sertifika sınavı: {formatDate(kurs.sertifika_tarihi)}
+    {new Date(kurs.sertifika_tarihi) < new Date() && (
+      <Badge variant="outline" className="h-4 border-amber-500/40 text-[9px] text-amber-600">
+        geçmiş
+      </Badge>
+    )}
+  </span>
+)}
 ```
-[Sticky çubuk: 📅 ▾ · 📂 ▾ · [Gündem|Faaliyet|Maneviyat] · ⋯ · [PDF]]
-[Tek satır özet: 30g · 12 gündem (67%) · 24 faaliyet (75%) · 6 kişi]
-■ Evdekiler — 5 kardeş, 12 kayıt              ▾
-   Ahmet Y.    3 · 2 · ✨80%                   ▸
-   Mehmet K.   1 · 4                            ▸
-■ GG — 3 kardeş, 8 kayıt                       ▾
-   …
-```
-Kişi açılırsa altına birleşik kronolojik liste düşer.
 
-## Davranış kuralları
-- Varsayılan: tüm kategoriler açık, kişiler kapalı (ad/sayı görünür, detay tıklayınca açılır).
-- Kullanıcı kategori chip'i seçerse otomatik o kategori açık, diğerleri görünmez (zaten filtre).
-- "Daha fazla filtre" varsayılan kapalı; bir alan değiştirilince başlığında "● 1" işareti.
-- Tarih popover'ı kapanınca otomatik uygula.
-- PDF butonu görünür yapıyı bire bir basar (mevcut PDF'in kategori → kişi yapısı zaten uygun, **PDF kodunda değişiklik yok**).
+### `src/routes/mizan.amel.index.tsx` — `ProjeForm`
 
-## Dosya değişiklikleri
-- **Düzenle:** `src/routes/network.rapor.tsx` — sayfa baştan organize edilir; `KategoriKart`, `KisiBlokSatir`, `MiniListe`, `OzetKart` bileşenleri yeniden yazılır (akordiyon + kompakt satır + birleşik zaman çizelgesi). Search şeması ve filtre mantığı **aynı kalır** (URL state korunur).
-- **Düzenle (küçük):** Yeni filtre çubuğu için shadcn `Popover` kullanılacak — zaten `src/components/ui/popover.tsx` mevcut.
-- **Değişmez:** `src/lib/network-hooks.ts`, `src/lib/network-rapor-pdf.ts`, `src/lib/network-tipleri.ts`. Veri akışı, gruplandırma fonksiyonu (`gruplandir`) ve PDF üretimi olduğu gibi kalır.
+**c) GitHub URL alanı**  
+DB kolonu `amel_proje.repo_url` zaten var. Forma `<Input id="proje-repo" placeholder="https://github.com/..." />` ekle, kaydederken `repo_url` olarak gönder. Proje kartında varsa küçük bir GitHub linki göster.
 
-## Geri dönüş garantisi
-- URL search şeması aynı (`from`, `to`, `kategoriIds`, `kapsam`, `sonucDurumu`, `gundemDurumu`, `bosGoster`) — eski bookmark'lar çalışmaya devam eder.
-- PDF çıktısı değişmez.
-- Hiçbir veri kaybı yok, sadece görsel hiyerarşi sadeleşiyor.
+---
+
+## 3) Veri seed'i (bir kerelik insert)
+
+Mevcut DB durumu: 1 alan (`ders`) + 1 kurs (`ccna`) + 1 modül.
+
+**Strateji:** Mevcut kayıtları silmek yerine **yeniden adlandırıp** kullan, böylece varolan modülün kaybolma riski olmaz — ama eldeki tek modül muhtemelen test verisi olduğundan onu silip 26 modüllü Jeremy's IT Lab müfredatını koyacağız.
+
+**Adımlar (sırasıyla insert tool ile):**
+
+1. **Mevcut "ders" alanını yeniden adlandır:**
+   - `ad: "Networking"`, `renk: "#3b82f6"` (mavi), `siralama: 0`
+2. **Mevcut tek modülü sil**, ardından mevcut "ccna" kursunu güncelle:
+   - `ad: "CCNA 200-301"`, `saglayici: "Cisco / Jeremy's IT Lab"`, `kod: "200-301"`, `durum: "izliyor"`
+3. **CCNA — 26 modül ekle** (siralama 0–25, tam liste Claude'un mesajındaki sırayla):
+   `Network Devices & Cables (Day 1-2)` … `Mega Lab — Final Project`
+4. **CCNA — 3 kaynak ekle:**
+   - Video: "Jeremy's IT Lab" → `https://youtube.com/@JeremysITLab`
+   - PDF: "Official CCNA Exam Topics" → `https://learningnetwork.cisco.com/s/ccna-exam-topics`
+   - Lab: "Packet Tracer Labs" (URL boş)
+5. **Yeni alanlar oluştur:**
+   - `Linux & System` — renk `#10b981` (yeşil), siralama 1
+   - `Development` — renk `#f59e0b` (altın/amel), siralama 2
+   - `Tools` — renk `#8b5cf6` (mor), siralama 3
+6. **Yeni kurslar:**
+   - **Linux** (Linux & System altında) → 8 modül (Terminal Fundamentals … Security & Firewall)
+   - **Web Tehnici** (Development altında) → modülsüz başla
+   - **Git** (Tools altında) → 4 modül (Git Basics … README & GitHub Profile)
+7. **Git için 1 kaynak:** Link "Official Git Documentation" → `https://git-scm.com/doc`
+8. **Projeler:** boş kalır (Claude'un isteği).
+
+INSERT'ler `code--exec` + `psql` ile değil, `supabase--insert` (state-changing) ile yapılacak. Tüm kayıtlar `auth.uid()` yerine senin kullanıcı id'ne bağlanacak — `gundem_kisi` veya başka tablolardan user_id'yi okuyup tek bir kullanıcı için ekleyeceğim (sistemde tek kullanıcı varsa otomatik bulunur).
+
+---
+
+## 4) Yapılmayacaklar (Claude'un önerip de gereksiz olduğunu düşündüklerim)
+
+- ❌ "Progress 0/1 bug fix" → bug değil; veri eklenince düzelir.
+- ❌ Yeni "Notlar" sekmesi eklemek → zaten var (`NotSekmesi` + her modülün kendi notu).
+- ❌ Hiyerarşiyi değiştirmek → zaten istenen yapıda.
+- ❌ Tema değişikliği → cream/gold zaten kullanılıyor.
+
+---
+
+## Etkilenen dosyalar
+
+- `supabase/migrations/<timestamp>_amel_kaynak_lab.sql` (yeni)
+- `src/lib/amel-tipleri.ts` (KAYNAK_TIP_ETIKET'e lab eklemek)
+- `src/routes/mizan.amel.$id.tsx` (kaynak formu tip seçici + sertifika uyarısı)
+- `src/routes/mizan.amel.index.tsx` (ProjeForm'a repo_url alanı + kart üzerinde GitHub linki)
+- DB veri insert'leri (alan/kurs/modül/kaynak)
+
+## Onay
+
+Onaylarsan bu sırayla uygularım. Özellikle "mevcut ccna kursunu yeniden adlandır + tek modülü sil" adımı için onayın net olmalı — eğer o tek modülde değerli bir veri varsa söyle, korurum.
