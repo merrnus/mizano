@@ -1211,7 +1211,6 @@ function _kisiUygunMu(
   kisi: KisiDetay,
   filtre: RaporFiltre,
 ): boolean {
-  if (filtre.kisiId && kisi.id !== filtre.kisiId) return false;
   if (filtre.kategoriIds && filtre.kategoriIds.length > 0) {
     const kesisim = kisi.kategori_ids.some((kid) => filtre.kategoriIds!.includes(kid));
     if (!kesisim) return false;
