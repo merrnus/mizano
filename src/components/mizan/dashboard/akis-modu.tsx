@@ -45,9 +45,27 @@ export function AkisModu({
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  // ESC + ok tuşları + body scroll lock
-  // Not: handler'lar useEffect içinde kapanış üzerinden çalışsın diye burada
-  // erken-tanımlı değil — geri/atla referansları aşağıda mevcut.
+  // Klavye handler ref'leri — useEffect erken-return'den önce çalışsın diye
+  // gerçek fonksiyonları ref üzerinden çağırıyoruz.
+  const geriRef = React.useRef<() => void>(() => {});
+  const atlaRef = React.useRef<() => void>(() => {});
+
+  // ESC + ok tuşları + body scroll lock — koşulsuz hook
+  React.useEffect(() => {
+    if (!acik) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft") geriRef.current();
+      else if (e.key === "ArrowRight") atlaRef.current();
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [acik, onClose]);
 
   // Alanın bugüne ait, hedefe ulaşmamış şablon listesini sabitle (oturum başında)
   const baslangictakiSira = React.useMemo(() => {
@@ -179,23 +197,9 @@ export function AkisModu({
     setIdx(oncekiIdx);
   };
 
-  // ESC + ok tuşları
-  React.useEffect(() => {
-    if (!acik) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowLeft") geri();
-      else if (e.key === "ArrowRight") atla();
-    };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [acik, onClose, idx, aktif?.id]);
+  // Klavye handler ref'lerini her render'da güncel tut
+  geriRef.current = geri;
+  atlaRef.current = atla;
 
   return createPortal(
     <div
