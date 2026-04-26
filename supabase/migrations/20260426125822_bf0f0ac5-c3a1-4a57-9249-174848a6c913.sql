@@ -1,0 +1,1 @@
+ALTER TYPE public.amel_kaynak_tip ADD VALUE IF NOT EXISTS 'lab';
