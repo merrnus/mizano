@@ -168,7 +168,7 @@ export function raporPdfUret(g: RaporPdfGirdi): void {
     yenISayfaGerekiyorMu(60);
     // Kategori başlığı
     doc.setDrawColor(180);
-    doc.setFillColor(245);
+    doc.setFillColor(245, 245, 245);
     doc.rect(sol, y, sayfaGenis - sol * 2, 22, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
