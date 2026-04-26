@@ -1,5 +1,11 @@
 import * as React from "react";
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  useSearch,
+  Outlet,
+  useMatchRoute,
+} from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GundemlerTab } from "@/components/mizan/network/gundemler-tab";
 import { KisilerTab } from "@/components/mizan/network/kisiler-tab";
@@ -31,6 +37,13 @@ export const Route = createFileRoute("/network")({
 function Network() {
   const search = useSearch({ from: "/network" });
   const navigate = useNavigate();
+  const matchRoute = useMatchRoute();
+  const childActive = !!matchRoute({ to: "/network/istisare/$id" });
+
+  if (childActive) {
+    return <Outlet />;
+  }
+
   const tab: TabKey = search.tab ?? "gundemler";
   const setTab = (v: TabKey) =>
     navigate({ to: "/network", search: { tab: v }, replace: true });
