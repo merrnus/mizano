@@ -10,7 +10,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useKisiDetay, useKardesEtkinlikler, useKategoriler } from "@/lib/network-hooks";
+import { useKisi, useKardesEtkinlikler, useKategoriler } from "@/lib/network-hooks";
 import { ETKINLIK_TIP_MAP } from "@/lib/network-tipleri";
 
 function initials(ad: string) {
@@ -33,7 +33,7 @@ export function KisiOzetSheet({
   haftaSon?: string;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { data: kisi } = useKisiDetay(kisiId ?? undefined);
+  const { data: kisi } = useKisi(kisiId ?? undefined);
   const { data: etkinlikler } = useKardesEtkinlikler(kisiId ?? undefined);
   const { data: kategoriler } = useKategoriler();
 
