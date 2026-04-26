@@ -280,8 +280,36 @@ function RaporPage() {
   const gSonuclu = gundemler.filter((g) => (g.karar ?? "").trim().length > 0).length;
   const fSonuclu = faaliyetler.filter((f) => (f.sonuc ?? "").trim().length > 0).length;
 
+  /* Filtre çubuğu özet metinleri */
+  const tarihEtiket = (() => {
+    const bh = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+    const ba = format(startOfMonth(new Date()), "yyyy-MM-dd");
+    if (search.from === bh && search.to === bugun()) return "Bu hafta";
+    if (search.from === ba && search.to === bugun()) return "Bu ay";
+    if (search.from === gunlerOnce(30) && search.to === bugun()) return "Son 30 gün";
+    if (
+      search.from === format(subMonths(new Date(), 3), "yyyy-MM-dd") &&
+      search.to === bugun()
+    )
+      return "Son 3 ay";
+    return `${format(parseISO(search.from), "d MMM", { locale: tr })} – ${format(parseISO(search.to), "d MMM", { locale: tr })}`;
+  })();
+  const kategoriEtiket = seciliKategoriler.length
+    ? seciliKategoriler.length === 1
+      ? seciliKategoriler[0].ad
+      : `${seciliKategoriler.length} kategori`
+    : "Tüm kategoriler";
+  const ekFiltreAktif =
+    search.sonucDurumu !== "tumu" ||
+    search.gundemDurumu !== "tumu" ||
+    search.bosGoster;
+
+  const toplamKayit =
+    (aktifGundem ? gundemler.length : 0) +
+    (aktifFaaliyet ? faaliyetler.length : 0);
+
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
       <Button
         asChild
         variant="ghost"
@@ -293,7 +321,8 @@ function RaporPage() {
         </Link>
       </Button>
 
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+      {/* BAŞLIK */}
+      <header className="mb-4 flex items-end justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Rehberlik
@@ -301,58 +330,152 @@ function RaporPage() {
           <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
             Rapor
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {format(parseISO(search.from), "d MMM", { locale: tr })} —{" "}
-            {format(parseISO(search.to), "d MMM yyyy", { locale: tr })}
-          </p>
         </div>
-        <Button onClick={pdfIndir} disabled={yukleniyor}>
-          <Download className="h-4 w-4" /> PDF indir
+        <Button onClick={pdfIndir} disabled={yukleniyor} size="sm">
+          <Download className="h-4 w-4" /> PDF
         </Button>
       </header>
 
-      {/* FİLTRELER */}
-      <section className="mb-6 rounded-2xl border border-border bg-card p-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Tarih */}
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">
-              Tarih aralığı
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {hizli(
-                "Bu hafta",
-                format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"),
-                bugun(),
-              )}
-              {hizli("Bu ay", format(startOfMonth(new Date()), "yyyy-MM-dd"), bugun())}
-              {hizli("Son 30 gün", gunlerOnce(30), bugun())}
-              {hizli("Son 3 ay", format(subMonths(new Date(), 3), "yyyy-MM-dd"), bugun())}
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                value={search.from}
-                onChange={(e) => setSearch({ from: e.target.value })}
-                className="h-9"
-              />
-              <span className="text-muted-foreground">—</span>
-              <Input
-                type="date"
-                value={search.to}
-                onChange={(e) => setSearch({ to: e.target.value })}
-                className="h-9"
-              />
-            </div>
-          </div>
+      {/* TEK SATIR FİLTRE ÇUBUĞU */}
+      <div className="sticky top-0 z-10 -mx-4 mb-3 border-b border-border bg-background/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {/* Tarih popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                <CalendarIcon className="h-3.5 w-3.5" />
+                <span className="text-xs">{tarihEtiket}</span>
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-72 space-y-3">
+              <div className="grid grid-cols-2 gap-1.5">
+                {hizli(
+                  "Bu hafta",
+                  format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"),
+                  bugun(),
+                )}
+                {hizli("Bu ay", format(startOfMonth(new Date()), "yyyy-MM-dd"), bugun())}
+                {hizli("Son 30 gün", gunlerOnce(30), bugun())}
+                {hizli(
+                  "Son 3 ay",
+                  format(subMonths(new Date(), 3), "yyyy-MM-dd"),
+                  bugun(),
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  Özel aralık
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    type="date"
+                    value={search.from}
+                    onChange={(e) => setSearch({ from: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                  <span className="text-muted-foreground">—</span>
+                  <Input
+                    type="date"
+                    value={search.to}
+                    onChange={(e) => setSearch({ to: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
 
-          {/* Sonuç + gündem durum */}
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-2">
+          {/* Kategori popover */}
+          {kategoriler.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <Folder className="h-3.5 w-3.5" />
+                  <span className="text-xs">{kategoriEtiket}</span>
+                  <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-72">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Kategoriler
+                  </p>
+                  {search.kategoriIds.length > 0 && (
+                    <button
+                      onClick={() => setSearch({ kategoriIds: [] })}
+                      className="text-[10px] text-muted-foreground hover:text-foreground"
+                    >
+                      Temizle
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {kategoriler.map((k) => {
+                    const aktif = search.kategoriIds.includes(k.id);
+                    return (
+                      <button
+                        key={k.id}
+                        onClick={() => {
+                          const next = aktif
+                            ? search.kategoriIds.filter((id: string) => id !== k.id)
+                            : [...search.kategoriIds, k.id];
+                          setSearch({ kategoriIds: next });
+                        }}
+                        className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                          aktif
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {k.ad}
+                      </button>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {/* Kapsam segmenti */}
+          <ToggleGroup
+            type="multiple"
+            size="sm"
+            value={search.kapsam}
+            onValueChange={(v) => {
+              const arr = (v as Kapsam[]).filter(
+                (x) => x === "gundem" || x === "faaliyet" || x === "maneviyat",
+              );
+              setSearch({ kapsam: arr.length ? arr : ["gundem"] });
+            }}
+            className="h-8"
+          >
+            <ToggleGroupItem value="gundem" className="h-8 px-2 text-xs">
+              <FileText className="h-3.5 w-3.5" /> Gündem
+            </ToggleGroupItem>
+            <ToggleGroupItem value="faaliyet" className="h-8 px-2 text-xs">
+              <Activity className="h-3.5 w-3.5" /> Faaliyet
+            </ToggleGroupItem>
+            <ToggleGroupItem value="maneviyat" className="h-8 px-2 text-xs">
+              <Sparkles className="h-3.5 w-3.5" /> Maneviyat
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          {/* Daha fazla filtre */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                {ekFiltreAktif && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 space-y-3">
               <div>
-                <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <p className="mb-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                   Sonuç doluluğu
-                </label>
+                </p>
                 <ToggleGroup
                   type="single"
                   size="sm"
@@ -360,7 +483,7 @@ function RaporPage() {
                   onValueChange={(v) =>
                     v && setSearch({ sonucDurumu: v as Search["sonucDurumu"] })
                   }
-                  className="mt-1 justify-start"
+                  className="justify-start"
                 >
                   <ToggleGroupItem value="tumu" className="text-xs">
                     Tümü
@@ -374,9 +497,9 @@ function RaporPage() {
                 </ToggleGroup>
               </div>
               <div>
-                <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <p className="mb-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                   Gündem durumu
-                </label>
+                </p>
                 <ToggleGroup
                   type="single"
                   size="sm"
@@ -384,7 +507,7 @@ function RaporPage() {
                   onValueChange={(v) =>
                     v && setSearch({ gundemDurumu: v as Search["gundemDurumu"] })
                   }
-                  className="mt-1 justify-start"
+                  className="justify-start"
                 >
                   <ToggleGroupItem value="tumu" className="text-xs">
                     Tümü
@@ -397,158 +520,94 @@ function RaporPage() {
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
-            </div>
-            <label className="mt-2 flex cursor-pointer items-center gap-2 pt-1 text-xs text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={search.bosGoster}
-                onChange={(e) => setSearch({ bosGoster: e.target.checked })}
-                className="h-3.5 w-3.5 rounded border-border"
-              />
-              Boş kategorileri göster
-            </label>
-          </div>
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={search.bosGoster}
+                  onChange={(e) => setSearch({ bosGoster: e.target.checked })}
+                  className="h-3.5 w-3.5 rounded border-border"
+                />
+                Boş kategorileri göster
+              </label>
+            </PopoverContent>
+          </Popover>
         </div>
+      </div>
 
-        {/* Kategoriler */}
-        {kategoriler.length > 0 && (
-          <div className="mt-4 space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">
-              Kategori (boşsa hepsi)
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {kategoriler.map((k) => {
-                const aktif = search.kategoriIds.includes(k.id);
-                return (
-                  <button
-                    key={k.id}
-                    onClick={() => {
-                      const next = aktif
-                        ? search.kategoriIds.filter((id: string) => id !== k.id)
-                        : [...search.kategoriIds, k.id];
-                      setSearch({ kategoriIds: next });
-                    }}
-                    className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                      aktif
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {k.ad}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Kapsam */}
-        <div className="mt-4 space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">
-            Rapor kapsamı
-          </label>
-          <ToggleGroup
-            type="multiple"
-            value={search.kapsam}
-            onValueChange={(v) => {
-              const arr = (v as Kapsam[]).filter(
-                (x) => x === "gundem" || x === "faaliyet" || x === "maneviyat",
-              );
-              setSearch({ kapsam: arr.length ? arr : ["gundem"] });
-            }}
-            className="justify-start"
-          >
-            <ToggleGroupItem value="gundem">
-              <FileText className="h-3.5 w-3.5" /> Gündemler
-            </ToggleGroupItem>
-            <ToggleGroupItem value="faaliyet">
-              <Activity className="h-3.5 w-3.5" /> Faaliyetler
-            </ToggleGroupItem>
-            <ToggleGroupItem value="maneviyat">
-              <Sparkles className="h-3.5 w-3.5" /> Maneviyat
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-      </section>
-
-      {/* ÖZET KARTLAR */}
-      <section className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* TEK SATIR ÖZET */}
+      <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span>
+          <strong className="text-foreground">{toplamKayit}</strong> kayıt ·{" "}
+          <strong className="text-foreground">{goruntulenecekGruplar.length}</strong>{" "}
+          kategori
+        </span>
         {aktifGundem && (
-          <OzetKart
-            baslik="Gündemler"
-            ana={`${gundemler.length}`}
-            altSatirlar={[
-              `${gTamam} tamamlandı`,
-              `${gSonuclu} sonuç yazılı (${
-                gundemler.length ? Math.round((gSonuclu / gundemler.length) * 100) : 0
-              }%)`,
-            ]}
-            yukleniyor={gundemQ.isLoading}
-          />
+          <span className="flex items-center gap-1">
+            <FileText className="h-3 w-3" />
+            <strong className="text-foreground">{gundemler.length}</strong> gündem
+            {gundemler.length > 0 && (
+              <span className="text-muted-foreground/80">
+                ({gTamam} yapıldı, %
+                {Math.round((gSonuclu / gundemler.length) * 100)} sonuçlu)
+              </span>
+            )}
+          </span>
         )}
         {aktifFaaliyet && (
-          <OzetKart
-            baslik="Faaliyetler"
-            ana={`${faaliyetler.length}`}
-            altSatirlar={[
-              `${fSonuclu} sonuç yazılı (${
-                faaliyetler.length
-                  ? Math.round((fSonuclu / faaliyetler.length) * 100)
-                  : 0
-              }%)`,
-              `${goruntulenecekGruplar.reduce(
-                (a, g) => a + g.kisiler.length,
-                0,
-              )} kardeş kapsamda`,
-            ]}
-            yukleniyor={faaliyetQ.isLoading}
-          />
+          <span className="flex items-center gap-1">
+            <Activity className="h-3 w-3" />
+            <strong className="text-foreground">{faaliyetler.length}</strong> faaliyet
+            {faaliyetler.length > 0 && (
+              <span className="text-muted-foreground/80">
+                (%{Math.round((fSonuclu / faaliyetler.length) * 100)} sonuçlu)
+              </span>
+            )}
+          </span>
         )}
-        {aktifManeviyat && (
-          <OzetKart
-            baslik="Maneviyat"
-            ana={`${maneviyat.length} kişi`}
-            altSatirlar={[
-              `Müfredat ortalaması ${
-                maneviyat.length
-                  ? Math.round(
-                      maneviyat.reduce((a, b) => a + b.mufredat_ilerleme_yuzde, 0) /
-                        maneviyat.length,
-                    )
-                  : 0
-              }%`,
-              `Evrad doluluk ${
-                maneviyat.length
-                  ? Math.round(
-                      maneviyat.reduce((a, b) => a + b.evrad_doluluk_yuzde, 0) /
-                        maneviyat.length,
-                    )
-                  : 0
-              }%`,
-            ]}
-            yukleniyor={maneviyatQ.isLoading}
-          />
+        {aktifManeviyat && maneviyat.length > 0 && (
+          <span className="flex items-center gap-1">
+            <Sparkles className="h-3 w-3" />
+            müfredat %
+            {Math.round(
+              maneviyat.reduce((a, b) => a + b.mufredat_ilerleme_yuzde, 0) /
+                maneviyat.length,
+            )}{" "}
+            · evrad %
+            {Math.round(
+              maneviyat.reduce((a, b) => a + b.evrad_doluluk_yuzde, 0) /
+                maneviyat.length,
+            )}
+          </span>
         )}
-      </section>
+      </div>
 
-      {/* KATEGORİ → KİŞİ HİYERARŞİSİ */}
-      <section className="space-y-6">
+      {/* KATEGORİ → KİŞİ AKORDİYON LİSTESİ */}
+      <section>
         {yukleniyor ? (
-          <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-            Yükleniyor…
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-10 animate-pulse rounded-md bg-muted/40"
+              />
+            ))}
           </div>
         ) : goruntulenecekGruplar.length === 0 ? (
-          <BosKutu mesaj="Bu kriterlerle kayıt bulunamadı." />
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            Bu kriterlerle kayıt bulunamadı.
+          </p>
         ) : (
-          goruntulenecekGruplar.map((g, i) => (
-            <KategoriKart
-              key={g.kategori?.id ?? `_kategorisiz_${i}`}
-              blok={g}
-              aktifGundem={aktifGundem}
-              aktifFaaliyet={aktifFaaliyet}
-              aktifManeviyat={aktifManeviyat}
-            />
-          ))
+          <div className="divide-y divide-border">
+            {goruntulenecekGruplar.map((g, i) => (
+              <KategoriBolum
+                key={g.kategori?.id ?? `_kategorisiz_${i}`}
+                blok={g}
+                aktifGundem={aktifGundem}
+                aktifFaaliyet={aktifFaaliyet}
+                aktifManeviyat={aktifManeviyat}
+              />
+            ))}
+          </div>
         )}
       </section>
     </div>
