@@ -626,6 +626,7 @@ function KisiBlokSatir({
         <Link
           to="/network/kisi/$id"
           params={{ id: blok.kisi_id }}
+          search={{ kt: "profil" }}
           className="group flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary"
         >
           {blok.kisi_ad}
