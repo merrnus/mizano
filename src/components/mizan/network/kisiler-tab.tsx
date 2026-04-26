@@ -1,10 +1,13 @@
 import * as React from "react";
-import { Pencil, Plus, Search, Trash2, X, Check } from "lucide-react";
+import { Pencil, Plus, Search, Trash2, X, Check, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Sheet,
   SheetContent,
@@ -32,6 +35,7 @@ import {
   useKisiGuncelle,
   useKisiSil,
   useKisiKategoriAyarla,
+  useKisiGuncelleDetay,
 } from "@/lib/network-hooks";
 import type { KisiDetay } from "@/lib/network-tipleri";
 import { cn } from "@/lib/utils";
@@ -42,6 +46,7 @@ export function KisilerTab() {
   const [arama, setArama] = React.useState("");
   const [secili, setSecili] = React.useState<KisiDetay | null>(null);
   const [yeniKisiAd, setYeniKisiAd] = React.useState("");
+  const navigate = useNavigate();
 
   const kategorilerQ = useKategoriler();
   const kisilerQ = useKisiler();
@@ -123,7 +128,17 @@ export function KisilerTab() {
             {filtreli.map((k) => (
               <button
                 key={k.id}
-                onClick={() => setSecili(k)}
+                onClick={() => {
+                  if (k.derin_takip) {
+                    navigate({
+                      to: "/network/kisi/$id",
+                      params: { id: k.id },
+                      search: { tab: "profil" } as never,
+                    });
+                  } else {
+                    setSecili(k);
+                  }
+                }}
                 className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-primary/40"
               >
                 <Avatar className="h-9 w-9 border border-border">
@@ -132,8 +147,13 @@ export function KisilerTab() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium text-foreground">
-                    {k.ad}
+                  <div className="flex items-center gap-1.5">
+                    <div className="truncate text-sm font-medium text-foreground">
+                      {k.ad}
+                    </div>
+                    {k.derin_takip && (
+                      <Star className="h-3 w-3 shrink-0 fill-primary text-primary" />
+                    )}
                   </div>
                   <div className="mt-0.5 flex flex-wrap gap-1">
                     {k.kategori_ids.length === 0 ? (
