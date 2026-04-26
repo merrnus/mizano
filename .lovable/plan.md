@@ -1,42 +1,131 @@
-## Sorun
 
-`/network?tab=kisiler` sayfasında kişi kartlarının üstünde **isim düzenleme** veya **silme** butonu yok. Şu anda:
-- Düzenleme/silme sadece "Kişi Düzenle" sheet'i açıldığında görünüyor (kart tıklanınca).
-- **Derin takip** açık olan kişilerde ise kart tıklanınca sheet açılmıyor, doğrudan tam profil sayfasına gidiyor — orada da silme butonu yok, isim ise form içinde.
+İki ayrı iş var. İkisini sırasıyla yapacağım.
 
-Kullanıcı kart üzerinde direkt edit/sil aksiyonu istiyor.
+---
 
-## Çözüm
+## 1. Kategoriler panelini küçült (Kişiler sayfası)
 
-`src/components/mizan/network/kisiler-tab.tsx` içindeki kişi kartına (satır 128–179) hover'da görünen iki küçük buton ekle: **kalem (isim düzenle)** ve **çöp kutusu (sil)**. Kategori paneli ile tutarlı pattern (KategoriSatir'daki actions yapısı gibi).
+**Sorun**: Sol taraftaki kategori paneli (220px genişlik, "Kategoriler" başlığı, "Tümü" / "Kategorisiz" satırları, alt alta liste, alttaki "Yeni kategori" inputu) ekranda fazla yer kaplıyor — odağı kişilerden çalıyor.
 
-### 1. Kart düzenini güncelle (kisiler-tab.tsx)
+**Çözüm**: Sol kolonu kaldırıp, kategorileri **üstte yatay chip satırı**'na çevir (filter çipleri pattern'i — `kardes-faaliyet-timeline`'daki `FiltreChip` ile aynı).
 
-- Mevcut tek `<button>` sarmalayıcıyı `<div>`'e çevir; içine ana tıklanabilir alan ve aksiyon butonları koy. (İç içe `<button>` HTML hatası olur — kategori panelinde de aynı pattern kullanıldığı için sorunsuz.)
-- Sağ tarafa `group-hover:flex hidden` ile iki ikon buton:
-  - **Pencil** → kartı satır içinde edit moduna alır: ad alanı `<Input>` olur, Enter ile kaydet, Esc ile iptal.
-  - **Trash2** → `AlertDialog` açar, onaylanırsa `useKisiSil` ile siler.
-- Edit modunda `e.stopPropagation()` ile karta tıklamayı (sheet açma / profile navigate) engelle.
+### Değişiklikler
 
-### 2. State
+**`src/components/mizan/network/kisiler-tab.tsx`**:
+- Üst seviye `grid lg:grid-cols-[220px_1fr]` layout'unu kaldır → tek kolon `space-y-3`.
+- `KategoriPaneli` bileşenini **`KategoriChipBar`** olarak yeniden yaz:
+  - "Kategoriler" başlığı yok.
+  - Yatay flex-wrap, küçük chip'ler: `Tümü · 12`, `Kategorisiz · 3`, sonra her kategori `GG · 5` formunda.
+  - Aktif chip primary border + `bg-primary/15`.
+  - **Hover'da** chip'in sağında küçük `Pencil` / `Trash2` ikonları (sadece kullanıcı kategorileri için, "Tümü" / "Kategorisiz" hariç).
+  - En sona "+ Yeni" chip butonu — tıklayınca inline input açılır (popover değil, basit conditional).
+- `KategoriSatir` bileşenini sil (artık kullanılmıyor).
+- Düzenleme modu: chip yerinde `<Input className="h-7 w-24">` göster, Enter / Esc ile kapat.
 
-`KisilerTab` içinde:
-- `inlineEdit: { id: string; ad: string } | null` — hangi kart edit modunda.
-- `silAdayi: KisiDetay | null` — onay dialogu için.
+**Beklenen yükseklik**: ~36–40px (tek satır, taşarsa wrap). Önceki ~250px+ panel yerine.
 
-`useKisiGuncelle` mutation'u zaten var (sheet'te kullanılıyor); inline kaydet için aynısını kullan. `useKisiSil` da hazır.
+---
 
-### 3. Tam profil sayfasına da sil butonu ekle (network.kisi.$id.tsx)
+## 2. Derin takip profiline "Maneviyat" sekmesi ekle
 
-Header'daki "Derin takibi kapat" butonunun yanına (veya ayrı satıra) küçük bir **Sil** butonu (destructive variant). Onay sonrası `useKisiSil` çağır, `/network?tab=kisiler`'e geri yönlendir. İsim editi zaten profil formunda var, oraya dokunma.
+**Şu anki durum**: `/network/kisi/$id` sayfasında 2 sekme var: **Profil**, **Faaliyetler**. Faaliyetler içinde `kuran`, `sohbet`, `kamp`, `sinav`, `yarisma`, `sophia`, `kandil`, `zoom` gibi maneviyat tipleri zaten var ama hepsi tek timeline'da karışık.
 
-## Etkilenen dosyalar
+**Kullanıcının isteği**: Maneviyat ayrı bir sekme olsun, içinde:
+- **3 aylık müfredat / hedef** (kişiye özel)
+- **Haftalık evrâd-u ezkâr** (kişiye özel checklist)
+- Maneviyat etkinliklerinin özet görünümü (sohbet / kuran / sophia / kamp / sınav / yarışma / kandil / zoom — bunlar zaten `kardes_etkinlik` tablosunda var, sadece filtreli göstereceğiz)
 
-- `src/components/mizan/network/kisiler-tab.tsx` — kart yapısını güncelle, inline edit + silme akışı.
-- `src/routes/network.kisi.$id.tsx` — header'a sil butonu ekle.
+### Yapı
 
-## Etkilenmeyen
+**Sekme bar**:
+```
+Profil · Faaliyetler · Maneviyat
+```
 
-- DB şeması, hook'lar (`useKisiGuncelle`, `useKisiSil` zaten var).
-- Sheet (Kişi Düzenle) — orada hâlâ tüm alanlar düzenlenebilir.
-- Hızlı kişi ekleme alanı.
+**Maneviyat sekmesi içeriği** (üstten alta):
+
+1. **3 Aylık Hedef / Müfredat kartı**
+   - Tek bir aktif "müfredat" kaydı (başlık + 3 aylık hedef listesi maddeleri + tamamlanma yüzdesi).
+   - Maddeler tıklanarak işaretlenebilir (checklist).
+   - "Yeni dönem başlat" butonu — eskisi arşivlenir, yenisi oluşur.
+
+2. **Haftalık Evrâd-u Ezkâr kartı**
+   - Bu haftaya ait checklist (örn: günlük Kuran, dua, sünnet ibadetler — kullanıcı tanımlı).
+   - 7 gün × N madde grid (cetele-style mini, kişi başına).
+   - Şablon: kullanıcı kişiye özel madde ekler/çıkarır; her hafta otomatik yeni satır oluşur (hafta bazlı kayıt).
+
+3. **Maneviyat etkinlik özeti**
+   - Sadece `kuran`, `sohbet`, `sophia`, `kamp`, `sinav`, `yarisma`, `kandil`, `zoom` tiplerini gösteren mini timeline (son 8 kayıt).
+   - "Tümünü gör" → Faaliyetler sekmesine git, ilgili filtre seçili.
+
+### DB değişiklikleri (migration)
+
+İki yeni tablo:
+
+**`kardes_muferdat`** (3 aylık hedef)
+- `id uuid pk`, `user_id uuid`, `kisi_id uuid → kisiler(id) on delete cascade`
+- `baslik text not null`, `baslangic date`, `bitis date`
+- `maddeler jsonb` — `[{id, metin, tamamlandi: bool}]`
+- `arsiv bool default false`
+- `created_at`, `updated_at`
+- RLS: user_id = auth.uid() — full CRUD.
+- İndeks: `(kisi_id, arsiv)`.
+
+**`kardes_evrad_madde`** (kullanıcının kişi için tanımladığı evrâd maddeleri)
+- `id uuid pk`, `user_id uuid`, `kisi_id uuid → kisiler(id) on delete cascade`
+- `metin text not null`, `siralama int default 0`
+- `aktif bool default true`
+- `created_at`, `updated_at`
+- RLS aynı pattern.
+
+**`kardes_evrad_kayit`** (haftalık tamamlanma)
+- `id uuid pk`, `user_id uuid`, `kisi_id uuid`, `madde_id uuid → kardes_evrad_madde(id) on delete cascade`
+- `tarih date not null` (gün bazlı işaretleme)
+- `created_at`
+- `unique (madde_id, tarih)` — aynı gün için tek kayıt.
+- RLS aynı.
+
+### Kod değişiklikleri
+
+**`src/lib/network-tipleri.ts`**: Yeni tipler:
+```ts
+export type KardesMufredat = { id, user_id, kisi_id, baslik, baslangic, bitis, maddeler: {id,metin,tamamlandi}[], arsiv, ... }
+export type KardesEvradMadde = { id, user_id, kisi_id, metin, siralama, aktif, ... }
+export type KardesEvradKayit = { id, madde_id, tarih, ... }
+```
+
+**`src/lib/network-hooks.ts`**: Yeni hook'lar:
+- `useKardesMufredatAktif(kisiId)` — aktif (arşivlenmemiş) tek kayıt.
+- `useKardesMufredatKaydet()` — upsert, madde toggle dahil.
+- `useKardesMufredatYeniDonem()` — eskiyi arşivle + yeni oluştur.
+- `useKardesEvradMaddeler(kisiId)`, `useKardesEvradMaddeEkle/Sil/Guncelle`.
+- `useKardesEvradHaftaKayitlari(kisiId, haftaBaslangic)` — bu haftanın 7 günündeki tüm işaretler.
+- `useKardesEvradToggle()` — gün × madde işaretle/kaldır.
+
+**`src/components/mizan/network/maneviyat-tab.tsx`** (yeni):
+- `<MufredatKart kisiId />` — başlık edit, tarih aralığı, maddeleri sırala/sil/ekle, checklist toggle, yüzde.
+- `<EvradHaftalikKart kisiId />` — bu hafta (Pzt–Pzr) × maddeler grid, hücreye tıkla → toggle. Önceki hafta navigasyonu için ok butonları.
+- `<ManeviyatEtkinlikOzet kisiId />` — `useKardesEtkinlikler` ile çek, sadece maneviyat tiplerini filtrele, son 8'i göster, "Tümünü gör" linki.
+
+**`src/routes/network.kisi.$id.tsx`**:
+- `validateSearch`: `tab` enum'una `"maneviyat"` ekle.
+- TabsList'e `<TabsTrigger value="maneviyat">Maneviyat</TabsTrigger>` ekle.
+- TabsContent'e `<ManeviyatTab kisiId={kisi.id} />` ekle.
+
+### Kapsam dışı (şimdilik)
+- "Bu hafta Evdekiler" widget'ı evrâd verisini de göstersin mi → ayrı turn'de konuşuruz, şimdilik sadece etkinlik özeti var.
+- Bildirim / hatırlatma → kapsam dışı.
+
+---
+
+## Etkilenen dosyalar (özet)
+
+**Sadece UI (1. iş)**:
+- `src/components/mizan/network/kisiler-tab.tsx`
+
+**DB + UI (2. iş)**:
+- migration: `kardes_muferdat`, `kardes_evrad_madde`, `kardes_evrad_kayit` tabloları + RLS.
+- `src/lib/network-tipleri.ts` (tipler).
+- `src/lib/network-hooks.ts` (hook'lar).
+- `src/components/mizan/network/maneviyat-tab.tsx` (yeni).
+- `src/routes/network.kisi.$id.tsx` (sekme ekleme).

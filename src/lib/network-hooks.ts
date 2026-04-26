@@ -14,6 +14,10 @@ import {
   type GundemOncelik,
   type KardesEtkinlik,
   type KardesEtkinlikTip,
+  type KardesMufredat,
+  type KardesEvradMadde,
+  type KardesEvradKayit,
+  type MufredatMadde,
   VARSAYILAN_KATEGORILER,
 } from "./network-tipleri";
 
@@ -770,6 +774,227 @@ export function useEvdekilerOzet() {
         });
 
       return { dogumGunu, tekeTekBekleyen, yaklaşanProgram };
+    },
+  });
+}
+/* ---------------- MANEVİYAT: 3 Aylık Müfredat ---------------- */
+
+export function useKardesMufredatAktif(kisi_id: string | undefined) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["network", "mufredat", kisi_id],
+    enabled: !!user && !!kisi_id,
+    queryFn: async (): Promise<KardesMufredat | null> => {
+      const { data, error } = await supabase
+        .from("kardes_mufredat")
+        .select("*")
+        .eq("kisi_id", kisi_id!)
+        .eq("arsiv", false)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      const row = (data ?? [])[0];
+      if (!row) return null;
+      return {
+        ...row,
+        maddeler: Array.isArray(row.maddeler) ? (row.maddeler as MufredatMadde[]) : [],
+      } as KardesMufredat;
+    },
+  });
+}
+
+export function useKardesMufredatKaydet() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (m: {
+      id?: string;
+      kisi_id: string;
+      baslik?: string;
+      baslangic?: string | null;
+      bitis?: string | null;
+      maddeler?: MufredatMadde[];
+    }) => {
+      if (!user) throw new Error("Giriş gerekli");
+      if (m.id) {
+        const patch: {
+          baslik?: string;
+          baslangic?: string | null;
+          bitis?: string | null;
+          maddeler?: MufredatMadde[];
+        } = {};
+        if (m.baslik !== undefined) patch.baslik = m.baslik;
+        if (m.baslangic !== undefined) patch.baslangic = m.baslangic;
+        if (m.bitis !== undefined) patch.bitis = m.bitis;
+        if (m.maddeler !== undefined) patch.maddeler = m.maddeler;
+        const { error } = await supabase.from("kardes_mufredat").update(patch).eq("id", m.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("kardes_mufredat").insert({
+          user_id: user.id,
+          kisi_id: m.kisi_id,
+          baslik: m.baslik ?? "3 Aylık Hedef",
+          baslangic: m.baslangic ?? null,
+          bitis: m.bitis ?? null,
+          maddeler: m.maddeler ?? [],
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["network", "mufredat", v.kisi_id] });
+    },
+  });
+}
+
+export function useKardesMufredatYeniDonem() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (v: { kisi_id: string; eskiId?: string }) => {
+      if (!user) throw new Error("Giriş gerekli");
+      if (v.eskiId) {
+        await supabase.from("kardes_mufredat").update({ arsiv: true }).eq("id", v.eskiId);
+      }
+      const bugun = new Date();
+      const bitis = new Date();
+      bitis.setMonth(bitis.getMonth() + 3);
+      const { error } = await supabase.from("kardes_mufredat").insert({
+        user_id: user.id,
+        kisi_id: v.kisi_id,
+        baslik: "3 Aylık Hedef",
+        baslangic: bugun.toISOString().slice(0, 10),
+        bitis: bitis.toISOString().slice(0, 10),
+        maddeler: [],
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["network", "mufredat", v.kisi_id] });
+    },
+  });
+}
+
+/* ---------------- MANEVİYAT: Evrâd-u Ezkâr ---------------- */
+
+export function useKardesEvradMaddeler(kisi_id: string | undefined) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["network", "evrad-madde", kisi_id],
+    enabled: !!user && !!kisi_id,
+    queryFn: async (): Promise<KardesEvradMadde[]> => {
+      const { data, error } = await supabase
+        .from("kardes_evrad_madde")
+        .select("*")
+        .eq("kisi_id", kisi_id!)
+        .eq("aktif", true)
+        .order("siralama", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as KardesEvradMadde[];
+    },
+  });
+}
+
+export function useKardesEvradMaddeEkle() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (v: { kisi_id: string; metin: string; siralama?: number }) => {
+      if (!user) throw new Error("Giriş gerekli");
+      const { error } = await supabase.from("kardes_evrad_madde").insert({
+        user_id: user.id,
+        kisi_id: v.kisi_id,
+        metin: v.metin,
+        siralama: v.siralama ?? 0,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["network", "evrad-madde", v.kisi_id] });
+    },
+  });
+}
+
+export function useKardesEvradMaddeGuncelle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { id: string; kisi_id: string; metin?: string; aktif?: boolean }) => {
+      const { id, kisi_id: _k, ...patch } = v;
+      const { error } = await supabase.from("kardes_evrad_madde").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["network", "evrad-madde", v.kisi_id] });
+    },
+  });
+}
+
+export function useKardesEvradMaddeSil() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { id: string; kisi_id: string }) => {
+      const { error } = await supabase.from("kardes_evrad_madde").delete().eq("id", v.id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["network", "evrad-madde", v.kisi_id] });
+      qc.invalidateQueries({ queryKey: ["network", "evrad-kayit", v.kisi_id] });
+    },
+  });
+}
+
+export function useKardesEvradKayitlari(
+  kisi_id: string | undefined,
+  baslangic: string | undefined,
+  bitis: string | undefined,
+) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["network", "evrad-kayit", kisi_id, baslangic, bitis],
+    enabled: !!user && !!kisi_id && !!baslangic && !!bitis,
+    queryFn: async (): Promise<KardesEvradKayit[]> => {
+      const { data, error } = await supabase
+        .from("kardes_evrad_kayit")
+        .select("*")
+        .eq("kisi_id", kisi_id!)
+        .gte("tarih", baslangic!)
+        .lte("tarih", bitis!);
+      if (error) throw error;
+      return (data ?? []) as KardesEvradKayit[];
+    },
+  });
+}
+
+export function useKardesEvradToggle() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (v: {
+      kisi_id: string;
+      madde_id: string;
+      tarih: string;
+      mevcutId: string | null;
+    }) => {
+      if (!user) throw new Error("Giriş gerekli");
+      if (v.mevcutId) {
+        const { error } = await supabase
+          .from("kardes_evrad_kayit")
+          .delete()
+          .eq("id", v.mevcutId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("kardes_evrad_kayit").insert({
+          user_id: user.id,
+          kisi_id: v.kisi_id,
+          madde_id: v.madde_id,
+          tarih: v.tarih,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["network", "evrad-kayit", v.kisi_id] });
     },
   });
 }

@@ -23,11 +23,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { KardesProfilForm } from "@/components/mizan/network/kardes-profil-form";
 import { KardesFaaliyetTimeline } from "@/components/mizan/network/kardes-faaliyet-timeline";
+import { ManeviyatTab } from "@/components/mizan/network/maneviyat-tab";
 import { format, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
 
-type Search = { tab?: "profil" | "faaliyetler" };
+type Search = { tab?: "profil" | "faaliyetler" | "maneviyat" };
 
 export const Route = createFileRoute("/network/kisi/$id")({
   head: ({ params }) => ({
@@ -38,7 +39,14 @@ export const Route = createFileRoute("/network/kisi/$id")({
   }),
   validateSearch: (s: Record<string, unknown>): Search => {
     const t = s.tab;
-    return { tab: t === "faaliyetler" ? "faaliyetler" : "profil" };
+    return {
+      tab:
+        t === "faaliyetler"
+          ? "faaliyetler"
+          : t === "maneviyat"
+            ? "maneviyat"
+            : "profil",
+    };
   },
   component: KisiDetay,
   notFoundComponent: () => (
@@ -183,12 +191,16 @@ function KisiDetay() {
         <TabsList className="mb-4">
           <TabsTrigger value="profil">Profil</TabsTrigger>
           <TabsTrigger value="faaliyetler">Faaliyetler</TabsTrigger>
+          <TabsTrigger value="maneviyat">Maneviyat</TabsTrigger>
         </TabsList>
         <TabsContent value="profil">
           <KardesProfilForm kisi={kisi} kategoriler={kategoriler} />
         </TabsContent>
         <TabsContent value="faaliyetler">
           <KardesFaaliyetTimeline kisiId={kisi.id} />
+        </TabsContent>
+        <TabsContent value="maneviyat">
+          <ManeviyatTab kisiId={kisi.id} />
         </TabsContent>
       </Tabs>
 

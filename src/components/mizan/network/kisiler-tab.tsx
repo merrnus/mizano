@@ -101,16 +101,16 @@ export function KisilerTab() {
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
-      {/* Sol: Kategori paneli */}
-      <KategoriPaneli
+    <div className="space-y-3">
+      {/* Üst: Kategori chip bar */}
+      <KategoriChipBar
         aktif={aktif}
         setAktif={setAktif}
         kategoriler={kategoriler}
         kisiler={kisiler}
       />
 
-      {/* Sağ: Kişi listesi */}
+      {/* Kişi listesi */}
       <div>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
@@ -296,7 +296,7 @@ export function KisilerTab() {
   );
 }
 
-function KategoriPaneli({
+function KategoriChipBar({
   aktif,
   setAktif,
   kategoriler,
@@ -311,6 +311,7 @@ function KategoriPaneli({
   const guncelle = useKategoriGuncelle();
   const sil = useKategoriSil();
   const [yeni, setYeni] = React.useState("");
+  const [yeniAcik, setYeniAcik] = React.useState(false);
   const [duzenle, setDuzenle] = React.useState<{ id: string; ad: string } | null>(null);
 
   const sayi = (id: string | "tumu" | "kategorisiz") => {
@@ -319,119 +320,159 @@ function KategoriPaneli({
     return kisiler.filter((k) => k.kategori_ids.includes(id as string)).length;
   };
 
+  const yeniKaydet = () => {
+    const v = yeni.trim();
+    if (!v) return;
+    ekle.mutate({ ad: v });
+    setYeni("");
+    setYeniAcik(false);
+  };
+
   return (
-    <div className="rounded-xl border border-border bg-card/50 p-2">
-      <div className="mb-1 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-        Kategoriler
-      </div>
-      <KategoriSatir
+    <div className="flex flex-wrap items-center gap-1.5">
+      <Chip
         aktif={aktif === "tumu"}
         onClick={() => setAktif("tumu")}
         ad="Tümü"
         sayi={sayi("tumu")}
       />
-      <KategoriSatir
+      <Chip
         aktif={aktif === "kategorisiz"}
         onClick={() => setAktif("kategorisiz")}
         ad="Kategorisiz"
         sayi={sayi("kategorisiz")}
       />
-      <div className="my-1 border-t border-border" />
-      {kategoriler.map((k) => (
-        <div key={k.id} className="group/kat relative">
-          {duzenle?.id === k.id ? (
-            <div className="flex items-center gap-1 px-1 py-1">
-              <Input
-                autoFocus
-                value={duzenle.ad}
-                onChange={(e) => setDuzenle({ ...duzenle, ad: e.target.value })}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && duzenle.ad.trim()) {
-                    guncelle.mutate({ id: duzenle.id, ad: duzenle.ad.trim() });
-                    setDuzenle(null);
-                  }
-                  if (e.key === "Escape") setDuzenle(null);
-                }}
-                className="h-7 text-xs"
-              />
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 w-7 p-0"
-                onClick={() => {
-                  if (duzenle.ad.trim())
-                    guncelle.mutate({ id: duzenle.id, ad: duzenle.ad.trim() });
+      <span className="mx-1 h-4 w-px bg-border" />
+      {kategoriler.map((k) =>
+        duzenle?.id === k.id ? (
+          <div
+            key={k.id}
+            className="inline-flex items-center gap-1 rounded-full border border-primary/50 bg-card px-1.5 py-0.5"
+          >
+            <Input
+              autoFocus
+              value={duzenle.ad}
+              onChange={(e) => setDuzenle({ ...duzenle, ad: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && duzenle.ad.trim()) {
+                  guncelle.mutate({ id: duzenle.id, ad: duzenle.ad.trim() });
                   setDuzenle(null);
-                }}
-              >
-                <Check className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          ) : (
-            <KategoriSatir
-              aktif={aktif === k.id}
-              onClick={() => setAktif(k.id)}
-              ad={k.ad}
-              sayi={sayi(k.id)}
-              actions={
-                <>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDuzenle({ id: k.id, ad: k.ad });
-                    }}
-                    className="rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm(`"${k.ad}" kategorisi silinsin mi?`)) sil.mutate(k.id);
-                    }}
-                    className="rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </>
-              }
+                }
+                if (e.key === "Escape") setDuzenle(null);
+              }}
+              className="h-6 w-24 border-0 px-1 text-xs shadow-none focus-visible:ring-0"
             />
-          )}
-        </div>
-      ))}
-      <div className="mt-1 flex items-center gap-1 px-1 py-1">
-        <Input
-          placeholder="Yeni kategori"
-          value={yeni}
-          onChange={(e) => setYeni(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && yeni.trim()) {
-              ekle.mutate({ ad: yeni.trim() });
-              setYeni("");
+            <button
+              type="button"
+              onClick={() => {
+                if (duzenle.ad.trim())
+                  guncelle.mutate({ id: duzenle.id, ad: duzenle.ad.trim() });
+                setDuzenle(null);
+              }}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Kaydet"
+            >
+              <Check className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setDuzenle(null)}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="İptal"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ) : (
+          <Chip
+            key={k.id}
+            aktif={aktif === k.id}
+            onClick={() => setAktif(k.id)}
+            ad={k.ad}
+            sayi={sayi(k.id)}
+            actions={
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDuzenle({ id: k.id, ad: k.ad });
+                  }}
+                  className="rounded text-muted-foreground hover:text-foreground"
+                  aria-label="Düzenle"
+                >
+                  <Pencil className="h-2.5 w-2.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`"${k.ad}" kategorisi silinsin mi?`)) sil.mutate(k.id);
+                  }}
+                  className="rounded text-muted-foreground hover:text-destructive"
+                  aria-label="Sil"
+                >
+                  <Trash2 className="h-2.5 w-2.5" />
+                </button>
+              </>
             }
-          }}
-          className="h-7 text-xs"
-        />
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 w-7 p-0"
-          disabled={!yeni.trim()}
-          onClick={() => {
-            ekle.mutate({ ad: yeni.trim() });
-            setYeni("");
-          }}
+          />
+        ),
+      )}
+
+      {yeniAcik ? (
+        <div className="inline-flex items-center gap-1 rounded-full border border-primary/50 bg-card px-1.5 py-0.5">
+          <Input
+            autoFocus
+            value={yeni}
+            onChange={(e) => setYeni(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                yeniKaydet();
+              }
+              if (e.key === "Escape") {
+                setYeni("");
+                setYeniAcik(false);
+              }
+            }}
+            placeholder="Yeni kategori"
+            className="h-6 w-28 border-0 px-1 text-xs shadow-none focus-visible:ring-0"
+          />
+          <button
+            type="button"
+            onClick={yeniKaydet}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="Ekle"
+          >
+            <Check className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setYeni("");
+              setYeniAcik(false);
+            }}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="İptal"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setYeniAcik(true)}
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
         >
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
-      </div>
+          <Plus className="h-3 w-3" /> Yeni
+        </button>
+      )}
     </div>
   );
 }
 
-function KategoriSatir({
+function Chip({
   aktif,
   onClick,
   ad,
@@ -445,20 +486,26 @@ function KategoriSatir({
   actions?: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       className={cn(
-        "group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-        aktif ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+        "group/chip inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors",
+        aktif
+          ? "border-primary/40 bg-primary/15 text-foreground"
+          : "border-border bg-background text-muted-foreground hover:text-foreground",
       )}
     >
-      <span className="flex-1 truncate">{ad}</span>
+      <button
+        type="button"
+        onClick={onClick}
+        className="inline-flex items-center gap-1"
+      >
+        <span>{ad}</span>
+        <span className="tabular-nums opacity-70">{sayi}</span>
+      </button>
       {actions && (
-        <span className="hidden items-center gap-0.5 group-hover:flex">{actions}</span>
+        <span className="ml-0.5 hidden items-center gap-1 group-hover/chip:flex">{actions}</span>
       )}
-      <span className="text-[10px] tabular-nums text-muted-foreground">{sayi}</span>
-    </button>
+    </div>
   );
 }
 
