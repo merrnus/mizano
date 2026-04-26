@@ -11,7 +11,7 @@ import {
   MessageSquare,
   Plus,
   Trash2,
-  X,
+  Save,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -88,6 +88,7 @@ function IstisareDetay() {
   const [baslikDuzenle, setBaslikDuzenle] = React.useState(false);
   const [baslik, setBaslik] = React.useState("");
   const [notlar, setNotlar] = React.useState("");
+  const [notlarKayitDurumu, setNotlarKayitDurumu] = React.useState<"idle" | "kaydediliyor" | "kaydedildi">("idle");
 
   React.useEffect(() => {
     if (istisareQ.data) {
@@ -95,6 +96,19 @@ function IstisareDetay() {
       setNotlar(istisareQ.data.notlar ?? "");
     }
   }, [istisareQ.data?.id]);
+
+  const notlarKaydet = async () => {
+    setNotlarKayitDurumu("kaydediliyor");
+    try {
+      await guncelle.mutateAsync({ id, notlar });
+      setNotlarKayitDurumu("kaydedildi");
+      toast.success("Notlar kaydedildi");
+      setTimeout(() => setNotlarKayitDurumu("idle"), 2000);
+    } catch {
+      setNotlarKayitDurumu("idle");
+      toast.error("Kaydedilemedi");
+    }
+  };
 
   if (istisareQ.isLoading) {
     return <div className="p-6 text-center text-sm text-muted-foreground">Yükleniyor…</div>;
@@ -220,17 +234,43 @@ function IstisareDetay() {
 
       {/* Genel notlar */}
       <div className="mb-5">
-        <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Toplantı Notları
-        </label>
+        <div className="mb-1.5 flex items-center justify-between">
+          <label className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Toplantı Notları
+          </label>
+          <div className="flex items-center gap-2">
+            {notlarKayitDurumu === "kaydedildi" && (
+              <span className="flex items-center gap-1 text-[10px] text-[var(--maneviyat)]">
+                <Check className="h-3 w-3" /> Kaydedildi
+              </span>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 gap-1 text-xs"
+              onClick={notlarKaydet}
+              disabled={
+                notlarKayitDurumu === "kaydediliyor" ||
+                notlar === (istisare.notlar ?? "")
+              }
+            >
+              <Save className="h-3 w-3" />
+              {notlarKayitDurumu === "kaydediliyor" ? "Kaydediliyor…" : "Kaydet"}
+            </Button>
+          </div>
+        </div>
         <Textarea
           value={notlar}
           onChange={(e) => setNotlar(e.target.value)}
-          onBlur={() => guncelle.mutate({ id, notlar })}
-          rows={2}
+          rows={3}
           placeholder="Genel toplantı notları, katılımcılar vb."
           className="resize-none"
         />
+        {notlar !== (istisare.notlar ?? "") && notlarKayitDurumu !== "kaydedildi" && (
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Kaydedilmemiş değişiklikler var
+          </p>
+        )}
       </div>
 
       {/* Toplu yapıştırma */}
@@ -349,7 +389,7 @@ function GundemSatir({ g, onAc }: { g: GundemDetay; onAc: () => void }) {
   return (
     <div
       className={cn(
-        "group/g grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-2 border-b border-border/50 px-2 py-2 transition-colors last:border-b-0 hover:bg-accent/30",
+        "group/g grid grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-2 border-b border-border/50 px-2 py-2 transition-colors last:border-b-0 hover:bg-accent/30",
         geciken && "bg-destructive/5",
       )}
     >
@@ -380,16 +420,12 @@ function GundemSatir({ g, onAc }: { g: GundemDetay; onAc: () => void }) {
           className={cn(
             "truncate text-sm",
             g.durum === "yapildi" && "text-muted-foreground line-through",
+            g.oncelik === "ana" && "font-medium",
           )}
         >
           {g.icerik}
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
-          {g.oncelik === "yan" && (
-            <Badge variant="outline" className="px-1 py-0 text-[9px]">
-              Yan
-            </Badge>
-          )}
           {g.etiketler.map((e) => (
             <Badge key={e} variant="secondary" className="px-1 py-0 text-[9px]">
               {e}
@@ -402,6 +438,27 @@ function GundemSatir({ g, onAc }: { g: GundemDetay; onAc: () => void }) {
           )}
           {g.karar && <span className="italic">"karar var"</span>}
         </div>
+      </button>
+
+      {/* Öncelik toggle */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          guncelle.mutate({
+            id: g.id,
+            oncelik: g.oncelik === "ana" ? "yan" : "ana",
+          });
+        }}
+        title={g.oncelik === "ana" ? "Ana gündem" : "Yan gündem"}
+        className={cn(
+          "rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors",
+          g.oncelik === "ana"
+            ? "bg-primary/15 text-primary hover:bg-primary/25"
+            : "bg-muted text-muted-foreground hover:bg-muted/70",
+        )}
+      >
+        {g.oncelik === "ana" ? "Ana" : "Yan"}
       </button>
 
       {/* Sorumlular */}
