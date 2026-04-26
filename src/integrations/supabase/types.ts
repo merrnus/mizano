@@ -1071,6 +1071,136 @@ export type Database = {
         }
         Relationships: []
       }
+      kardes_evrad_kayit: {
+        Row: {
+          created_at: string
+          id: string
+          kisi_id: string
+          madde_id: string
+          tarih: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kisi_id: string
+          madde_id: string
+          tarih: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kisi_id?: string
+          madde_id?: string
+          tarih?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kardes_evrad_kayit_kisi_id_fkey"
+            columns: ["kisi_id"]
+            isOneToOne: false
+            referencedRelation: "gundem_kisi"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kardes_evrad_kayit_madde_id_fkey"
+            columns: ["madde_id"]
+            isOneToOne: false
+            referencedRelation: "kardes_evrad_madde"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kardes_evrad_madde: {
+        Row: {
+          aktif: boolean
+          created_at: string
+          id: string
+          kisi_id: string
+          metin: string
+          siralama: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aktif?: boolean
+          created_at?: string
+          id?: string
+          kisi_id: string
+          metin: string
+          siralama?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aktif?: boolean
+          created_at?: string
+          id?: string
+          kisi_id?: string
+          metin?: string
+          siralama?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kardes_evrad_madde_kisi_id_fkey"
+            columns: ["kisi_id"]
+            isOneToOne: false
+            referencedRelation: "gundem_kisi"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kardes_mufredat: {
+        Row: {
+          arsiv: boolean
+          baslangic: string | null
+          baslik: string
+          bitis: string | null
+          created_at: string
+          id: string
+          kisi_id: string
+          maddeler: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          arsiv?: boolean
+          baslangic?: string | null
+          baslik?: string
+          bitis?: string | null
+          created_at?: string
+          id?: string
+          kisi_id: string
+          maddeler?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          arsiv?: boolean
+          baslangic?: string | null
+          baslik?: string
+          bitis?: string | null
+          created_at?: string
+          id?: string
+          kisi_id?: string
+          maddeler?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kardes_mufredat_kisi_id_fkey"
+            columns: ["kisi_id"]
+            isOneToOne: false
+            referencedRelation: "gundem_kisi"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mutfak_belge: {
         Row: {
           baslik: string
