@@ -677,6 +677,177 @@ export type Database = {
           },
         ]
       }
+      gundem: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          durum: Database["public"]["Enums"]["gundem_durum"]
+          etiketler: string[]
+          icerik: string
+          id: string
+          istisare_id: string
+          karar: string | null
+          oncelik: Database["public"]["Enums"]["gundem_oncelik"]
+          siralama: number
+          tamamlanma: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          durum?: Database["public"]["Enums"]["gundem_durum"]
+          etiketler?: string[]
+          icerik: string
+          id?: string
+          istisare_id: string
+          karar?: string | null
+          oncelik?: Database["public"]["Enums"]["gundem_oncelik"]
+          siralama?: number
+          tamamlanma?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          durum?: Database["public"]["Enums"]["gundem_durum"]
+          etiketler?: string[]
+          icerik?: string
+          id?: string
+          istisare_id?: string
+          karar?: string | null
+          oncelik?: Database["public"]["Enums"]["gundem_oncelik"]
+          siralama?: number
+          tamamlanma?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gundem_kategori: {
+        Row: {
+          ad: string
+          created_at: string
+          id: string
+          renk: string | null
+          siralama: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          id?: string
+          renk?: string | null
+          siralama?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          id?: string
+          renk?: string | null
+          siralama?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gundem_kisi: {
+        Row: {
+          ad: string
+          created_at: string
+          id: string
+          notlar: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          id?: string
+          notlar?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          id?: string
+          notlar?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gundem_kisi_kategori: {
+        Row: {
+          created_at: string
+          kategori_id: string
+          kisi_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          kategori_id: string
+          kisi_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          kategori_id?: string
+          kisi_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gundem_sorumlu: {
+        Row: {
+          created_at: string
+          gundem_id: string
+          kisi_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gundem_id: string
+          kisi_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gundem_id?: string
+          kisi_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gundem_yorum: {
+        Row: {
+          created_at: string
+          gundem_id: string
+          id: string
+          metin: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gundem_id: string
+          id?: string
+          metin: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gundem_id?: string
+          id?: string
+          metin?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       hedef: {
         Row: {
           aciklama: string | null
@@ -797,6 +968,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      istisare: {
+        Row: {
+          baslik: string
+          created_at: string
+          id: string
+          notlar: string | null
+          tarih: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          baslik?: string
+          created_at?: string
+          id?: string
+          notlar?: string | null
+          tarih?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          baslik?: string
+          created_at?: string
+          id?: string
+          notlar?: string | null
+          tarih?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       mutfak_belge: {
         Row: {
@@ -1035,6 +1236,8 @@ export type Database = {
       ders_kaynak_tip: "link" | "dosya" | "resim" | "not"
       ders_sinav_tip: "vize" | "final" | "quiz" | "odev" | "proje" | "butunleme"
       gorev_oncelik: "dusuk" | "orta" | "yuksek"
+      gundem_durum: "bekliyor" | "yapiliyor" | "yapildi" | "ertelendi"
+      gundem_oncelik: "ana" | "yan"
       hafta_gun:
         | "pazartesi"
         | "sali"
@@ -1184,6 +1387,8 @@ export const Constants = {
       ders_kaynak_tip: ["link", "dosya", "resim", "not"],
       ders_sinav_tip: ["vize", "final", "quiz", "odev", "proje", "butunleme"],
       gorev_oncelik: ["dusuk", "orta", "yuksek"],
+      gundem_durum: ["bekliyor", "yapiliyor", "yapildi", "ertelendi"],
+      gundem_oncelik: ["ana", "yan"],
       hafta_gun: [
         "pazartesi",
         "sali",
