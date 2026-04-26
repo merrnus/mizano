@@ -420,16 +420,12 @@ function GundemSatir({ g, onAc }: { g: GundemDetay; onAc: () => void }) {
           className={cn(
             "truncate text-sm",
             g.durum === "yapildi" && "text-muted-foreground line-through",
+            g.oncelik === "ana" && "font-medium",
           )}
         >
           {g.icerik}
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
-          {g.oncelik === "yan" && (
-            <Badge variant="outline" className="px-1 py-0 text-[9px]">
-              Yan
-            </Badge>
-          )}
           {g.etiketler.map((e) => (
             <Badge key={e} variant="secondary" className="px-1 py-0 text-[9px]">
               {e}
@@ -442,6 +438,27 @@ function GundemSatir({ g, onAc }: { g: GundemDetay; onAc: () => void }) {
           )}
           {g.karar && <span className="italic">"karar var"</span>}
         </div>
+      </button>
+
+      {/* Öncelik toggle */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          guncelle.mutate({
+            id: g.id,
+            oncelik: g.oncelik === "ana" ? "yan" : "ana",
+          });
+        }}
+        title={g.oncelik === "ana" ? "Ana gündem" : "Yan gündem"}
+        className={cn(
+          "rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors",
+          g.oncelik === "ana"
+            ? "bg-primary/15 text-primary hover:bg-primary/25"
+            : "bg-muted text-muted-foreground hover:bg-muted/70",
+        )}
+      >
+        {g.oncelik === "ana" ? "Ana" : "Yan"}
       </button>
 
       {/* Sorumlular */}
