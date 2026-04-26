@@ -1,3 +1,5 @@
+import type { Database } from "@/integrations/supabase/types";
+
 export type GundemDurum = "bekliyor" | "yapiliyor" | "yapildi" | "ertelendi";
 export type GundemOncelik = "ana" | "yan";
 
@@ -29,6 +31,17 @@ export type Kisi = {
   user_id: string;
   ad: string;
   notlar: string | null;
+  derin_takip: boolean;
+  telefon: string | null;
+  dogum_tarihi: string | null;
+  foto_url: string | null;
+  universite: string | null;
+  bolum: string | null;
+  sinif: string | null;
+  gano: number | null;
+  akademik_durum: string | null;
+  ilgi_alanlari: string[];
+  sorumluluk_notu: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -80,3 +93,43 @@ export type GundemYorum = {
   metin: string;
   created_at: string;
 };
+
+/* ---------------- KARDEŞ ETKİNLİK ---------------- */
+
+export type KardesEtkinlikTip = Database["public"]["Enums"]["kardes_etkinlik_tip"];
+
+export type KardesEtkinlik = {
+  id: string;
+  user_id: string;
+  kisi_id: string;
+  tip: KardesEtkinlikTip;
+  tarih: string;
+  baslik: string;
+  notlar: string | null;
+  sonuc: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export const ETKINLIK_TIP_LISTE: { id: KardesEtkinlikTip; ad: string; renkVar: string }[] = [
+  { id: "sohbet", ad: "Sohbet", renkVar: "--mana" },
+  { id: "istisare", ad: "İstişare", renkVar: "--primary" },
+  { id: "kuran", ad: "Kuran", renkVar: "--mana" },
+  { id: "sophia", ad: "Sophia Dersi", renkVar: "--ilim" },
+  { id: "kamp", ad: "Kamp", renkVar: "--amel" },
+  { id: "sinav", ad: "Sınav", renkVar: "--ilim" },
+  { id: "yarisma", ad: "Yarışma", renkVar: "--amel" },
+  { id: "hediye", ad: "Hediye", renkVar: "--mana" },
+  { id: "gezi", ad: "Gezi", renkVar: "--amel" },
+  { id: "spor", ad: "Spor", renkVar: "--amel" },
+  { id: "teke_tek", ad: "Teke Tek", renkVar: "--primary" },
+  { id: "dogum_gunu", ad: "Doğum Günü", renkVar: "--amel" },
+  { id: "kandil", ad: "Kandil", renkVar: "--mana" },
+  { id: "zoom", ad: "Zoom", renkVar: "--ilim" },
+];
+
+export const ETKINLIK_TIP_MAP: Record<KardesEtkinlikTip, { ad: string; renkVar: string }> =
+  Object.fromEntries(ETKINLIK_TIP_LISTE.map((t) => [t.id, { ad: t.ad, renkVar: t.renkVar }])) as Record<
+    KardesEtkinlikTip,
+    { ad: string; renkVar: string }
+  >;
