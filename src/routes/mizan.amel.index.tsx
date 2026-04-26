@@ -286,10 +286,8 @@ function AlanBolumu({
 function KursDurumRozet({ durum }: { durum: AmelKursDurum }) {
   const renk: Record<AmelKursDurum, string> = {
     planli: "border-border text-muted-foreground",
-    izliyor: "border-[var(--amel)]/40 bg-[var(--amel)]/10 text-[var(--amel)]",
-    beklemede: "border-border text-muted-foreground",
+    aktif: "border-[var(--amel)]/40 bg-[var(--amel)]/10 text-[var(--amel)]",
     tamam: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    birakti: "border-destructive/40 bg-destructive/10 text-destructive",
   };
   return (
     <span className={cn("rounded-full border px-1.5 py-0.5", renk[durum])}>
@@ -363,7 +361,7 @@ function AlanForm({ alan, onBitti }: { alan?: AmelAlan; onBitti: () => void }) {
 
 /* ---------------- Kurs formu ---------------- */
 
-const KURS_DURUMLAR: AmelKursDurum[] = ["planli", "izliyor", "beklemede", "tamam", "birakti"];
+const KURS_DURUMLAR: AmelKursDurum[] = ["planli", "aktif", "tamam"];
 
 function KursForm({ alanId, onBitti }: { alanId: string; onBitti: () => void }) {
   const ekle = useAmelKursEkle();

@@ -245,7 +245,7 @@ function KursDetay() {
 
 /* ---------------- Kurs düzenle ---------------- */
 
-const KURS_DURUMLAR: AmelKursDurum[] = ["planli", "izliyor", "beklemede", "tamam", "birakti"];
+const KURS_DURUMLAR: AmelKursDurum[] = ["planli", "aktif", "tamam"];
 
 function KursDuzenleForm({
   kursId,
