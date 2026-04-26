@@ -1,6 +1,6 @@
 import * as React from "react";
 import { CalendarDays, Check, Sparkles } from "lucide-react";
-import { format, parseISO, isToday, isPast } from "date-fns";
+import { format, parseISO, isToday, isPast, startOfDay } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useBuHaftaOzet } from "@/lib/network-hooks";
@@ -22,7 +22,15 @@ export function BuHaftaWidget() {
 
   if (isLoading) return null;
   if (!data) return null;
-  if (data.programlar.length === 0 && data.faaliyetler.length === 0) return null;
+
+  // Faaliyetler: sadece bugün ve sonrası (geçmiş günleri gösterme).
+  // Programlar (istisare + sohbet): tüm hafta (geçmiş + gelecek).
+  const bugun = startOfDay(new Date());
+  const faaliyetler = data.faaliyetler.filter(
+    ({ etkinlik }) => parseISO(etkinlik.tarih).getTime() >= bugun.getTime(),
+  );
+
+  if (data.programlar.length === 0 && faaliyetler.length === 0) return null;
 
   return (
     <>
@@ -52,11 +60,11 @@ export function BuHaftaWidget() {
             )}
           </Bolum>
 
-          <Bolum ikon={Sparkles} baslik="Faaliyetler" sayi={data.faaliyetler.length}>
-            {data.faaliyetler.length === 0 ? (
+          <Bolum ikon={Sparkles} baslik="Faaliyetler" sayi={faaliyetler.length}>
+            {faaliyetler.length === 0 ? (
               <Bos>Bu hafta faaliyet yok</Bos>
             ) : (
-              data.faaliyetler.map(({ kisi, etkinlik }) => (
+              faaliyetler.map(({ kisi, etkinlik }) => (
                 <EtkinlikSatir
                   key={etkinlik.id}
                   kisi={kisi}
