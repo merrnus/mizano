@@ -817,7 +817,12 @@ export function useKardesMufredatKaydet() {
     }) => {
       if (!user) throw new Error("Giriş gerekli");
       if (m.id) {
-        const patch: Record<string, unknown> = {};
+        const patch: {
+          baslik?: string;
+          baslangic?: string | null;
+          bitis?: string | null;
+          maddeler?: MufredatMadde[];
+        } = {};
         if (m.baslik !== undefined) patch.baslik = m.baslik;
         if (m.baslangic !== undefined) patch.baslangic = m.baslangic;
         if (m.bitis !== undefined) patch.bitis = m.bitis;
