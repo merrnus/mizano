@@ -180,7 +180,7 @@ function KisiDetay() {
           navigate({
             to: "/network/kisi/$id",
             params: { id },
-            search: (prev) => ({ ...prev, kt: next }),
+            search: (prev: Search) => ({ ...prev, kt: next }),
             replace: true,
           });
         }}
