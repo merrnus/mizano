@@ -663,7 +663,7 @@ function KaynakKart({ kaynak, onSil }: { kaynak: AmelKaynak; onSil: () => void }
   const [acTik, setAcTik] = React.useState(false);
 
   async function ac() {
-    if (kaynak.tip === "link" && kaynak.url) {
+    if ((kaynak.tip === "link" || kaynak.tip === "lab") && kaynak.url) {
       window.open(kaynak.url, "_blank", "noopener");
       return;
     }
@@ -696,9 +696,6 @@ function KaynakKart({ kaynak, onSil }: { kaynak: AmelKaynak; onSil: () => void }
           <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[11px] text-muted-foreground">
             {kaynak.icerik}
           </p>
-        )}
-        {kaynak.tip === "link" && kaynak.url && (
-          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{kaynak.url}</p>
         )}
         {kaynak.tip === "link" && kaynak.url && (
           <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{kaynak.url}</p>

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Plus, BookOpen, Hammer, FolderOpen, GraduationCap, ChevronRight, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, BookOpen, Hammer, FolderOpen, GraduationCap, ChevronRight, Trash2, Pencil, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -574,6 +574,18 @@ function ProjeKart({
           Deadline: {new Date(proje.deadline).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}
         </p>
       )}
+
+      {proje.repo_url && (
+        <a
+          href={proje.repo_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Github className="h-2.5 w-2.5" /> GitHub
+        </a>
+      )}
     </article>
   );
 }
@@ -594,6 +606,7 @@ function ProjeForm({
   const [kursId, setKursId] = React.useState<string>("");
   const [durum, setDurum] = React.useState<AmelProjeDurum>("planli");
   const [deadline, setDeadline] = React.useState("");
+  const [repoUrl, setRepoUrl] = React.useState("");
 
   const ilgiliKurslar = alanId ? kurslar.filter((k) => k.alan_id === alanId) : kurslar;
 
@@ -608,6 +621,7 @@ function ProjeForm({
         kurs_id: kursId || null,
         durum,
         deadline: deadline || null,
+        repo_url: repoUrl.trim() || null,
       });
       toast.success("Proje eklendi");
       onBitti();
@@ -677,6 +691,16 @@ function ProjeForm({
             onChange={(e) => setDeadline(e.target.value)}
           />
         </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="proje-repo" className="text-xs">GitHub bağlantısı (opsiyonel)</Label>
+        <Input
+          id="proje-repo"
+          type="url"
+          placeholder="https://github.com/kullanici/repo"
+          value={repoUrl}
+          onChange={(e) => setRepoUrl(e.target.value)}
+        />
       </div>
       <div className="flex justify-end">
         <Button type="submit" disabled={ekle.isPending}>
