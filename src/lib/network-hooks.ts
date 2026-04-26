@@ -1399,7 +1399,6 @@ export function useRaporManeviyat(filtre: RaporFiltre, aktif: boolean) {
       user?.id,
       filtre.from,
       filtre.to,
-      filtre.kisiId ?? "all",
       (filtre.kategoriIds ?? []).join(","),
     ],
     enabled: !!user && aktif,
@@ -1421,7 +1420,6 @@ export function useRaporManeviyat(filtre: RaporFiltre, aktif: boolean) {
       });
 
       let kisiIds = (kisilerRes.data ?? []).map((k) => k.id);
-      if (filtre.kisiId) kisiIds = kisiIds.filter((id) => id === filtre.kisiId);
       if (filtre.kategoriIds && filtre.kategoriIds.length > 0) {
         kisiIds = kisiIds.filter((id) =>
           (kisiKategoriMap.get(id) ?? []).some((k) => filtre.kategoriIds!.includes(k)),
