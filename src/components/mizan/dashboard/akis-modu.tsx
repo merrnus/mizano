@@ -152,15 +152,17 @@ export function AkisModu({
           const idxStr = (en.target as HTMLElement).dataset.idx;
           if (idxStr == null) return;
           const i = Number(idxStr);
-          if (en.isIntersecting && (!enIyi || en.intersectionRatio > enIyi.oran)) {
+          const mevcut: { idx: number; oran: number } | null = enIyi;
+          if (en.isIntersecting && (!mevcut || en.intersectionRatio > mevcut.oran)) {
             enIyi = { idx: i, oran: en.intersectionRatio };
           }
         });
-        if (enIyi && enIyi.oran > 0.6) {
+        const sec = enIyi as { idx: number; oran: number } | null;
+        if (sec && sec.oran > 0.6) {
           setAktifIdx((prev) => {
-            if (prev === enIyi!.idx) return prev;
+            if (prev === sec.idx) return prev;
             // İleri kaydırıldıysa ve önceki kart tamamlanmadıysa "atlandı" işaretle
-            if (enIyi!.idx > prev) {
+            if (sec.idx > prev) {
               const oncekiSablon = baslangictakiSira[prev];
               if (oncekiSablon && !tamamlananIds.has(oncekiSablon.id)) {
                 setAtlananIds((s) => {
@@ -172,7 +174,7 @@ export function AkisModu({
               }
             } else {
               // Geri kaydırıldıysa hedef kartı atlananlardan çıkar
-              const hedefSablon = baslangictakiSira[enIyi!.idx];
+              const hedefSablon = baslangictakiSira[sec.idx];
               if (hedefSablon && atlananIds.has(hedefSablon.id)) {
                 setAtlananIds((s) => {
                   const ns = new Set(s);
@@ -181,7 +183,7 @@ export function AkisModu({
                 });
               }
             }
-            return enIyi!.idx;
+            return sec.idx;
           });
         }
       },
