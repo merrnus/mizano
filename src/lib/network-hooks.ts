@@ -14,6 +14,10 @@ import {
   type GundemOncelik,
   type KardesEtkinlik,
   type KardesEtkinlikTip,
+  type KardesMufredat,
+  type KardesEvradMadde,
+  type KardesEvradKayit,
+  type MufredatMadde,
   VARSAYILAN_KATEGORILER,
 } from "./network-tipleri";
 
