@@ -1,6 +1,14 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { X, Check, SkipForward, Minus, Plus, Sparkles } from "lucide-react";
+import {
+  X,
+  Check,
+  SkipForward,
+  SkipBack,
+  Minus,
+  Plus,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -37,19 +45,9 @@ export function AkisModu({
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  React.useEffect(() => {
-    if (!acik) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [acik, onClose]);
+  // ESC + ok tuşları + body scroll lock
+  // Not: handler'lar useEffect içinde kapanış üzerinden çalışsın diye burada
+  // erken-tanımlı değil — geri/atla referansları aşağıda mevcut.
 
   // Alanın bugüne ait, hedefe ulaşmamış şablon listesini sabitle (oturum başında)
   const baslangictakiSira = React.useMemo(() => {
@@ -162,6 +160,42 @@ export function AkisModu({
     setAtlananIds((s) => new Set(s).add(aktif.id));
     sonrakiKart();
   };
+
+  const geri = () => {
+    if (idx <= 0) return;
+    const oncekiIdx = idx - 1;
+    const onceki = baslangictakiSira[oncekiIdx];
+    if (onceki) {
+      // Atlanmış kayıttan çıkar — kullanıcı tekrar değerlendirmek istiyor
+      setAtlananIds((s) => {
+        if (!s.has(onceki.id)) return s;
+        const yeni = new Set(s);
+        yeni.delete(onceki.id);
+        return yeni;
+      });
+    }
+    setYeniMiktar("");
+    setFlash(false);
+    setIdx(oncekiIdx);
+  };
+
+  // ESC + ok tuşları
+  React.useEffect(() => {
+    if (!acik) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft") geri();
+      else if (e.key === "ArrowRight") atla();
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acik, onClose, idx, aktif?.id]);
 
   return createPortal(
     <div
@@ -373,11 +407,21 @@ export function AkisModu({
 
             <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
               <button
+                onClick={geri}
+                disabled={idx <= 0}
+                className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Önceki kart"
+              >
+                <SkipBack className="h-3.5 w-3.5" />
+                Geri
+              </button>
+              <button
                 onClick={atla}
                 className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+                aria-label="Sonraki kart"
               >
-                <SkipForward className="h-3.5 w-3.5" />
                 Atla
+                <SkipForward className="h-3.5 w-3.5" />
               </button>
               <span className="tabular-nums">{sureMetin}</span>
             </div>
