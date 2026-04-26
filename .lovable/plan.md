@@ -1,98 +1,44 @@
-## Hedef
+## Amaç
 
-Mizan'da kardeş faaliyeti (sohbet, teke-tek, kamp vb.) eklendiğinde / güncellendiğinde / silindiğinde, aynı etkinlik **Google Calendar primary** takvimine de yansısın. Tek yönlü: **Mizan → Google**.
+Kişi detay sayfasında profil formunu sadeleştir. Tekrar eden ve gereksiz alanları kaldır.
 
-## Yaklaşım: Workspace owner connector
+## Tespit edilen tekrarlar
 
-- **Seçilen kapsam**: Lovable Cloud'un hazır Google Calendar connector'u kullanılır → tek bir Google hesabına (senin) bağlanır.
-- **Süre**: ~30–45 dakika.
-- **Sınırlama (kabul edildi)**: Bu uygulamayı kullanan herkes kendi faaliyetlerini **senin** Google takvimine yazar. Tek kullanıcı için ideal, çoklu kullanıcı için değil. İleride çoklu kullanıcı gerekirse per-user OAuth'a geçilebilir (3–5 saatlik ayrı iş).
+1. **Derin takip switch'i** (form altı) ile **"Derin takibi kapat" butonu** (üst header) — ikisi de aynı `kisi.derin_takip` alanını değiştiriyor. **Tam tekrar.**
+2. **Kategoriler** — üst kartta badge olarak görünüyor (sadece okuma), formda düzenlenebiliyor. Bölünmüş ama tek edit yeri var.
+3. **Notlar** — sadece formda var, tekrar değil ama "Kategoriler & Notlar" başlığı altında olması mantıksız.
 
-## Planın adımları
+## Yapılacak değişiklikler
 
-### 1. Google Calendar connector'unu projeye bağla
-- `standard_connectors--connect` ile `google_calendar` connector'u eklenir.
-- Sen Google hesabınla OAuth onayını verirsin, connector secret'ları (`LOVABLE_API_KEY`, `GOOGLE_CALENDAR_API_KEY`) projeye otomatik gelir.
-- Doğrulama için `verify_credentials` endpoint'i bir kez çağrılır.
+**Dosya: `src/components/mizan/network/kardes-profil-form.tsx`**
 
-### 2. Veri modeli: faaliyete saat aralığı ekle
-**Kabul edilen seçim**: başlangıç + bitiş saati (iki ayrı saat alanı).
+- **Kaldır:** "Kategoriler & Notlar" bölümünün tamamı (`<Bolum ikon={Sparkles}>` bloğu, satır 224-265).
+  - Kategoriler: zaten üst kartta görünüyor; düzenleme için ayrı bir UX gerekiyorsa o ayrı iş.
+  - Notlar: kaldırılıyor.
+  - Derin takip switch: zaten üst header'daki buton ile yapılıyor.
+- **State temizliği:** `secKategoriler`, `derin`, `notlar`, `setSecKategoriler`, `setDerin`, `setNotlar`, `toggleKat` ve `useKisiKategoriAyarla` import + kullanımları kaldırılacak.
+- **`kaydet` fonksiyonu:** `ayarla.mutateAsync` çağrısı kaldırılacak; `guncelle.mutateAsync` payload'ından `derin_takip` ve `notlar` çıkarılacak.
+- **Props:** `kategoriler` artık kullanılmadığı için prop'tan kaldırılacak.
 
-`kardes_etkinlik` tablosuna iki yeni kolon eklenir (migration):
-- `baslangic_saati TIME NULL` — boşsa "saat belirsiz" anlamı taşır
-- `bitis_saati TIME NULL`
-- `google_event_id TEXT NULL` — Google'a yazıldığında dönen event ID burada saklanır (sonradan update/delete için şart)
+**Dosya: `src/routes/network.kisi.$id.tsx`**
 
-Mevcut `tarih DATE` alanı korunur. Saatler boşsa Google'a all-day event olarak yazılır.
+- `<KardesProfilForm>` çağrısından `kategoriler` prop'u kaldırılacak.
+- `useKategoriler()` hook çağrısı yine de gerekli (üst kart `kisiKategoriler` için kullanıyor) — dokunulmayacak.
 
-### 3. Form'a saat alanları ekle
-**Dosya**: `src/components/mizan/network/kardes-faaliyet-timeline.tsx`
+## Kategoriler düzenleme — ayrı not
 
-Mevcut "Yeni etkinlik" formuna iki opsiyonel saat input'u eklenir:
-- "Başlangıç" (time input)
-- "Bitiş" (time input, başlangıçtan sonra olmalı)
-- Boş bırakılırsa: tüm gün etkinliği olarak Google'a yazılır
-- Bitiş başlangıçtan önceyse uyarı verilir (toast)
+Kategoriler artık sadece üst kartta gösterim olacak. Düzenleme için ileride üst karta inline edit (badge'e tıkla → açılır) eklenebilir. Şimdilik kapsam dışı; istersen ayrı iş olarak ele alırız.
 
-Düzenleme akışı için aynı alanlar düzenleme modunda da görünür olur.
+## Eksikler listesi (hatırlatma)
 
-### 4. Server function: Google Calendar gateway proxy'si
-**Yeni dosya**: `src/integrations/google-calendar.functions.ts`
+Önceki turda listelediğim, henüz yapılmamış potansiyel iyileştirmeler:
 
-İki server function (`createServerFn`, `requireSupabaseAuth` middleware ile):
+1. Takvim etkinliğinden kardeş profiline dönüş linki
+2. Çakışma uyarısı (aynı saatte başka etkinlik)
+3. Tekrarlayan faaliyet (haftalık/aylık rutin)
+4. Faaliyet öncesi hatırlatıcı/bildirim
+5. Belirli kardeşin faaliyetlerini takvimde filtreli görme
+6. Saat aralığı validasyonu (bitiş < başlangıç engeli) — **bu bir bug, öncelikli**
+7. UX cilaları (tooltip, silme onay mesajları)
 
-- **`syncEtkinlikToGoogle({ etkinlikId })`** — etkinliği DB'den okur, Google API'ye gönderir:
-  - Eğer `google_event_id` yoksa → `POST /calendars/primary/events` (yeni oluştur), dönen ID'yi DB'ye yazar.
-  - Eğer `google_event_id` varsa → `PATCH /calendars/primary/events/{id}` (güncelle).
-  - Saatler boşsa `start.date` / `end.date` (all-day), doluysa `start.dateTime` / `end.dateTime` + `timeZone: "Europe/Istanbul"` kullanılır.
-  - Title: faaliyet başlığı + tipi (örn. "Sohbet — Ahmet ile haftalık").
-  - Description: kişi adı + notlar + sonuç (varsa).
-  - Hata durumunda DB'de `google_event_id` boş kalır, kullanıcıya toast ile bildirilir ama Mizan kaydı yine de oluşur (graceful degradation).
-
-- **`deleteEtkinlikFromGoogle({ googleEventId })`** — `DELETE /calendars/primary/events/{id}`. Hata olursa sessizce yutulur (event zaten Google'da yoksa sorun değil).
-
-Gateway URL: `https://connector-gateway.lovable.dev/google_calendar/calendar/v3/calendars/primary/events`
-
-Headers:
-```
-Authorization: Bearer ${LOVABLE_API_KEY}
-X-Connection-Api-Key: ${GOOGLE_CALENDAR_API_KEY}
-Content-Type: application/json
-```
-
-### 5. Mizan hooks'larını sync'e bağla
-**Dosya**: `src/lib/network-hooks.ts`
-
-- `useKardesEtkinlikEkle` mutation'ı: insert başarılı olunca `syncEtkinlikToGoogle` çağrılır, dönen `google_event_id` DB'ye yazılır (update).
-- `useKardesEtkinlikGuncelle` mutation'ı: update başarılı olunca aynı sync function çağrılır (PATCH yapar).
-- `useKardesEtkinlikSil` mutation'ı: silmeden önce `google_event_id`'yi okuyup `deleteEtkinlikFromGoogle` çağrılır, sonra Mizan'dan silinir.
-
-### 6. UI'da küçük gösterge
-Faaliyet kartlarında, eğer `google_event_id` doluysa, küçük bir Google Calendar ikonu (lucide `Calendar`) gösterilir → "Google Takvim'de senkronize" tooltip'iyle. Doluysa kullanıcı zaman aralığını da görür.
-
-### 7. Hata yönetimi
-- Connector bağlı değilse / token süresi dolduysa: server function açıkça "Google bağlantısı yok, sadece Mizan'a kaydedildi" toast'u döndürür.
-- Network/API hatası: Mizan kaydı **kesinlikle** oluşur, sadece Google sync atlanır. Kullanıcı sonradan kaydı düzenleyip yeniden tetikleyebilir.
-
-## Tablolar / migration özeti
-
-```sql
-ALTER TABLE kardes_etkinlik
-  ADD COLUMN baslangic_saati TIME NULL,
-  ADD COLUMN bitis_saati TIME NULL,
-  ADD COLUMN google_event_id TEXT NULL;
-```
-
-RLS değişmez (mevcut user_id politikaları yeterli). Foreign key yok.
-
-## Kapsam dışı (bilerek)
-
-- Çift yönlü sync (Google → Mizan): istenmedi.
-- Çoklu kullanıcı / per-user OAuth: tek kullanıcı için gereksiz.
-- Ayrı "Mizan - Kardeşler" takvimi: primary seçildi.
-- Ayarlar sayfası: kullanıcı seçimi yok, hardcoded primary.
-- Geçmişe dönük toplu sync: sadece bundan sonra eklenen/düzenlenen kayıtlar Google'a gider.
-
-## Onay sonrası ilk adım
-
-Plan onaylanırsa connect tool'u Google Calendar için tetiklenir, sen OAuth onayını verirsin, ardından tüm kod değişiklikleri tek seferde uygulanır.
+Profil temizliği onaylanırsa devamında hangisini yapalım, sen seç.
