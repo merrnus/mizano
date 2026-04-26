@@ -133,3 +133,57 @@ export const ETKINLIK_TIP_MAP: Record<KardesEtkinlikTip, { ad: string; renkVar: 
     KardesEtkinlikTip,
     { ad: string; renkVar: string }
   >;
+
+/* ---------------- MANEVİYAT ---------------- */
+
+export type MufredatMadde = {
+  id: string;
+  metin: string;
+  tamamlandi: boolean;
+};
+
+export type KardesMufredat = {
+  id: string;
+  user_id: string;
+  kisi_id: string;
+  baslik: string;
+  baslangic: string | null;
+  bitis: string | null;
+  maddeler: MufredatMadde[];
+  arsiv: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type KardesEvradMadde = {
+  id: string;
+  user_id: string;
+  kisi_id: string;
+  metin: string;
+  siralama: number;
+  aktif: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type KardesEvradKayit = {
+  id: string;
+  user_id: string;
+  kisi_id: string;
+  madde_id: string;
+  tarih: string;
+  created_at: string;
+};
+
+/** Maneviyat sekmesi için "etkinlik özeti" filtresinde kullanılan tipler. */
+export const MANEVIYAT_ETKINLIK_TIPLERI: KardesEtkinlikTip[] = [
+  "sohbet",
+  "kuran",
+  "sophia",
+  "kamp",
+  "sinav",
+  "yarisma",
+  "kandil",
+  "zoom",
+  "istisare",
+];
