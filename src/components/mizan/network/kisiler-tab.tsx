@@ -367,7 +367,6 @@ function KisiDetaySheet({
 }) {
   const guncelle = useKisiGuncelle();
   const guncelleDetay = useKisiGuncelleDetay();
-  const navigate = useNavigate();
   const ayarla = useKisiKategoriAyarla();
   const sil = useKisiSil();
   const [silAcik, setSilAcik] = React.useState(false);
@@ -396,17 +395,7 @@ function KisiDetaySheet({
         : Promise.resolve(),
     ]);
     toast.success("Kaydedildi");
-    if (derinDegisti && derin) {
-      // Yeni derin takibe alındı → tam profil sayfasına yönlendir
-      onClose();
-      navigate({
-        to: "/network/kisi/$id",
-        params: { id: kisi.id },
-        search: { tab: "profil" } as never,
-      });
-    } else {
-      onClose();
-    }
+    onClose();
   };
 
   const toggleKat = (id: string) => {
