@@ -303,6 +303,9 @@ function EtkinlikSatir({
   const meta = ETKINLIK_TIP_MAP[etkinlik.tip];
   const d = parseISO(etkinlik.tarih);
   const tarihEt = isToday(d) ? "Bugün" : format(d, "d MMM yyyy", { locale: tr });
+  const saatEt = etkinlik.baslangic_saati
+    ? `${etkinlik.baslangic_saati.slice(0, 5)}${etkinlik.bitis_saati ? "–" + etkinlik.bitis_saati.slice(0, 5) : ""}`
+    : null;
   return (
     <div
       className="group flex items-start gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/40"
@@ -322,8 +325,18 @@ function EtkinlikSatir({
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <div className="truncate text-sm font-medium text-foreground">{etkinlik.baslik}</div>
-          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{tarihEt}</span>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <div className="truncate text-sm font-medium text-foreground">{etkinlik.baslik}</div>
+            {etkinlik.takvim_etkinlik_id ? (
+              <CalendarPlus
+                className="h-3 w-3 shrink-0 text-[var(--mana)]"
+                aria-label="Mizan Takvim'de"
+              />
+            ) : null}
+          </div>
+          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+            {saatEt ? `${tarihEt} · ${saatEt}` : tarihEt}
+          </span>
         </div>
         {etkinlik.sonuc ? (
           <div className="mt-0.5 text-xs font-medium text-foreground/80">
