@@ -144,7 +144,39 @@ export function KardesFaaliyetTimeline({ kisiId }: { kisiId: string }) {
             className="mt-3"
           />
         )}
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+          <div className="grid gap-1">
+            <Label htmlFor="bas-saat" className="text-[11px] text-muted-foreground">
+              Başlangıç (ops.)
+            </Label>
+            <Input
+              id="bas-saat"
+              type="time"
+              value={baslangicSaati}
+              onChange={(e) => setBaslangicSaati(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="bit-saat" className="text-[11px] text-muted-foreground">
+              Bitiş (ops.)
+            </Label>
+            <Input
+              id="bit-saat"
+              type="time"
+              value={bitisSaati}
+              onChange={(e) => setBitisSaati(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+            <Checkbox
+              checked={takvimeEkle}
+              onCheckedChange={(v) => setTakvimeEkle(v === true)}
+            />
+            <CalendarPlus className="h-3.5 w-3.5" />
+            Mizan Takvim'e ekle
+          </label>
           <Button size="sm" onClick={ekleEtkinlik} disabled={!baslik.trim() || ekle.isPending}>
             <Plus className="h-3.5 w-3.5" /> Ekle
           </Button>
