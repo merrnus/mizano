@@ -29,7 +29,7 @@ import { tr } from "date-fns/locale";
 import { toast } from "sonner";
 
 type TabId = "profil" | "faaliyetler" | "maneviyat";
-type Search = { tab: TabId };
+type Search = { kt: TabId };
 
 export const Route = createFileRoute("/network/kisi/$id")({
   head: ({ params }) => ({
@@ -39,11 +39,11 @@ export const Route = createFileRoute("/network/kisi/$id")({
     ],
   }),
   validateSearch: (s: Record<string, unknown>): Search => {
-    const t = s.tab;
+    const t = s.kt;
     if (t === "faaliyetler" || t === "maneviyat" || t === "profil") {
-      return { tab: t };
+      return { kt: t };
     }
-    return { tab: "profil" };
+    return { kt: "profil" };
   },
   component: KisiDetay,
   notFoundComponent: () => (
@@ -60,7 +60,7 @@ function KisiDetay() {
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const tab = search.tab;
+  const tab = search.kt;
 
   const { data: kisi, isLoading } = useKisi(id);
   const { data: kategoriler = [] } = useKategoriler();
@@ -180,7 +180,7 @@ function KisiDetay() {
           navigate({
             to: "/network/kisi/$id",
             params: { id },
-            search: { tab: next } as never,
+            search: (prev) => ({ ...prev, kt: next }),
             replace: true,
           });
         }}
