@@ -374,14 +374,22 @@ function DuzenleSatir({
   onClose: () => void;
 }) {
   const guncelle = useKardesEtkinlikGuncelle();
+  const { data: kisi } = useKisi(etkinlik.kisi_id);
   const [tip, setTip] = React.useState<KardesEtkinlikTip>(etkinlik.tip);
   const [tarih, setTarih] = React.useState(etkinlik.tarih);
   const [baslik, setBaslik] = React.useState(etkinlik.baslik);
   const [notlar, setNotlar] = React.useState(etkinlik.notlar ?? "");
   const [sonuc, setSonuc] = React.useState(etkinlik.sonuc ?? "");
+  const [baslangicSaati, setBaslangicSaati] = React.useState(etkinlik.baslangic_saati?.slice(0, 5) ?? "");
+  const [bitisSaati, setBitisSaati] = React.useState(etkinlik.bitis_saati?.slice(0, 5) ?? "");
+  const [takvimeEkle, setTakvimeEkle] = React.useState(!!etkinlik.takvim_etkinlik_id);
 
   const kaydet = async () => {
     if (!baslik.trim()) return;
+    if (baslangicSaati && bitisSaati && bitisSaati <= baslangicSaati) {
+      toast.error("Bitiş saati başlangıçtan sonra olmalı");
+      return;
+    }
     await guncelle.mutateAsync({
       id: etkinlik.id,
       kisi_id: etkinlik.kisi_id,
@@ -390,6 +398,10 @@ function DuzenleSatir({
       baslik: baslik.trim(),
       notlar: notlar.trim() || null,
       sonuc: sonuc.trim() || null,
+      baslangic_saati: baslangicSaati || null,
+      bitis_saati: bitisSaati || null,
+      takvime_ekle: takvimeEkle,
+      kisi_ad: kisi?.ad,
     });
     toast.success("Güncellendi");
     onClose();
@@ -428,13 +440,37 @@ function DuzenleSatir({
           placeholder="Sonuç"
         />
       )}
-      <div className="mt-2 flex justify-end gap-2">
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        <Input
+          type="time"
+          value={baslangicSaati}
+          onChange={(e) => setBaslangicSaati(e.target.value)}
+          placeholder="Başlangıç"
+        />
+        <Input
+          type="time"
+          value={bitisSaati}
+          onChange={(e) => setBitisSaati(e.target.value)}
+          placeholder="Bitiş"
+        />
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+          <Checkbox
+            checked={takvimeEkle}
+            onCheckedChange={(v) => setTakvimeEkle(v === true)}
+          />
+          <CalendarPlus className="h-3.5 w-3.5" />
+          Mizan Takvim'e ekle
+        </label>
+        <div className="flex gap-2">
         <Button size="sm" variant="outline" onClick={onClose}>
           <X className="h-3.5 w-3.5" /> İptal
         </Button>
         <Button size="sm" onClick={kaydet} disabled={guncelle.isPending}>
           <Check className="h-3.5 w-3.5" /> Kaydet
         </Button>
+        </div>
       </div>
     </div>
   );
