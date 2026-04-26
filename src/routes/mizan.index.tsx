@@ -64,9 +64,16 @@ function MizanHub() {
   const rozet = rozetiHesapla(veriler);
 
   const kartlar = [
-    { ad: "Mana", yuzde: manaYuzde, ikon: Sprout, renkVar: "--mana", to: "/mizan/mana" as const },
-    { ad: "İlim", yuzde: ilimYuzde, ikon: BookOpen, renkVar: "--ilim", to: "/mizan/ilim" as const },
-    { ad: "Amel", yuzde: amelYuzde, ikon: Hammer, renkVar: "--amel", to: "/mizan/amel" as const },
+    { ad: "Mana", yuzde: manaYuzde, metin: `${manaYuzde}%`, ikon: Sprout, renkVar: "--mana", to: "/mizan/mana" as const },
+    {
+      ad: "İlim",
+      yuzde: ilimYuzde,
+      metin: ilimYuzdeRaw === null ? "—" : `${ilimYuzde}%`,
+      ikon: BookOpen,
+      renkVar: "--ilim",
+      to: "/mizan/ilim" as const,
+    },
+    { ad: "Amel", yuzde: amelYuzde, metin: `${amelYuzde}%`, ikon: Hammer, renkVar: "--amel", to: "/mizan/amel" as const },
   ];
 
   const saat = simdi.getHours();
@@ -108,6 +115,7 @@ function MizanHub() {
             key={k.ad}
             ad={k.ad}
             yuzde={k.yuzde}
+            metin={k.metin}
             ikon={k.ikon}
             renkVar={k.renkVar}
             to={k.to}
