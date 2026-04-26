@@ -11,6 +11,8 @@ import {
   Link2,
   StickyNote,
   Pencil,
+  FlaskConical,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,13 +125,23 @@ function KursDetay() {
               {kurs.saglayici && <span>{kurs.saglayici}</span>}
               {kurs.kod && <span className="font-mono">{kurs.kod}</span>}
               {kurs.sertifika_tarihi && (
-                <span>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1",
+                    new Date(kurs.sertifika_tarihi) < new Date() && "text-amber-600 dark:text-amber-500",
+                  )}
+                >
                   Sertifika sınavı:{" "}
                   {new Date(kurs.sertifika_tarihi).toLocaleDateString("tr-TR", {
                     day: "2-digit",
                     month: "short",
                     year: "numeric",
                   })}
+                  {new Date(kurs.sertifika_tarihi) < new Date() && (
+                    <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium">
+                      <AlertTriangle className="h-2.5 w-2.5" /> geçmiş tarih
+                    </span>
+                  )}
                 </span>
               )}
             </div>
@@ -501,7 +513,7 @@ function ModulNot({ modulId, mevcut }: { modulId: string; mevcut: string }) {
 
 /* ---------------- Kaynaklar ---------------- */
 
-const KAYNAK_TIPLERI: AmelKaynakTip[] = ["link", "dosya", "resim", "not"];
+const KAYNAK_TIPLERI: AmelKaynakTip[] = ["link", "dosya", "resim", "lab", "not"];
 
 function KaynakSekmesi({ kursId }: { kursId: string }) {
   const { user } = useAuth();
@@ -534,7 +546,7 @@ function KaynakSekmesi({ kursId }: { kursId: string }) {
         kurs_id: kursId,
         tip,
         baslik: baslik.trim(),
-        url: tip === "link" ? url.trim() || null : null,
+        url: tip === "link" || tip === "lab" ? url.trim() || null : null,
         storage_path: storagePath,
         icerik: tip === "not" ? icerik.trim() || null : null,
       });
@@ -587,13 +599,15 @@ function KaynakSekmesi({ kursId }: { kursId: string }) {
                 <Label htmlFor="ka-baslik" className="text-xs">Başlık</Label>
                 <Input id="ka-baslik" required value={baslik} onChange={(e) => setBaslik(e.target.value)} />
               </div>
-              {tip === "link" && (
+              {(tip === "link" || tip === "lab") && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="ka-url" className="text-xs">URL</Label>
+                  <Label htmlFor="ka-url" className="text-xs">
+                    URL {tip === "lab" && <span className="text-muted-foreground">(opsiyonel)</span>}
+                  </Label>
                   <Input
                     id="ka-url"
                     type="url"
-                    placeholder="https://…"
+                    placeholder={tip === "lab" ? "Packet Tracer / Lab linki" : "https://…"}
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                   />
@@ -669,7 +683,9 @@ function KaynakKart({ kaynak, onSil }: { kaynak: AmelKaynak; onSil: () => void }
         ? FileText
         : kaynak.tip === "resim"
           ? ImageIcon
-          : StickyNote;
+          : kaynak.tip === "lab"
+            ? FlaskConical
+            : StickyNote;
 
   return (
     <li className="group flex items-start gap-3 rounded-lg border border-border bg-card p-3">
@@ -684,7 +700,16 @@ function KaynakKart({ kaynak, onSil }: { kaynak: AmelKaynak; onSil: () => void }
         {kaynak.tip === "link" && kaynak.url && (
           <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{kaynak.url}</p>
         )}
-        {(kaynak.tip === "link" || kaynak.tip === "dosya" || kaynak.tip === "resim") && (
+        {kaynak.tip === "link" && kaynak.url && (
+          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{kaynak.url}</p>
+        )}
+        {kaynak.tip === "lab" && kaynak.url && (
+          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{kaynak.url}</p>
+        )}
+        {((kaynak.tip === "link" && kaynak.url) ||
+          kaynak.tip === "dosya" ||
+          kaynak.tip === "resim" ||
+          (kaynak.tip === "lab" && kaynak.url)) && (
           <button
             onClick={ac}
             disabled={acTik}
