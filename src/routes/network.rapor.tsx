@@ -316,7 +316,7 @@ function RaporPage() {
                     key={k.id}
                     onClick={() => {
                       const next = aktif
-                        ? search.kategoriIds.filter((id) => id !== k.id)
+                        ? search.kategoriIds.filter((id: string) => id !== k.id)
                         : [...search.kategoriIds, k.id];
                       setSearch({ kategoriIds: next });
                     }}
