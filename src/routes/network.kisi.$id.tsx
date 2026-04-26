@@ -28,7 +28,8 @@ import { format, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
 
-type Search = { tab?: "profil" | "faaliyetler" | "maneviyat" };
+type TabId = "profil" | "faaliyetler" | "maneviyat";
+type Search = { kt: TabId };
 
 export const Route = createFileRoute("/network/kisi/$id")({
   head: ({ params }) => ({
@@ -38,15 +39,11 @@ export const Route = createFileRoute("/network/kisi/$id")({
     ],
   }),
   validateSearch: (s: Record<string, unknown>): Search => {
-    const t = s.tab;
-    return {
-      tab:
-        t === "faaliyetler"
-          ? "faaliyetler"
-          : t === "maneviyat"
-            ? "maneviyat"
-            : "profil",
-    };
+    const t = s.kt;
+    if (t === "faaliyetler" || t === "maneviyat" || t === "profil") {
+      return { kt: t };
+    }
+    return { kt: "profil" };
   },
   component: KisiDetay,
   notFoundComponent: () => (
@@ -63,7 +60,7 @@ function KisiDetay() {
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const tab = search.tab ?? "profil";
+  const tab = search.kt;
 
   const { data: kisi, isLoading } = useKisi(id);
   const { data: kategoriler = [] } = useKategoriler();
@@ -178,15 +175,15 @@ function KisiDetay() {
       {/* Tabs */}
       <Tabs
         value={tab}
-        onValueChange={(v) =>
+        onValueChange={(v) => {
+          const next = v as TabId;
           navigate({
             to: "/network/kisi/$id",
             params: { id },
-            // routeTree henüz regenerate edilmediği için search tipi geniş tutuluyor
-            search: { tab: v } as never,
+            search: (prev) => ({ ...prev, kt: next }),
             replace: true,
-          })
-        }
+          });
+        }}
       >
         <TabsList className="mb-4">
           <TabsTrigger value="profil">Profil</TabsTrigger>
