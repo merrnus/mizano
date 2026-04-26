@@ -1,106 +1,77 @@
 ## Hedef
-Ana sayfadaki **Bugünün Zaman Çizelgesi** bileşenini üç açıdan iyileştirmek:
 
-**A. Etkinlik tıklaması** → tam sayfa `/takvim`'e gitmek yerine **sağdan açılan yarım ekran sheet** ile detay/düzenleme. Sheet içinde mevcut `EtkinlikDialog` mantığı yer alır (başlık, saat, alan, konum, sil/güncelle).
+Mevcut **"Bu hafta Evdekiler"** widget'ı (3 sütun: doğum günü, teke-tek bekleyen, yaklaşan program) `derin_takip=true` olan kişilerle sınırlıydı. Bunu **tüm kişileri** kapsayacak ve 2 sütuna sadeleşecek şekilde yeniden tasarlıyoruz.
 
-**B. Görev davranışı:**
-- Sol noktanın yerine **checkbox** → tıklayınca `useGorevGuncelle` ile `tamamlandi` toggle.
-- **Tamamlanan görevler en alta** sıralanır (tamamlanma sırasına göre — `updated_at` desc), soluk (`opacity-50`) ve `line-through` ile gösterilir.
-- Görev satırına tıklayınca aynı pattern: **sağdan sheet** açılır, mevcut `GorevDialog` form mantığı içinde (vade/öncelik/alan/sil/güncelle).
+## Yeni içerik modeli
 
-**C. Görsel:** Şu an `bugun-zaman-cizelgesi.tsx`'te `absolute left-[1.85rem] top-6 bottom-6 w-px bg-border` ile çizilen **dikey rail** etkinlikler için anlamlı (zaman akışı), ama **görevlerin (Bugünkü Görevler bölümü) sol kenarından da geçiyor** ve görsel olarak hoş durmuyor. Görevler bölümü zaten ayrı bir blok (border-t ile ayrılmış) — rail'in görevlere uzamaması gerekiyor.
+**Hafta tanımı:** İçinde bulunulan **Pazartesi–Pazar** ISO haftası. Sebep: takvim haftası olduğu için hafta sonuna doğru içerik azalmaz, "bu hafta" tabiri kullanıcının doğal mental modeliyle örtüşür.
 
----
+**1. Hafta Programları** (sol sütun)
+- Bu haftaya (Pzt–Paz) düşen `tip = istisare` veya `tip = sohbet` olan tüm `kardes_etkinlik` kayıtları.
+- `derin_takip` filtresi **yok** — tüm kişiler için.
+- Tarih + (varsa) saat + kişi adı + başlık.
+- Geçmiş günlerinki soluk (`opacity-60`) ve check ikonuyla; bugün/gelecek normal.
 
-## Yapılacak değişiklikler
+**2. Faaliyetler** (sağ sütun)
+- Bu haftaya düşen, **istisare ve sohbet hariç** kalan tüm `kardes_etkinlik` tipleri (teke_tek, kuran, sophia, kamp, sinav, yarisma, hediye, gezi, spor, dogum_gunu, kandil, zoom).
+- `derin_takip` filtresi **yok**.
+- Tip etiketinin renk noktası + kişi adı + başlık + tarih.
+- Aynı geçmiş/gelecek görsel ayrımı.
 
-### 1. Yeni dosya: `src/components/mizan/dashboard/etkinlik-detay-sheet.tsx`
-Mevcut `EtkinlikDialog`'un içeriğini `Sheet` (sağdan, `side="right"`, `w-full sm:max-w-md`) içine taşır. **Mevcut `EtkinlikDialog`'u silmiyoruz** — takvim sayfasında kullanılmaya devam edebilir; ama bu yeni sheet detay/düzenleme için ana sayfadan kullanılacak.
+İki sütun da boşsa "Bu hafta plan yok" mesajı; biri boşsa o sütun "—" gösterir.
 
-Aslında daha temiz yol: **`EtkinlikDialog`'a `varyant?: "dialog" | "sheet"` prop'u eklemek yerine**, ayrı bir sheet bileşeni kuralım çünkü:
-- Sheet zaten ana sayfada kullanılıyor (`AlanDetaySheet`)
-- `Dialog` modal etkinlik **ekleme** için uygun (kısa form), Sheet detay **görüntüleme/düzenleme** için uygun (geniş alan + okunaklı)
+## Etkileşim: sağdan kişi sheet
 
-Yeni dosya `EtkinlikDetaySheet` içerir:
-- Aynı form alanları (başlık, tüm gün, başlangıç/bitiş, alan, tekrar, konum, açıklama)
-- Üstte küçük "Takvime git" linki (`<Link to="/takvim">`) — kullanıcı isterse tam sayfaya geçer
-- Footer: Sil (sol) + İptal/Güncelle (sağ)
+- **"Tümü →"** linki kaldırılır (zaten Network sayfasında erişilebilir).
+- Widget içindeki her satır tıklanınca, mevcut `/network/kisi/$id` sayfasına gitmek yerine **sağdan açılan bir Sheet** ile o kişinin özet kartı + bu haftaki etkinlikleri gösterilir.
+- Sheet içinde "Tüm faaliyetler" linki kişi sayfasına yönlendirir (kullanıcının istediği gibi sayfa değişimi olmadan hızlı bakış).
 
-### 2. Yeni dosya: `src/components/mizan/dashboard/gorev-detay-sheet.tsx`
-Aynı yaklaşım `GorevDialog` için. Form alanları: başlık, vade, öncelik, alan, açıklama, tamamlandı toggle.
+## Teknik değişiklikler
 
-### 3. `src/components/mizan/dashboard/bugun-zaman-cizelgesi.tsx` — ana değişiklikler
+**`src/lib/network-hooks.ts`** — `useEvdekilerOzet` hook'unu yeniden yazıyoruz:
 
-**Props:**
-```ts
-type Props = {
-  simdi: Date;
-};
-```
-İçeride state ile sheet'ler kontrol edilir (kendi içinde — parent'a state dağıtmaya gerek yok).
+- Adı `useBuHaftaOzet` olarak değişir (anlamı genişlediği için).
+- `derin_takip` filtresini kaldır → tüm `gundem_kisi` kayıtlarını çek.
+- Hafta sınırları: `startOfWeek(now, { weekStartsOn: 1 })` ve `endOfWeek(now, { weekStartsOn: 1 })` (date-fns).
+- Tek sorgu: `kardes_etkinlik` where `tarih BETWEEN haftaBas AND haftaSon`.
+- Dönüş tipi:
+  ```ts
+  type BuHaftaOzet = {
+    programlar: { kisi: Kisi; etkinlik: KardesEtkinlik }[]; // istisare + sohbet
+    faaliyetler: { kisi: Kisi; etkinlik: KardesEtkinlik }[]; // diğerleri
+  };
+  ```
+- İki liste `tarih` artan, sonra `baslangic_saati` artan sıralanır.
+- Eski `useEvdekilerOzet` export'u kaldırılır (başka yerde kullanılmıyor — sadece widget'ta).
 
-**Görev veri akışı:**
-- `useGorevler` ile bugün vadeli görevler alınıyor (mevcut)
-- `useGorevGuncelle` import et → checkbox `onChange` → `tamamlandi` toggle
-- Sıralama: `tamamlanmamış (alfabetik/öncelik) → tamamlanmış (updated_at desc)`
+**`src/components/mizan/dashboard/evdekiler-widget.tsx`** — yeniden yazılır:
 
-**Sıralama snippet'i:**
-```ts
-const siraliGorevler = React.useMemo(() => {
-  const acik = bugunGorevleri.filter((g) => !g.tamamlandi);
-  const kapali = bugunGorevleri
-    .filter((g) => g.tamamlandi)
-    .sort((a, b) =>
-      new Date(b.updated_at ?? 0).getTime() - new Date(a.updated_at ?? 0).getTime(),
-    );
-  return [...acik, ...kapali];
-}, [bugunGorevleri]);
-```
+- Dosya adı `bu-hafta-widget.tsx` olarak yeniden adlandırılır, component adı `BuHaftaWidget`.
+- Başlık: **"Bu hafta"** (önceki "Bu hafta Evdekiler" yerine).
+- 2 sütunlu grid (`md:grid-cols-2`): "Programlar" | "Faaliyetler".
+- Satır tıklama → `setSecilenKisiId(id)` → sağdan Sheet açılır.
+- "Tümü →" linki kaldırılır.
+- Boş durum: tüm liste boşsa widget hiç render edilmez (mevcut davranış korunur).
 
-**Etkinlik kartı:** `<Link to="/takvim">` kaldır → `<button onClick={() => setSecilenEtkinlik(o)}>` yap. Sheet açılır.
+**`src/components/mizan/dashboard/kisi-ozet-sheet.tsx`** (YENİ) — sağdan açılan kişi özet sheet'i:
+- `Sheet` (shadcn), `side="right"`, `className="w-full sm:max-w-md"`.
+- İçerik: kişi avatarı + ad, kategoriler (rozet), telefon/üniversite/bölüm (varsa), bu hafta etkinlikleri listesi.
+- Footer'da `Link to="/network/kisi/$id"` → "Tüm profili aç →".
 
-**Görev satırı:** `<li>` içinde:
-- Sol: `<Checkbox checked={g.tamamlandi} onCheckedChange={(v) => guncelle.mutate({...})} />` (renkli alan dot'u checkbox border'ı olarak kalabilir veya yanına küçük dot eklenir)
-- Orta: başlık (tamamlandıysa `line-through opacity-60`)
-- Sağ: öncelik etiketi
-- Tüm satır click → görev sheet'i açılır (checkbox tıklamasını `e.stopPropagation()` ile ayır)
+**`src/routes/index.tsx`** — import güncellenir:
+- `EvdekilerWidget` → `BuHaftaWidget`.
+- Render konumu aynı kalır.
 
-**Rail çizgisi düzeltmesi (C):**
-Mevcut:
-```tsx
-<div className="absolute left-[1.85rem] top-6 bottom-6 w-px bg-border" />
-```
-Bu rail tüm `relative px-5 py-5` container'ı kapsadığı için görev bloğunun (border-t ile ayrılan) içinden de geçiyor.
+## Dosya değişiklikleri
 
-**Çözüm:** Rail'i sadece etkinlik `<ul>`'unu saran ayrı bir `relative` container içine taşı:
-```tsx
-<div className="relative">
-  <div className="absolute left-[1.85rem] top-3 bottom-3 w-px bg-border" />
-  <ul>...etkinlikler...</ul>
-</div>
-{bugunGorevleri.length > 0 && (
-  <div className="mt-5 border-t border-border pt-4">
-    {/* Görevler — rail YOK */}
-  </div>
-)}
-```
+- ✏️ `src/lib/network-hooks.ts` — `useEvdekilerOzet` → `useBuHaftaOzet` (rename + yeniden yaz)
+- 🗑️ `src/components/mizan/dashboard/evdekiler-widget.tsx` — silinir
+- ➕ `src/components/mizan/dashboard/bu-hafta-widget.tsx` — yeni
+- ➕ `src/components/mizan/dashboard/kisi-ozet-sheet.tsx` — yeni
+- ✏️ `src/routes/index.tsx` — import + JSX güncellemesi
+- ✏️ `.lovable/plan.md` — kayıt
 
-### 4. `src/routes/index.tsx` — sadeleştirme
-- `BugunZamanCizelgesi` kendi sheet'lerini yönettiği için artık `GorevDialog` ve `EtkinlikDialog` dialog'larını ana sayfada tutmaya gerek var mı? **Evet, kalsın** — çünkü ana sayfadaki "Görev ekle" / "Etkinlik ekle" butonları bunları açıyor (yeni kayıt için dialog yine uygun, hızlı ekleme).
-- Yani `index.tsx` değişmez (veya minimal). Sheet'ler sadece zaman çizelgesi içinde detay/düzenleme akışında kullanılır.
+## Açıkta bırakılan
 
----
-
-## Açık karar (varsayım yapıyorum, beğenmezsen söyle)
-
-**Sheet vs Dialog tutarlılığı:** "Yeni ekle" akışı dialog (orta), "düzenle" akışı sheet (sağdan). Bu **bilinçli bir UX ayrımı** — yeni kayıt hızlı ve modal, düzenleme bağlamı koruyarak yan panelde. Eğer ikisinin de sheet olmasını istersen söyle, ana sayfadaki "Görev/Etkinlik ekle" butonları da sheet açacak şekilde ayarlarım.
-
-**Tamamlanan görevlerin sırası:** Tamamlanma sırasına göre (en son tamamlanan en üstte, tamamlananlar arasında). Veritabanında `tamamlandi_at` alanı yok — `updated_at` proxy olarak kullanılır (görev güncellenince `updated_at` Supabase trigger ile değişiyor varsayımıyla). Eğer `takvim_gorev` tablosunda `updated_at` yoksa, basit "tamamlananlar en altta, kendi içinde alfabetik" sıralama kullanırım.
-
----
-
-## Dosya özeti
-- **Yeni:** `src/components/mizan/dashboard/etkinlik-detay-sheet.tsx`
-- **Yeni:** `src/components/mizan/dashboard/gorev-detay-sheet.tsx`
-- **Düzenle:** `src/components/mizan/dashboard/bugun-zaman-cizelgesi.tsx` (checkbox, sıralama, sheet entegrasyonu, rail düzeltmesi)
-- **Değişmez:** `src/routes/index.tsx` (mevcut "ekle" dialog'ları korunur)
+- Doğum günleri ve "teke-tek bekleyen" hatırlatıcıları widget'tan kaldırılıyor — kullanıcı bunları istemediği için. İhtiyaç olursa sonra ayrı bir mini bileşen olarak geri eklenebilir.
+- Tıklanan etkinliği düzenleme akışı bu turda kapsam dışı (kişi sheet'i sadece görüntüleme).
