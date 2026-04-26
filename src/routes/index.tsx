@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
+import { Sun, Sunset, Moon } from "lucide-react";
 import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-hooks";
 import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { BugunCetelesi } from "@/components/mizan/dashboard/bugun-cetelesi";
@@ -10,6 +11,7 @@ import { GelecekGunler } from "@/components/mizan/dashboard/gelecek-gunler";
 import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { useAuth } from "@/lib/auth-context";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -73,6 +75,17 @@ function AnaDashboard() {
           : saat < 21
             ? "İyi akşamlar"
             : "Hayırlı akşamlar";
+  // Saate göre yumuşak ikon
+  const ZamanIkon =
+    saat >= 5 && saat < 17 ? Sun : saat >= 17 && saat < 21 ? Sunset : Moon;
+  const zamanIkonRenk =
+    saat >= 5 && saat < 12
+      ? "var(--amel)" // sabah ışığı — sıcak altın
+      : saat >= 12 && saat < 17
+        ? "var(--amel)"
+        : saat >= 17 && saat < 21
+          ? "var(--amel)" // gün batımı
+          : "var(--mana)"; // gece — sapphire
   const isim =
     (user?.user_metadata?.full_name as string | undefined) ??
     user?.email?.split("@")[0] ??
@@ -86,9 +99,16 @@ function AnaDashboard() {
           <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
             {format(simdi, "EEEE, d MMMM yyyy", { locale: tr })}
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-            {selamlama}
-            {isim ? <span className="text-muted-foreground">, {isim}</span> : null}
+          <h1 className="mt-2 inline-flex items-center gap-2.5 text-2xl font-semibold tracking-tight sm:text-3xl">
+            <ZamanIkon
+              className="h-6 w-6 shrink-0 sm:h-7 sm:w-7"
+              style={{ color: zamanIkonRenk }}
+              aria-hidden="true"
+            />
+            <span>
+              {selamlama}
+              {isim ? <span className="text-muted-foreground">, {isim}</span> : null}
+            </span>
           </h1>
         </div>
         <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card p-1.5">
@@ -97,10 +117,14 @@ function AnaDashboard() {
               key={r.ad}
               type="button"
               onClick={() => setAcikAlan(r.alan)}
-              className="group inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm transition-all hover:scale-[1.03] hover:brightness-110 active:scale-[0.98]"
+              className={cn(
+                "group inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm transition-all hover:scale-[1.03] hover:brightness-110 active:scale-[0.98]",
+                r.yuzde >= 100 && "mizan-pill-complete",
+              )}
               style={{
                 backgroundColor: `color-mix(in oklab, var(${r.renkVar}) 14%, transparent)`,
                 boxShadow: `inset 0 0 0 1px color-mix(in oklab, var(${r.renkVar}) 22%, transparent)`,
+                ["--pill-glow" as string]: `var(${r.renkVar})`,
               }}
               aria-label={`${r.ad} detayını aç`}
             >
