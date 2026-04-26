@@ -23,7 +23,6 @@ import { Route as WorkspaceSurucuRouteImport } from './routes/workspace.surucu'
 import { Route as WorkspacePomodoroRouteImport } from './routes/workspace.pomodoro'
 import { Route as WorkspaceNotlarRouteImport } from './routes/workspace.notlar'
 import { Route as WorkspaceBelgeRouteImport } from './routes/workspace.belge'
-import { Route as NetworkRaporRouteImport } from './routes/network.rapor'
 import { Route as MizanManeviyatRouteImport } from './routes/mizan.maneviyat'
 import { Route as MizanManaRouteImport } from './routes/mizan.mana'
 import { Route as MizanIlimRouteImport } from './routes/mizan.ilim'
@@ -109,11 +108,6 @@ const WorkspaceBelgeRoute = WorkspaceBelgeRouteImport.update({
   id: '/belge',
   path: '/belge',
   getParentRoute: () => WorkspaceRoute,
-} as any)
-const NetworkRaporRoute = NetworkRaporRouteImport.update({
-  id: '/rapor',
-  path: '/rapor',
-  getParentRoute: () => NetworkRoute,
 } as any)
 const MizanManeviyatRoute = MizanManeviyatRouteImport.update({
   id: '/maneviyat',
@@ -205,7 +199,6 @@ export interface FileRoutesByFullPath {
   '/mizan/ilim': typeof MizanIlimRouteWithChildren
   '/mizan/mana': typeof MizanManaRoute
   '/mizan/maneviyat': typeof MizanManeviyatRoute
-  '/network/rapor': typeof NetworkRaporRoute
   '/workspace/belge': typeof WorkspaceBelgeRouteWithChildren
   '/workspace/notlar': typeof WorkspaceNotlarRoute
   '/workspace/pomodoro': typeof WorkspacePomodoroRoute
@@ -233,7 +226,6 @@ export interface FileRoutesByTo {
   '/mizan/dunyevi': typeof MizanDunyeviRoute
   '/mizan/mana': typeof MizanManaRoute
   '/mizan/maneviyat': typeof MizanManeviyatRoute
-  '/network/rapor': typeof NetworkRaporRoute
   '/workspace/belge': typeof WorkspaceBelgeRouteWithChildren
   '/workspace/notlar': typeof WorkspaceNotlarRoute
   '/workspace/pomodoro': typeof WorkspacePomodoroRoute
@@ -266,7 +258,6 @@ export interface FileRoutesById {
   '/mizan/ilim': typeof MizanIlimRouteWithChildren
   '/mizan/mana': typeof MizanManaRoute
   '/mizan/maneviyat': typeof MizanManeviyatRoute
-  '/network/rapor': typeof NetworkRaporRoute
   '/workspace/belge': typeof WorkspaceBelgeRouteWithChildren
   '/workspace/notlar': typeof WorkspaceNotlarRoute
   '/workspace/pomodoro': typeof WorkspacePomodoroRoute
@@ -300,7 +291,6 @@ export interface FileRouteTypes {
     | '/mizan/ilim'
     | '/mizan/mana'
     | '/mizan/maneviyat'
-    | '/network/rapor'
     | '/workspace/belge'
     | '/workspace/notlar'
     | '/workspace/pomodoro'
@@ -328,7 +318,6 @@ export interface FileRouteTypes {
     | '/mizan/dunyevi'
     | '/mizan/mana'
     | '/mizan/maneviyat'
-    | '/network/rapor'
     | '/workspace/belge'
     | '/workspace/notlar'
     | '/workspace/pomodoro'
@@ -360,7 +349,6 @@ export interface FileRouteTypes {
     | '/mizan/ilim'
     | '/mizan/mana'
     | '/mizan/maneviyat'
-    | '/network/rapor'
     | '/workspace/belge'
     | '/workspace/notlar'
     | '/workspace/pomodoro'
@@ -488,13 +476,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/workspace/belge'
       preLoaderRoute: typeof WorkspaceBelgeRouteImport
       parentRoute: typeof WorkspaceRoute
-    }
-    '/network/rapor': {
-      id: '/network/rapor'
-      path: '/rapor'
-      fullPath: '/network/rapor'
-      preLoaderRoute: typeof NetworkRaporRouteImport
-      parentRoute: typeof NetworkRoute
     }
     '/mizan/maneviyat': {
       id: '/mizan/maneviyat'
@@ -657,13 +638,11 @@ const MizanRouteChildren: MizanRouteChildren = {
 const MizanRouteWithChildren = MizanRoute._addFileChildren(MizanRouteChildren)
 
 interface NetworkRouteChildren {
-  NetworkRaporRoute: typeof NetworkRaporRoute
   NetworkIstisareIdRoute: typeof NetworkIstisareIdRoute
   NetworkKisiIdRoute: typeof NetworkKisiIdRoute
 }
 
 const NetworkRouteChildren: NetworkRouteChildren = {
-  NetworkRaporRoute: NetworkRaporRoute,
   NetworkIstisareIdRoute: NetworkIstisareIdRoute,
   NetworkKisiIdRoute: NetworkKisiIdRoute,
 }
