@@ -53,6 +53,7 @@ import {
   useGundemGuncelle,
   useGundemTasi,
   useKisiler,
+  useGundemSorumluAyarla,
 } from "@/lib/network-hooks";
 import { GUNDEM_DURUMLAR } from "@/lib/network-tipleri";
 import type { GundemDetay, GundemDurum, GundemOncelik } from "@/lib/network-tipleri";
@@ -339,7 +340,7 @@ function GundemSatir({ g, onAc }: { g: GundemDetay; onAc: () => void }) {
   const guncelle = useGundemGuncelle();
   const kisilerQ = useKisiler();
   const kisiler = kisilerQ.data ?? [];
-  const sorumluAyarla = useGundemSorumluAyarlaLocal();
+  const sorumluAyarlaM = useGundemSorumluAyarla();
 
   const durum = GUNDEM_DURUMLAR.find((d) => d.id === g.durum)!;
   const geciken =
@@ -406,7 +407,7 @@ function GundemSatir({ g, onAc }: { g: GundemDetay; onAc: () => void }) {
       {/* Sorumlular */}
       <SorumluSecici
         secili={g.sorumlu_ids}
-        onChange={(ids) => sorumluAyarla({ gundem_id: g.id, sorumlu_ids: ids })}
+        onChange={(ids) => sorumluAyarlaM.mutate({ gundem_id: g.id, sorumlu_ids: ids })}
         align="end"
         trigger={
           <button
@@ -471,12 +472,4 @@ function GundemSatir({ g, onAc }: { g: GundemDetay; onAc: () => void }) {
       </Select>
     </div>
   );
-}
-
-// Local helper that wraps the hook for use inside the row component
-function useGundemSorumluAyarlaLocal() {
-  const m = (
-    require("@/lib/network-hooks") as typeof import("@/lib/network-hooks")
-  ).useGundemSorumluAyarla();
-  return (p: { gundem_id: string; sorumlu_ids: string[] }) => m.mutate(p);
 }
