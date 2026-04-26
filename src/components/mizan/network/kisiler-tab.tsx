@@ -101,16 +101,16 @@ export function KisilerTab() {
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
-      {/* Sol: Kategori paneli */}
-      <KategoriPaneli
+    <div className="space-y-3">
+      {/* Üst: Kategori chip bar */}
+      <KategoriChipBar
         aktif={aktif}
         setAktif={setAktif}
         kategoriler={kategoriler}
         kisiler={kisiler}
       />
 
-      {/* Sağ: Kişi listesi */}
+      {/* Kişi listesi */}
       <div>
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
