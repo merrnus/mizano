@@ -107,6 +107,9 @@ export type KardesEtkinlik = {
   baslik: string;
   notlar: string | null;
   sonuc: string | null;
+  baslangic_saati: string | null;
+  bitis_saati: string | null;
+  takvim_etkinlik_id: string | null;
   created_at: string;
   updated_at: string;
 };
