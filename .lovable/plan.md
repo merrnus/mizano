@@ -1,67 +1,98 @@
 
-# Raporu kategori bazlı hiyerarşik yapıya dönüştür
+# Rapor sayfasını sadeleştir — "tek bakışta okunur" hale getir
 
-## Amaç
-Şu anki rapor "düz tablo + tek kişi filtresi" mantığında. Kullanıcı şunu istiyor: rapor **kategoriler** üzerinden okunsun (Evdekiler, GG, OMM…), her kategorinin içinde **o kategoriye düşen her kardeşin** o aralıktaki gündem kararları + faaliyet sonuçları görülsün. Yani bir kategori = bir bölüm; içinde kişi başına alt kart.
+## Sorun
+Şu an sayfada çok fazla görsel yük var:
+- Filtre bloğu 4 alt bölümden oluşuyor (tarih + hızlı butonlar, sonuç doluluğu toggle, gündem durumu toggle, kategori chip'leri, kapsam toggle, "boş göster" checkbox) ve büyük bir kart kaplıyor.
+- 3 özet kart yan yana (her biri başlık + büyük rakam + 2 alt satır) — ekranda ayrı bir bölüm daha açıyor.
+- Her kategori bir kart, içinde her kişi için ayrı bir blok, her blokta 4 kolonlu mini tablolar (tarih · sol · sağ · rozet) — derinlik 3 seviye, satırlar dar olduğu için metin kırılıyor.
+- Sonuç: kullanıcı "şu an aralık ne, kim ne yapmış" sorusuna 2-3 saniyede cevap bulamıyor.
 
-Hiyerarşi:
-```
-[KATEGORİ: Evdekiler]
-  └─ Ahmet Y.
-       • Gündemler (kararlar): …
-       • Faaliyetler (sonuçlar): …
-  └─ Mehmet K.
-       • Gündemler …
-       • Faaliyetler …
-[KATEGORİ: GG]
-  …
-```
+## Hedef
+Tek bir okunabilir akış: **Üstte tek satır kontrol → tek satır özet → kategori → kişi kart listesi.** Her şey isteğe bağlı/gizlenebilir, varsayılan görünüm minimal.
 
 ## Değişiklikler
 
-### 1. `src/routes/network.rapor.tsx`
-- **Kişi filtresini kaldır** (`kisiId` search paramı + Select). Kişi artık sonuç içindeki bir grup başlığı, filtre değil.
-- **Kategori filtresi mevcut** — birden fazla seçilebilir; hiçbiri seçilmezse "tüm kategoriler" gibi davransın (bütün kategoriler bölüm olarak çıksın). Bu şekilde varsayılan deneyim de hiyerarşik olur.
-- "Gündemler ve Kararlar" + "Kardeş Faaliyetleri" bölümlerini iki ayrı düz tablo olmaktan çıkar; tek bir **"Kategori bazlı rehberlik"** bölümüne dönüştür:
-  - Her kategori için bir kart (renk noktası + ad + toplam kişi sayısı).
-  - Kategori altında, o kategorideki her kişi için bir alt blok.
-  - Alt blokta iki mini tablo / liste:
-    - **Gündem kararları:** o kişinin sorumlu olduğu, aralıktaki gündemler — tarih · içerik · karar (boşsa "Sonuç eksik" rozeti) · durum.
-    - **Faaliyetler & sonuçlar:** o kişiye ait `kardes_etkinlik` — tarih · tip · başlık · sonuç (boşsa "Sonuç eksik").
-  - Kişide hiç gündem/faaliyet yoksa "bu aralıkta kayıt yok" notu (kapsam seçimine göre).
-- Maneviyat kapsamı seçiliyse, her kişi bloğunun altına küçük bir maneviyat satırı ekle (müfredat % + evrad doluluk %). Kategoriye göre filtrelenmiş halde.
-- "Bir kategoriye düşmeyen" kişiler için en altta opsiyonel **"Kategorisiz"** bölümü (sadece o kişilerin de gündem/faaliyeti varsa görünür).
-- Üst özet kartlar aynen kalır (toplam gündem, toplam faaliyet, maneviyat ortalamaları).
-- Hızlı tarih butonları, kapsam toggle'ları, sonuç doluluğu ve gündem durumu filtreleri **aynen kalır**.
+### 1. Filtre bloğunu **tek satır kontrol çubuğuna** indir (`network.rapor.tsx`)
+- Büyük "Filtreler" kartını kaldır. Yerine başlığın hemen altında **yapışkan/kompakt bir çubuk** koy:
+  - **Tarih:** tek bir Popover butonu (`"Son 30 gün ▾"`). Açılınca: hızlı seçenekler (Bu hafta / Bu ay / Son 30 gün / Son 3 ay) + altında iki date input (özel aralık).
+  - **Kategori:** tek bir Popover butonu (`"Kategoriler · 2 seçili"` veya `"Tüm kategoriler"`). Açılınca chip listesi.
+  - **Kapsam:** kompakt 3'lü segment (Gündem · Faaliyet · Maneviyat) ikon + çok kısa etiket. Varsayılan sadece "Gündem + Faaliyet".
+  - **"Daha fazla filtre"** açılır menüsü (isteğe bağlı): sonuç doluluğu (Tümü/Dolu/Boş), gündem durumu (Tümü/Bekliyor/Yapıldı), "boş kategorileri göster" checkbox. **Varsayılan kapalı** — çoğu kullanıcı bunlara hiç dokunmuyor.
+  - Sağda **PDF indir** butonu.
+- Çubuk `sticky top-0` olabilir, sayfa kayarken erişilebilir kalır.
 
-### 2. `src/lib/network-hooks.ts`
-- `RaporFiltre`'den `kisiId` alanını kaldır (artık kullanılmıyor).
-- `useRaporGundemler` & `useRaporFaaliyetler` & `useRaporManeviyat` query key'lerinden `kisiId` çıkar.
-- `useRaporGundemler` ve `useRaporFaaliyetler` içindeki `if (filtre.kisiId)` bloklarını sil — gruplandırma artık component tarafında yapılacak.
-- Hook'ların döndürdüğü satırlar zaten `kisi_id` / `sorumlu_ids` içeriyor, gruplandırma için yeterli. **Şema değişikliği yok.**
-- Yeni yardımcı: `useKisiKategoriBaglari()` — `gundem_kisi_kategori` tablosundan tüm `(kisi_id, kategori_id)` çiftlerini tek seferde çekip Map döner; rapor sayfası kişi → kategori eşlemesini bundan yapar (aksi halde her kişi için ayrı sorgu olurdu). Var olan `useKisiler()` zaten `KisiDetay` döndürüyor mu kontrol edilecek; dönüyorsa onu kullanırız, yeni hook'a gerek kalmayabilir.
+### 2. Özet bölümünü **tek satır şeride** indir
+- 3 ayrı kartı kaldır. Yerine tek bir ince bant:
+  ```
+  📅 30 gün  ·  📂 Tüm kategoriler  ·  📋 12 gündem (8 sonuçlu, %67)  ·  ⚡ 24 faaliyet (18 sonuçlu, %75)  ·  ✨ 6 kişi
+  ```
+- Aktif kapsama göre alanlar görünür/gizli. Yer az, bilgi yoğun, yatay tek satır (mobilde sarsın).
 
-### 3. `src/lib/network-rapor-pdf.ts`
-- PDF'i de aynı hiyerarşiyle üret:
-  - Her kategori için yeni bölüm başlığı.
-  - Her kişi için alt başlık + iki küçük tablo (Gündemler / Faaliyetler).
-- `RaporPdfGirdi`'ye `gruplar: { kategori: {id, ad, renk}, kisiler: { kisi_id, kisi_ad, gundemler, faaliyetler, maneviyat? }[] }[]` şeklinde önceden gruplandırılmış veri gelsin (gruplandırma component tarafında bir kez yapılır, PDF'e hazır verilir). Eski "düz gundemler/faaliyetler" alanlarını kaldır.
-- Türkçe karakter sadeleştirme (`trText`) korunur.
+### 3. Kategori → kişi listesini **akordiyon + kompakt satıra** çevir
+Şu anki yapı: her kategori bir kart, içinde her kişi için ayrı bölüm, her bölümde mini tablolar. Çok derin.
 
-### 4. UX detayları
-- Boş kategoriler (o aralıkta hiçbir kişide kayıt yok) varsayılan olarak gizli; toggle ile gösterilebilir ("Boş kategorileri göster").
-- Bir kişi birden fazla kategoride ise, **her kategoride tekrar listelenir** (kasıtlı — kategori bazlı okuma için). İstersek "her kişi tek bir birincil kategoride" kuralı eklenebilir ama mevcut veri modeli buna uygun değil; tekrar listeleme daha doğru.
-- Kişi başlığına tıklayınca `/network/kisi/$id` profiline gider (mevcut link kullanılabilir).
+Yeni yapı:
+- Her **kategori** = bir başlık satırı (renk noktası · ad · "5 kardeş, 12 kayıt"). Tıklayınca açılır/kapanır (varsayılan açık).
+- Her **kişi** = ince bir satır:
+  ```
+  ▸ Ahmet Y.        3 gündem · 2 faaliyet · ✨ %80           [→ profil]
+  ```
+  Tıklayınca aşağı doğru detay açılır (kişi bazlı akordiyon).
+- Kişi detayı açıldığında tek bir **birleşik zaman çizelgesi** göster:
+  - Gündem ve faaliyet karışık, tarih sırasıyla.
+  - Her satır: `[ikon] [tarih] başlık → sonuç/karar` (sonuç boşsa kırmızı `Sonuç eksik` rozeti).
+  - 4 kolonlu mini tablo yok, sadece liste. Daha az çizgi, daha az kolon ayracı.
+- Maneviyat varsa kişi başlığı satırının sağına küçük rozet (`✨ %80`).
 
-## Veritabanı değişikliği
-**Yok.** Mevcut `gundem_kisi_kategori` tablosu kişi-kategori eşlemesini zaten tutuyor.
+### 4. Boş durum & yükleme
+- "Bu kriterlerle kayıt yok" mesajı tek satır, ikon yok, sade.
+- Yüklenirken inline skeleton (3-4 boş satır), büyük "Yükleniyor…" kutusu kullanılmaz.
+
+### 5. Kart/border yoğunluğunu azalt
+- Kategori başlıkları artık `bg-muted` şerit yerine sade ayraç (`border-b`) + biraz boşluk.
+- Kişi satırları arasında ince ayraç (`divide-y divide-border/50`) yeterli, her birine `rounded-xl border` koyma.
+- Mini tablolardaki `rounded-md border bg-background/40` kalkar — sadece tarih + metin.
+
+## Bilgi mimarisi karşılaştırması
+
+**Önce (şu an):**
+```
+[Filtre Kartı: tarih · hızlı · sonuç · gündem · kategoriler · kapsam · checkbox]
+[Özet Kart 1] [Özet Kart 2] [Özet Kart 3]
+[Kategori Kartı]
+  ┗ Kişi Bloğu
+      ┗ Mini Tablo: Gündemler (4 kolon)
+      ┗ Mini Tablo: Faaliyetler (4 kolon)
+      ┗ Maneviyat şeridi
+  ┗ Kişi Bloğu …
+```
+
+**Sonra (önerilen):**
+```
+[Sticky çubuk: 📅 ▾ · 📂 ▾ · [Gündem|Faaliyet|Maneviyat] · ⋯ · [PDF]]
+[Tek satır özet: 30g · 12 gündem (67%) · 24 faaliyet (75%) · 6 kişi]
+■ Evdekiler — 5 kardeş, 12 kayıt              ▾
+   Ahmet Y.    3 · 2 · ✨80%                   ▸
+   Mehmet K.   1 · 4                            ▸
+■ GG — 3 kardeş, 8 kayıt                       ▾
+   …
+```
+Kişi açılırsa altına birleşik kronolojik liste düşer.
+
+## Davranış kuralları
+- Varsayılan: tüm kategoriler açık, kişiler kapalı (ad/sayı görünür, detay tıklayınca açılır).
+- Kullanıcı kategori chip'i seçerse otomatik o kategori açık, diğerleri görünmez (zaten filtre).
+- "Daha fazla filtre" varsayılan kapalı; bir alan değiştirilince başlığında "● 1" işareti.
+- Tarih popover'ı kapanınca otomatik uygula.
+- PDF butonu görünür yapıyı bire bir basar (mevcut PDF'in kategori → kişi yapısı zaten uygun, **PDF kodunda değişiklik yok**).
 
 ## Dosya değişiklikleri
-- **Güncel:** `src/routes/network.rapor.tsx` (büyük yeniden düzenleme — kişi filtresi çıkar, hiyerarşik render eklenir)
-- **Güncel:** `src/lib/network-hooks.ts` (`RaporFiltre.kisiId` kaldır, `kisiId` filtreleme bloklarını sil, gerekiyorsa `useKisiKategoriBaglari` ekle)
-- **Güncel:** `src/lib/network-rapor-pdf.ts` (gruplandırılmış veriye göre yeniden yapılandır)
+- **Düzenle:** `src/routes/network.rapor.tsx` — sayfa baştan organize edilir; `KategoriKart`, `KisiBlokSatir`, `MiniListe`, `OzetKart` bileşenleri yeniden yazılır (akordiyon + kompakt satır + birleşik zaman çizelgesi). Search şeması ve filtre mantığı **aynı kalır** (URL state korunur).
+- **Düzenle (küçük):** Yeni filtre çubuğu için shadcn `Popover` kullanılacak — zaten `src/components/ui/popover.tsx` mevcut.
+- **Değişmez:** `src/lib/network-hooks.ts`, `src/lib/network-rapor-pdf.ts`, `src/lib/network-tipleri.ts`. Veri akışı, gruplandırma fonksiyonu (`gruplandir`) ve PDF üretimi olduğu gibi kalır.
 
-## İlk iteresyon
-1. Hook'lardan `kisiId` temizliği + (gerekirse) kişi-kategori eşleme yardımcısı.
-2. Rapor sayfası: kişi filtresi kaldır, kategori → kişi hiyerarşik render.
-3. PDF'i yeni veri yapısına göre güncelle.
+## Geri dönüş garantisi
+- URL search şeması aynı (`from`, `to`, `kategoriIds`, `kapsam`, `sonucDurumu`, `gundemDurumu`, `bosGoster`) — eski bookmark'lar çalışmaya devam eder.
+- PDF çıktısı değişmez.
+- Hiçbir veri kaybı yok, sadece görsel hiyerarşi sadeleşiyor.

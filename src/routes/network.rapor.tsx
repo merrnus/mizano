@@ -7,13 +7,25 @@ import {
   Activity,
   Sparkles,
   AlertCircle,
-  Users,
-  ChevronRight,
+  Calendar as CalendarIcon,
+  Folder,
+  SlidersHorizontal,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   useKategoriler,
   useKisiler,
@@ -268,8 +280,36 @@ function RaporPage() {
   const gSonuclu = gundemler.filter((g) => (g.karar ?? "").trim().length > 0).length;
   const fSonuclu = faaliyetler.filter((f) => (f.sonuc ?? "").trim().length > 0).length;
 
+  /* Filtre çubuğu özet metinleri */
+  const tarihEtiket = (() => {
+    const bh = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+    const ba = format(startOfMonth(new Date()), "yyyy-MM-dd");
+    if (search.from === bh && search.to === bugun()) return "Bu hafta";
+    if (search.from === ba && search.to === bugun()) return "Bu ay";
+    if (search.from === gunlerOnce(30) && search.to === bugun()) return "Son 30 gün";
+    if (
+      search.from === format(subMonths(new Date(), 3), "yyyy-MM-dd") &&
+      search.to === bugun()
+    )
+      return "Son 3 ay";
+    return `${format(parseISO(search.from), "d MMM", { locale: tr })} – ${format(parseISO(search.to), "d MMM", { locale: tr })}`;
+  })();
+  const kategoriEtiket = seciliKategoriler.length
+    ? seciliKategoriler.length === 1
+      ? seciliKategoriler[0].ad
+      : `${seciliKategoriler.length} kategori`
+    : "Tüm kategoriler";
+  const ekFiltreAktif =
+    search.sonucDurumu !== "tumu" ||
+    search.gundemDurumu !== "tumu" ||
+    search.bosGoster;
+
+  const toplamKayit =
+    (aktifGundem ? gundemler.length : 0) +
+    (aktifFaaliyet ? faaliyetler.length : 0);
+
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
       <Button
         asChild
         variant="ghost"
@@ -281,7 +321,8 @@ function RaporPage() {
         </Link>
       </Button>
 
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+      {/* BAŞLIK */}
+      <header className="mb-4 flex items-end justify-between gap-3">
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Rehberlik
@@ -289,58 +330,152 @@ function RaporPage() {
           <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
             Rapor
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {format(parseISO(search.from), "d MMM", { locale: tr })} —{" "}
-            {format(parseISO(search.to), "d MMM yyyy", { locale: tr })}
-          </p>
         </div>
-        <Button onClick={pdfIndir} disabled={yukleniyor}>
-          <Download className="h-4 w-4" /> PDF indir
+        <Button onClick={pdfIndir} disabled={yukleniyor} size="sm">
+          <Download className="h-4 w-4" /> PDF
         </Button>
       </header>
 
-      {/* FİLTRELER */}
-      <section className="mb-6 rounded-2xl border border-border bg-card p-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Tarih */}
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">
-              Tarih aralığı
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {hizli(
-                "Bu hafta",
-                format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"),
-                bugun(),
-              )}
-              {hizli("Bu ay", format(startOfMonth(new Date()), "yyyy-MM-dd"), bugun())}
-              {hizli("Son 30 gün", gunlerOnce(30), bugun())}
-              {hizli("Son 3 ay", format(subMonths(new Date(), 3), "yyyy-MM-dd"), bugun())}
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                value={search.from}
-                onChange={(e) => setSearch({ from: e.target.value })}
-                className="h-9"
-              />
-              <span className="text-muted-foreground">—</span>
-              <Input
-                type="date"
-                value={search.to}
-                onChange={(e) => setSearch({ to: e.target.value })}
-                className="h-9"
-              />
-            </div>
-          </div>
+      {/* TEK SATIR FİLTRE ÇUBUĞU */}
+      <div className="sticky top-0 z-10 -mx-4 mb-3 border-b border-border bg-background/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {/* Tarih popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                <CalendarIcon className="h-3.5 w-3.5" />
+                <span className="text-xs">{tarihEtiket}</span>
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-72 space-y-3">
+              <div className="grid grid-cols-2 gap-1.5">
+                {hizli(
+                  "Bu hafta",
+                  format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"),
+                  bugun(),
+                )}
+                {hizli("Bu ay", format(startOfMonth(new Date()), "yyyy-MM-dd"), bugun())}
+                {hizli("Son 30 gün", gunlerOnce(30), bugun())}
+                {hizli(
+                  "Son 3 ay",
+                  format(subMonths(new Date(), 3), "yyyy-MM-dd"),
+                  bugun(),
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  Özel aralık
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    type="date"
+                    value={search.from}
+                    onChange={(e) => setSearch({ from: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                  <span className="text-muted-foreground">—</span>
+                  <Input
+                    type="date"
+                    value={search.to}
+                    onChange={(e) => setSearch({ to: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
 
-          {/* Sonuç + gündem durum */}
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-2">
+          {/* Kategori popover */}
+          {kategoriler.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <Folder className="h-3.5 w-3.5" />
+                  <span className="text-xs">{kategoriEtiket}</span>
+                  <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-72">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Kategoriler
+                  </p>
+                  {search.kategoriIds.length > 0 && (
+                    <button
+                      onClick={() => setSearch({ kategoriIds: [] })}
+                      className="text-[10px] text-muted-foreground hover:text-foreground"
+                    >
+                      Temizle
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {kategoriler.map((k) => {
+                    const aktif = search.kategoriIds.includes(k.id);
+                    return (
+                      <button
+                        key={k.id}
+                        onClick={() => {
+                          const next = aktif
+                            ? search.kategoriIds.filter((id: string) => id !== k.id)
+                            : [...search.kategoriIds, k.id];
+                          setSearch({ kategoriIds: next });
+                        }}
+                        className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                          aktif
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {k.ad}
+                      </button>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {/* Kapsam segmenti */}
+          <ToggleGroup
+            type="multiple"
+            size="sm"
+            value={search.kapsam}
+            onValueChange={(v) => {
+              const arr = (v as Kapsam[]).filter(
+                (x) => x === "gundem" || x === "faaliyet" || x === "maneviyat",
+              );
+              setSearch({ kapsam: arr.length ? arr : ["gundem"] });
+            }}
+            className="h-8"
+          >
+            <ToggleGroupItem value="gundem" className="h-8 px-2 text-xs">
+              <FileText className="h-3.5 w-3.5" /> Gündem
+            </ToggleGroupItem>
+            <ToggleGroupItem value="faaliyet" className="h-8 px-2 text-xs">
+              <Activity className="h-3.5 w-3.5" /> Faaliyet
+            </ToggleGroupItem>
+            <ToggleGroupItem value="maneviyat" className="h-8 px-2 text-xs">
+              <Sparkles className="h-3.5 w-3.5" /> Maneviyat
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          {/* Daha fazla filtre */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                {ekFiltreAktif && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 space-y-3">
               <div>
-                <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <p className="mb-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                   Sonuç doluluğu
-                </label>
+                </p>
                 <ToggleGroup
                   type="single"
                   size="sm"
@@ -348,7 +483,7 @@ function RaporPage() {
                   onValueChange={(v) =>
                     v && setSearch({ sonucDurumu: v as Search["sonucDurumu"] })
                   }
-                  className="mt-1 justify-start"
+                  className="justify-start"
                 >
                   <ToggleGroupItem value="tumu" className="text-xs">
                     Tümü
@@ -362,9 +497,9 @@ function RaporPage() {
                 </ToggleGroup>
               </div>
               <div>
-                <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <p className="mb-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                   Gündem durumu
-                </label>
+                </p>
                 <ToggleGroup
                   type="single"
                   size="sm"
@@ -372,7 +507,7 @@ function RaporPage() {
                   onValueChange={(v) =>
                     v && setSearch({ gundemDurumu: v as Search["gundemDurumu"] })
                   }
-                  className="mt-1 justify-start"
+                  className="justify-start"
                 >
                   <ToggleGroupItem value="tumu" className="text-xs">
                     Tümü
@@ -385,158 +520,94 @@ function RaporPage() {
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
-            </div>
-            <label className="mt-2 flex cursor-pointer items-center gap-2 pt-1 text-xs text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={search.bosGoster}
-                onChange={(e) => setSearch({ bosGoster: e.target.checked })}
-                className="h-3.5 w-3.5 rounded border-border"
-              />
-              Boş kategorileri göster
-            </label>
-          </div>
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={search.bosGoster}
+                  onChange={(e) => setSearch({ bosGoster: e.target.checked })}
+                  className="h-3.5 w-3.5 rounded border-border"
+                />
+                Boş kategorileri göster
+              </label>
+            </PopoverContent>
+          </Popover>
         </div>
+      </div>
 
-        {/* Kategoriler */}
-        {kategoriler.length > 0 && (
-          <div className="mt-4 space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">
-              Kategori (boşsa hepsi)
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {kategoriler.map((k) => {
-                const aktif = search.kategoriIds.includes(k.id);
-                return (
-                  <button
-                    key={k.id}
-                    onClick={() => {
-                      const next = aktif
-                        ? search.kategoriIds.filter((id: string) => id !== k.id)
-                        : [...search.kategoriIds, k.id];
-                      setSearch({ kategoriIds: next });
-                    }}
-                    className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                      aktif
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {k.ad}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Kapsam */}
-        <div className="mt-4 space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">
-            Rapor kapsamı
-          </label>
-          <ToggleGroup
-            type="multiple"
-            value={search.kapsam}
-            onValueChange={(v) => {
-              const arr = (v as Kapsam[]).filter(
-                (x) => x === "gundem" || x === "faaliyet" || x === "maneviyat",
-              );
-              setSearch({ kapsam: arr.length ? arr : ["gundem"] });
-            }}
-            className="justify-start"
-          >
-            <ToggleGroupItem value="gundem">
-              <FileText className="h-3.5 w-3.5" /> Gündemler
-            </ToggleGroupItem>
-            <ToggleGroupItem value="faaliyet">
-              <Activity className="h-3.5 w-3.5" /> Faaliyetler
-            </ToggleGroupItem>
-            <ToggleGroupItem value="maneviyat">
-              <Sparkles className="h-3.5 w-3.5" /> Maneviyat
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
-      </section>
-
-      {/* ÖZET KARTLAR */}
-      <section className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* TEK SATIR ÖZET */}
+      <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span>
+          <strong className="text-foreground">{toplamKayit}</strong> kayıt ·{" "}
+          <strong className="text-foreground">{goruntulenecekGruplar.length}</strong>{" "}
+          kategori
+        </span>
         {aktifGundem && (
-          <OzetKart
-            baslik="Gündemler"
-            ana={`${gundemler.length}`}
-            altSatirlar={[
-              `${gTamam} tamamlandı`,
-              `${gSonuclu} sonuç yazılı (${
-                gundemler.length ? Math.round((gSonuclu / gundemler.length) * 100) : 0
-              }%)`,
-            ]}
-            yukleniyor={gundemQ.isLoading}
-          />
+          <span className="flex items-center gap-1">
+            <FileText className="h-3 w-3" />
+            <strong className="text-foreground">{gundemler.length}</strong> gündem
+            {gundemler.length > 0 && (
+              <span className="text-muted-foreground/80">
+                ({gTamam} yapıldı, %
+                {Math.round((gSonuclu / gundemler.length) * 100)} sonuçlu)
+              </span>
+            )}
+          </span>
         )}
         {aktifFaaliyet && (
-          <OzetKart
-            baslik="Faaliyetler"
-            ana={`${faaliyetler.length}`}
-            altSatirlar={[
-              `${fSonuclu} sonuç yazılı (${
-                faaliyetler.length
-                  ? Math.round((fSonuclu / faaliyetler.length) * 100)
-                  : 0
-              }%)`,
-              `${goruntulenecekGruplar.reduce(
-                (a, g) => a + g.kisiler.length,
-                0,
-              )} kardeş kapsamda`,
-            ]}
-            yukleniyor={faaliyetQ.isLoading}
-          />
+          <span className="flex items-center gap-1">
+            <Activity className="h-3 w-3" />
+            <strong className="text-foreground">{faaliyetler.length}</strong> faaliyet
+            {faaliyetler.length > 0 && (
+              <span className="text-muted-foreground/80">
+                (%{Math.round((fSonuclu / faaliyetler.length) * 100)} sonuçlu)
+              </span>
+            )}
+          </span>
         )}
-        {aktifManeviyat && (
-          <OzetKart
-            baslik="Maneviyat"
-            ana={`${maneviyat.length} kişi`}
-            altSatirlar={[
-              `Müfredat ortalaması ${
-                maneviyat.length
-                  ? Math.round(
-                      maneviyat.reduce((a, b) => a + b.mufredat_ilerleme_yuzde, 0) /
-                        maneviyat.length,
-                    )
-                  : 0
-              }%`,
-              `Evrad doluluk ${
-                maneviyat.length
-                  ? Math.round(
-                      maneviyat.reduce((a, b) => a + b.evrad_doluluk_yuzde, 0) /
-                        maneviyat.length,
-                    )
-                  : 0
-              }%`,
-            ]}
-            yukleniyor={maneviyatQ.isLoading}
-          />
+        {aktifManeviyat && maneviyat.length > 0 && (
+          <span className="flex items-center gap-1">
+            <Sparkles className="h-3 w-3" />
+            müfredat %
+            {Math.round(
+              maneviyat.reduce((a, b) => a + b.mufredat_ilerleme_yuzde, 0) /
+                maneviyat.length,
+            )}{" "}
+            · evrad %
+            {Math.round(
+              maneviyat.reduce((a, b) => a + b.evrad_doluluk_yuzde, 0) /
+                maneviyat.length,
+            )}
+          </span>
         )}
-      </section>
+      </div>
 
-      {/* KATEGORİ → KİŞİ HİYERARŞİSİ */}
-      <section className="space-y-6">
+      {/* KATEGORİ → KİŞİ AKORDİYON LİSTESİ */}
+      <section>
         {yukleniyor ? (
-          <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-            Yükleniyor…
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-10 animate-pulse rounded-md bg-muted/40"
+              />
+            ))}
           </div>
         ) : goruntulenecekGruplar.length === 0 ? (
-          <BosKutu mesaj="Bu kriterlerle kayıt bulunamadı." />
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            Bu kriterlerle kayıt bulunamadı.
+          </p>
         ) : (
-          goruntulenecekGruplar.map((g, i) => (
-            <KategoriKart
-              key={g.kategori?.id ?? `_kategorisiz_${i}`}
-              blok={g}
-              aktifGundem={aktifGundem}
-              aktifFaaliyet={aktifFaaliyet}
-              aktifManeviyat={aktifManeviyat}
-            />
-          ))
+          <div className="divide-y divide-border">
+            {goruntulenecekGruplar.map((g, i) => (
+              <KategoriBolum
+                key={g.kategori?.id ?? `_kategorisiz_${i}`}
+                blok={g}
+                aktifGundem={aktifGundem}
+                aktifFaaliyet={aktifFaaliyet}
+                aktifManeviyat={aktifManeviyat}
+              />
+            ))}
+          </div>
         )}
       </section>
     </div>
@@ -545,7 +616,7 @@ function RaporPage() {
 
 /* ============== Alt bileşenler ============== */
 
-function KategoriKart({
+function KategoriBolum({
   blok,
   aktifGundem,
   aktifFaaliyet,
@@ -557,54 +628,76 @@ function KategoriKart({
   aktifManeviyat: boolean;
 }) {
   const { kategori, kisiler } = blok;
-  const dolu = kisiler.filter(
+  const toplamKayit = kisiler.reduce(
+    (a, k) =>
+      a +
+      (aktifGundem ? k.gundemler.length : 0) +
+      (aktifFaaliyet ? k.faaliyetler.length : 0),
+    0,
+  );
+  const aktifKisiler = kisiler.filter(
     (k) =>
       (aktifGundem && k.gundemler.length) ||
       (aktifFaaliyet && k.faaliyetler.length) ||
       (aktifManeviyat && k.maneviyat),
   );
+  const [acik, setAcik] = React.useState(true);
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
-      <header className="flex items-center justify-between gap-3 border-b border-border bg-muted/30 px-5 py-3">
+    <Collapsible open={acik} onOpenChange={setAcik}>
+      <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 py-3 text-left">
         <div className="flex items-center gap-2.5">
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground transition-transform ${
+              acik ? "" : "-rotate-90"
+            }`}
+          />
           <span
-            className="h-2.5 w-2.5 rounded-full"
+            className="h-2 w-2 rounded-full"
             style={{ background: kategori?.renk ?? "hsl(var(--muted-foreground))" }}
           />
-          <h2 className="text-base font-semibold tracking-tight">
+          <h2 className="text-sm font-semibold tracking-tight">
             {kategori?.ad ?? "Kategorisiz"}
           </h2>
-          <Badge variant="outline" className="text-[10px]">
-            <Users className="h-3 w-3" /> {kisiler.length}
-          </Badge>
         </div>
         <span className="text-[11px] text-muted-foreground">
-          {dolu.length} aktif kardeş
+          {aktifKisiler.length}/{kisiler.length} kardeş · {toplamKayit} kayıt
         </span>
-      </header>
-
-      {kisiler.length === 0 ? (
-        <div className="px-5 py-6 text-sm text-muted-foreground">
-          Bu kategoride kayıtlı kardeş yok.
-        </div>
-      ) : (
-        <div className="divide-y divide-border">
-          {kisiler.map((k) => (
-            <KisiBlokSatir
-              key={k.kisi_id}
-              blok={k}
-              aktifGundem={aktifGundem}
-              aktifFaaliyet={aktifFaaliyet}
-              aktifManeviyat={aktifManeviyat}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        {kisiler.length === 0 ? (
+          <p className="pb-3 pl-7 text-xs text-muted-foreground">
+            Bu kategoride kayıtlı kardeş yok.
+          </p>
+        ) : (
+          <div className="divide-y divide-border/50 border-t border-border/50">
+            {kisiler.map((k) => (
+              <KisiSatir
+                key={k.kisi_id}
+                blok={k}
+                aktifGundem={aktifGundem}
+                aktifFaaliyet={aktifFaaliyet}
+                aktifManeviyat={aktifManeviyat}
+              />
+            ))}
+          </div>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
-function KisiBlokSatir({
+/** Birleşik kronolojik öğe — gündem ve faaliyetleri tek listede. */
+type ZamanOgesi = {
+  id: string;
+  tarih: string;
+  tip: "gundem" | "faaliyet";
+  baslik: string;
+  sonuc: string | null;
+  durum?: string;
+};
+
+function KisiSatir({
   blok,
   aktifGundem,
   aktifFaaliyet,
@@ -615,183 +708,135 @@ function KisiBlokSatir({
   aktifFaaliyet: boolean;
   aktifManeviyat: boolean;
 }) {
+  const [acik, setAcik] = React.useState(false);
+  const gSayi = aktifGundem ? blok.gundemler.length : 0;
+  const fSayi = aktifFaaliyet ? blok.faaliyetler.length : 0;
   const bos =
-    (!aktifGundem || blok.gundemler.length === 0) &&
-    (!aktifFaaliyet || blok.faaliyetler.length === 0) &&
-    (!aktifManeviyat || !blok.maneviyat);
+    gSayi === 0 && fSayi === 0 && (!aktifManeviyat || !blok.maneviyat);
+
+  // Birleşik kronolojik liste
+  const ogeler: ZamanOgesi[] = React.useMemo(() => {
+    const r: ZamanOgesi[] = [];
+    if (aktifGundem) {
+      blok.gundemler.forEach((g) =>
+        r.push({
+          id: `g-${g.id}`,
+          tarih: g.istisare_tarih,
+          tip: "gundem",
+          baslik: g.icerik,
+          sonuc: g.karar,
+          durum: g.durum,
+        }),
+      );
+    }
+    if (aktifFaaliyet) {
+      blok.faaliyetler.forEach((f) =>
+        r.push({
+          id: `f-${f.id}`,
+          tarih: f.tarih,
+          tip: "faaliyet",
+          baslik: `${ETKINLIK_TIP_MAP[f.tip]?.ad ?? f.tip} · ${f.baslik}`,
+          sonuc: f.sonuc,
+        }),
+      );
+    }
+    return r.sort((a, b) => b.tarih.localeCompare(a.tarih));
+  }, [blok.gundemler, blok.faaliyetler, aktifGundem, aktifFaaliyet]);
 
   return (
-    <div className="px-5 py-4">
-      <div className="mb-2 flex items-center justify-between">
-        <Link
-          to="/network/kisi/$id"
-          params={{ id: blok.kisi_id }}
-          search={{ kt: "profil" }}
-          className="group flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary"
-        >
-          {blok.kisi_ad}
-          <ChevronRight className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
-        </Link>
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          {aktifGundem && (
-            <Badge variant="secondary" className="text-[10px]">
-              {blok.gundemler.length} gündem
-            </Badge>
+    <div className="pl-7">
+      <button
+        onClick={() => !bos && setAcik((v) => !v)}
+        disabled={bos}
+        className="flex w-full items-center justify-between gap-3 py-2.5 text-left disabled:cursor-default"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          {!bos && (
+            <ChevronDown
+              className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${
+                acik ? "" : "-rotate-90"
+              }`}
+            />
           )}
-          {aktifFaaliyet && (
-            <Badge variant="secondary" className="text-[10px]">
-              {blok.faaliyetler.length} faaliyet
-            </Badge>
-          )}
+          {bos && <span className="w-3.5 shrink-0" />}
+          <span className="truncate text-sm text-foreground">{blok.kisi_ad}</span>
         </div>
-      </div>
-
-      {bos ? (
-        <p className="text-xs text-muted-foreground">
-          Bu aralıkta kayıt yok.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {aktifGundem && blok.gundemler.length > 0 && (
-            <MiniListe
-              icon={<FileText className="h-3 w-3" />}
-              baslik="Gündem kararları"
-              satirlar={blok.gundemler.map((g) => ({
-                id: g.id,
-                tarih: g.istisare_tarih,
-                sol: g.icerik,
-                sag: g.karar,
-                rozetler: [
-                  <Badge
-                    key="d"
-                    variant={g.durum === "yapildi" ? "default" : "outline"}
-                    className="text-[10px]"
-                  >
-                    {g.durum}
-                  </Badge>,
-                ],
-              }))}
-            />
-          )}
-          {aktifFaaliyet && blok.faaliyetler.length > 0 && (
-            <MiniListe
-              icon={<Activity className="h-3 w-3" />}
-              baslik="Faaliyetler & sonuçlar"
-              satirlar={blok.faaliyetler.map((f) => ({
-                id: f.id,
-                tarih: f.tarih,
-                sol: `${ETKINLIK_TIP_MAP[f.tip]?.ad ?? f.tip} · ${f.baslik}`,
-                sag: f.sonuc,
-              }))}
-            />
-          )}
+        <div className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
+          {aktifGundem && gSayi > 0 && <span>{gSayi} gündem</span>}
+          {aktifFaaliyet && fSayi > 0 && <span>{fSayi} faaliyet</span>}
           {aktifManeviyat && blok.maneviyat && (
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-background/60 px-3 py-2 text-xs">
-              <span className="flex items-center gap-1.5 text-muted-foreground">
-                <Sparkles className="h-3 w-3" /> Maneviyat
-              </span>
+            <span className="inline-flex items-center gap-0.5 text-foreground/80">
+              <Sparkles className="h-3 w-3" />%
+              {blok.maneviyat.mufredat_ilerleme_yuzde}
+            </span>
+          )}
+          {bos && <span className="italic">kayıt yok</span>}
+        </div>
+      </button>
+
+      {!bos && acik && (
+        <div className="space-y-1 pb-3 pl-5">
+          {ogeler.map((o) => (
+            <ZamanSatiri key={o.id} oge={o} />
+          ))}
+          {aktifManeviyat && blok.maneviyat && (
+            <div className="flex flex-wrap gap-3 pt-1 text-[11px] text-muted-foreground">
               <span>
-                Müfredat:{" "}
+                Müfredat{" "}
                 <strong className="text-foreground">
-                  {blok.maneviyat.mufredat_ilerleme_yuzde}%
+                  %{blok.maneviyat.mufredat_ilerleme_yuzde}
                 </strong>{" "}
                 ({blok.maneviyat.aktif_mufredat_sayisi} aktif)
               </span>
               <span>
-                Evrad:{" "}
+                Evrad{" "}
                 <strong className="text-foreground">
-                  {blok.maneviyat.evrad_doluluk_yuzde}%
+                  %{blok.maneviyat.evrad_doluluk_yuzde}
                 </strong>{" "}
-                ({blok.maneviyat.evrad_kayit_sayisi}/{blok.maneviyat.evrad_madde_sayisi}{" "}
-                madde)
+                ({blok.maneviyat.evrad_kayit_sayisi}/{blok.maneviyat.evrad_madde_sayisi})
               </span>
             </div>
           )}
+          <div className="pt-1">
+            <Link
+              to="/network/kisi/$id"
+              params={{ id: blok.kisi_id }}
+              search={{ kt: "profil" }}
+              className="text-[11px] text-muted-foreground hover:text-primary"
+            >
+              Profile git →
+            </Link>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function MiniListe({
-  icon,
-  baslik,
-  satirlar,
-}: {
-  icon: React.ReactNode;
-  baslik: string;
-  satirlar: Array<{
-    id: string;
-    tarih: string;
-    sol: string;
-    sag: string | null;
-    rozetler?: React.ReactNode[];
-  }>;
-}) {
+function ZamanSatiri({ oge }: { oge: ZamanOgesi }) {
+  const Ikon = oge.tip === "gundem" ? FileText : Activity;
+  const dolu = (oge.sonuc ?? "").trim().length > 0;
   return (
-    <div>
-      <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-        {icon} {baslik}
-      </p>
-      <ul className="space-y-1.5">
-        {satirlar.map((s) => (
-          <li
-            key={s.id}
-            className="grid grid-cols-[60px_1fr_1.4fr_auto] items-start gap-2 rounded-md border border-border/60 bg-background/40 px-2.5 py-1.5 text-xs"
-          >
-            <span className="text-muted-foreground">
-              {format(parseISO(s.tarih), "d MMM", { locale: tr })}
-            </span>
-            <span className="text-foreground">{s.sol}</span>
-            <span className="text-foreground/90">
-              {s.sag?.trim() ? (
-                s.sag
-              ) : (
-                <span className="inline-flex items-center gap-1 text-destructive">
-                  <AlertCircle className="h-3 w-3" /> Sonuç eksik
-                </span>
-              )}
-            </span>
-            <span className="flex items-center gap-1">{s.rozetler}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function OzetKart({
-  baslik,
-  ana,
-  altSatirlar,
-  yukleniyor,
-}: {
-  baslik: string;
-  ana: string;
-  altSatirlar: string[];
-  yukleniyor?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-        {baslik}
-      </p>
-      <p className="mt-1 text-2xl font-semibold tracking-tight">
-        {yukleniyor ? "…" : ana}
-      </p>
-      <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
-        {altSatirlar.map((s, i) => (
-          <li key={i}>{s}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function BosKutu({ mesaj }: { mesaj: string }) {
-  return (
-    <div className="rounded-xl border border-dashed border-border bg-card/50 p-8 text-center text-sm text-muted-foreground">
-      {mesaj}
+    <div className="flex items-start gap-2 py-1 text-xs">
+      <Ikon className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+      <span className="w-12 shrink-0 text-muted-foreground">
+        {format(parseISO(oge.tarih), "d MMM", { locale: tr })}
+      </span>
+      <div className="min-w-0 flex-1">
+        <span className="text-foreground">{oge.baslik}</span>
+        {dolu ? (
+          <span className="text-foreground/70"> → {oge.sonuc}</span>
+        ) : (
+          <span className="ml-1 inline-flex items-center gap-0.5 text-destructive/80">
+            <AlertCircle className="h-3 w-3" /> sonuç eksik
+          </span>
+        )}
+        {oge.tip === "gundem" && oge.durum === "bekliyor" && (
+          <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[9px]">
+            bekliyor
+          </Badge>
+        )}
+      </div>
     </div>
   );
 }
