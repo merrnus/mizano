@@ -383,17 +383,18 @@ function DuzenleSatir({
   const [takvimeEkle, setTakvimeEkle] = React.useState(!!etkinlik.takvim_etkinlik_id);
 
   const kaydet = async () => {
-    if (!baslik.trim()) return;
     if (baslangicSaati && bitisSaati && bitisSaati <= baslangicSaati) {
       toast.error("Bitiş saati başlangıçtan sonra olmalı");
       return;
     }
+    const otomatikBaslik = `${ETKINLIK_TIP_MAP[tip].ad}${kisi?.ad ? ` — ${kisi.ad}` : ""}`;
+    const finalBaslik = baslik.trim() || otomatikBaslik;
     await guncelle.mutateAsync({
       id: etkinlik.id,
       kisi_id: etkinlik.kisi_id,
       tip,
       tarih,
-      baslik: baslik.trim(),
+      baslik: finalBaslik,
       notlar: notlar.trim() || null,
       sonuc: sonuc.trim() || null,
       baslangic_saati: baslangicSaati || null,
