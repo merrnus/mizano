@@ -1,11 +1,26 @@
 import * as React from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Eye, EyeOff, Star } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Star, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useKategoriler, useKisi, useKisiGuncelleDetay } from "@/lib/network-hooks";
+import {
+  useKategoriler,
+  useKisi,
+  useKisiGuncelleDetay,
+  useKisiSil,
+} from "@/lib/network-hooks";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { KardesProfilForm } from "@/components/mizan/network/kardes-profil-form";
 import { KardesFaaliyetTimeline } from "@/components/mizan/network/kardes-faaliyet-timeline";
 import { format, parseISO } from "date-fns";
@@ -45,6 +60,8 @@ function KisiDetay() {
   const { data: kisi, isLoading } = useKisi(id);
   const { data: kategoriler = [] } = useKategoriler();
   const guncelle = useKisiGuncelleDetay();
+  const sil = useKisiSil();
+  const [silAcik, setSilAcik] = React.useState(false);
 
   if (isLoading) {
     return (
@@ -140,6 +157,14 @@ function KisiDetay() {
             </>
           )}
         </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => setSilAcik(true)}
+        >
+          <Trash2 className="h-3.5 w-3.5" /> Sil
+        </Button>
       </header>
 
       {/* Tabs */}
@@ -166,6 +191,31 @@ function KisiDetay() {
           <KardesFaaliyetTimeline kisiId={kisi.id} />
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={silAcik} onOpenChange={setSilAcik}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Kişiyi sil?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{kisi.ad}" silinecek. Atanmış olduğu gündemlerden de çıkarılır. Bu işlem geri
+              alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                await sil.mutateAsync(kisi.id);
+                toast.success(`"${kisi.ad}" silindi`);
+                navigate({ to: "/network", search: { tab: "kisiler" } as never });
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
