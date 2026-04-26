@@ -1,73 +1,38 @@
-# Ana Sayfa İyileştirmeleri — Flow Mode + Detaylar
+## Sorun
 
-Gemini'nin önerilerinden mevcut yapıyla çelişmeyen, gerçek değer katacak 3 madde.
+Akış modunda **"Atla" (ileri)** butonu var ama **geri dönme** imkânı yok. Kullanıcı yanlışlıkla bir kartı atlarsa veya az önce işaretlediği kartı tekrar görmek isterse, oturumu kapatmak zorunda kalıyor.
 
-## 1. Flow Mode (Akış Modu) — Üç alan da, ayrı oturum
+## Çözüm
 
-**Amaç:** Çeteledeki habit'leri tek tek scroll'lamak yerine tam ekran, kart kart, odaklı bir şekilde işaretlemek.
+`src/components/mizan/dashboard/akis-modu.tsx` içine hafif bir **"Geri"** kontrolü eklenecek. Mevcut tasarımı bozmadan:
 
-**Tetikleyici:**
-- `BugunCetelesi`'ndeki her alan başlığının (Mana / İlim / Amel) yanına küçük bir **"Akışa başla ▶"** butonu eklenir.
-- Sadece o alanda **bugüne ait, henüz hedefe ulaşmamış** çetele şablonları varsa buton aktif olur. Hepsi tamamlanmışsa "Tamamlandı ✓" rozeti gösterilir.
+### 1. Alt aksiyonlar satırına "Geri" butonu
+Şu an alt satırda solda **Atla**, sağda **süre** var. Yapı şöyle olacak:
 
-**Yeni dosya:** `src/components/mizan/dashboard/akis-modu.tsx`
-- Full-screen `Dialog` veya custom overlay (z-50, alan rengini taşıyan zarif gradient zemin)
-- Tek seferde **bir kart** gösterir:
-  - Alan etiketi (üstte, küçük)
-  - Habit adı (büyük, başlık)
-  - Hedef bilgisi ("Hedef 3 sayfa", "Hedef 20 dakika" vs.)
-  - Mevcut ilerleme (varsa)
-  - Büyük **"Tamamlandı"** butonu (mobile: swipe up da çalışır)
-  - Alt: "Atla" / "Sonra" linki, ilerleme noktaları (1 / 8)
-- Bittiğinde: "X habit tamamlandı, Y dakika sürdü" özet ekranı + "Kapat"
-- Animasyonlar: kart geçişi `fade-in + slide`, tamamlama anında alan rengiyle kısa bir glow
-
-**Veri akışı:**
-- Mevcut `useSablonlar`, `useHaftaKayitlari` hook'larını kullanır
-- Tamamlama → mevcut çetele kaydı insert mutasyonu (`CeteleHucre`'deki ile aynı mantık)
-- React Query cache otomatik güncellenir, kapandığında dashboard taze yüzdeleri gösterir
-
-**Edit:** `src/components/mizan/dashboard/bugun-cetelesi.tsx` — alan başlığına buton ekle, AkisModu bileşenini state ile aç/kapat.
-
-## 2. Pill'lerde %100 Nefes Efekti
-
-**Amaç:** Üstteki Mana/İlim/Amel pill'leri statik. Bir alan %100'e ulaştığında o pill yumuşak bir pulse/glow alır → tatmin verici, dikkat çekici ama rahatsız etmez.
-
-**Edit:** `src/styles.css`
-```css
-@keyframes mizan-breath {
-  0%, 100% { box-shadow: 0 0 0 1px var(--ring-color), 0 0 0 0 var(--glow-color); }
-  50% { box-shadow: 0 0 0 1px var(--ring-color), 0 0 12px 2px var(--glow-color); }
-}
-.mizan-pill-complete { animation: mizan-breath 2.5s ease-in-out infinite; }
+```
+[← Geri]                [Atla →]   [süre]
 ```
 
-**Edit:** `src/routes/index.tsx` — pill butonuna `r.yuzde >= 100` ise `mizan-pill-complete` class'ı ekle, CSS değişkenleriyle alan rengini geçir.
+- **Geri** butonu sadece `idx > 0` iken görünür/aktif olur (ilk kartta gizli ya da disabled).
+- Tıklandığında `idx`'i 1 azaltır, `yeniMiktar` input'unu temizler, `flash` durumunu sıfırlar.
+- Önemli: geri gidilen kartın `tamamlananIds` / `atlananIds` set'inden çıkarılmasına **gerek yok** — toplam canlı `kayitlar`'dan hesaplandığı için kart hâlâ doğru durumu (eklenmiş miktarı) gösterecek. Atlananlar için ise listeden çıkarmak doğru olur ki tekrar "atlandı" olarak işaretlenmesin → geri tuşu **atlanan kayıttan çıkarır**.
 
-## 3. Selamlamaya Zaman Bazlı İkon
+### 2. Klavye kısayolu
+Mevcut `keydown` listener'ına ek:
+- `ArrowLeft` → geri (idx > 0 ise)
+- `ArrowRight` → atla (mevcut davranış için kısayol)
 
-**Amaç:** "Hayırlı günler, saalutlume" yanına minik, kişisel his veren bir ikon.
+Bu, masaüstünde akışı çok daha hızlı hâle getirir. Mobilde mevcut buton yeterli.
 
-**Edit:** `src/routes/index.tsx`
-- Saat aralığına göre:
-  - 5–11: `Sun` (sarı)
-  - 12–16: `Sun` (turuncu)
-  - 17–20: `Sunset` (turuncu/kırmızı)
-  - 21–4: `Moon` (mavi/mor)
-- Selamlama metninin yanında `inline-flex` ile, küçük (h-5 w-5), yumuşak renk
-- `aria-hidden` (dekoratif)
+### 3. İlerleme noktaları (progress dots) tıklanabilir mi?
+**Hayır, bu turda eklemeyelim.** Şu an noktalar sadece görsel; tıklanabilir yapmak yeni etkileşim modeli demektir (geri/ileri atlama, durumların korunması vs.). Geri butonu + klavye kısayolu yeterli ve net.
 
-## Dokunulmayacaklar (Gemini'den reddedilenler)
+## Değişecek dosya
 
-- ❌ Yeni "Mizan Bar" (zaten pill'ler var)
-- ❌ Navigasyon yeniden adlandırma (Merkez/İstikamet/Radar/Ufuk)
-- ❌ Mutfak'ı Google Workspace'e bağlama
-- ❌ İlim "Battle Room" / Amel "Skill Tree" (mevcut hedef/ders yapısı yeterli)
-- ❌ OKLCH paletini sıfırdan değiştirme (mevcut açık tema bozulur)
-- ❌ Haptic feedback (web'de değişken destek)
+- `src/components/mizan/dashboard/akis-modu.tsx` — tek dosya değişikliği.
 
-## Tahmini Etki
+## Değişmeyecek
 
-- Toplam ~3 yeni/edit dosya
-- Düşük risk (mevcut hook ve veri yapısına müdahale yok, sadece UI katmanı)
-- Yüksek tatmin (özellikle Flow Mode mobilde radikal bir UX iyileştirmesi)
+- Veri akışı, hooks, mutation davranışı.
+- Tasarım dili (renk, animasyon, layout).
+- Diğer hiçbir bileşen.
