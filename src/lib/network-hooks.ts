@@ -1166,7 +1166,6 @@ export function useKardesEvradToggle() {
 export type RaporFiltre = {
   from: string; // YYYY-MM-DD
   to: string;   // YYYY-MM-DD
-  kisiId?: string;
   kategoriIds?: string[];
   sonucDurumu?: "tumu" | "dolu" | "bos";
   gundemDurumu?: "tumu" | "bekliyor" | "yapildi";
@@ -1230,7 +1229,6 @@ export function useRaporGundemler(filtre: RaporFiltre, aktif: boolean) {
       user?.id,
       filtre.from,
       filtre.to,
-      filtre.kisiId ?? "all",
       (filtre.kategoriIds ?? []).join(","),
       filtre.sonucDurumu ?? "tumu",
       filtre.gundemDurumu ?? "tumu",
@@ -1306,11 +1304,6 @@ export function useRaporGundemler(filtre: RaporFiltre, aktif: boolean) {
         satirlar = satirlar.filter((s) => !(s.karar ?? "").trim().length);
       }
 
-      // Kişi filtresi
-      if (filtre.kisiId) {
-        satirlar = satirlar.filter((s) => s.sorumlu_ids.includes(filtre.kisiId!));
-      }
-
       // Kategori filtresi: sorumluların kategorilere üyeliği
       if (filtre.kategoriIds && filtre.kategoriIds.length > 0) {
         const { data: bag } = await supabase
@@ -1339,18 +1332,16 @@ export function useRaporFaaliyetler(filtre: RaporFiltre, aktif: boolean) {
       user?.id,
       filtre.from,
       filtre.to,
-      filtre.kisiId ?? "all",
       (filtre.kategoriIds ?? []).join(","),
       filtre.sonucDurumu ?? "tumu",
     ],
     enabled: !!user && aktif,
     queryFn: async (): Promise<RaporFaaliyetSatir[]> => {
-      let q = supabase
+      const q = supabase
         .from("kardes_etkinlik")
         .select("*")
         .gte("tarih", filtre.from)
         .lte("tarih", filtre.to);
-      if (filtre.kisiId) q = q.eq("kisi_id", filtre.kisiId);
       const { data, error } = await q;
       if (error) throw error;
       const etk = (data ?? []) as KardesEtkinlik[];
