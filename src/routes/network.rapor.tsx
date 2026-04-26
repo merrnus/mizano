@@ -616,7 +616,7 @@ function RaporPage() {
 
 /* ============== Alt bileşenler ============== */
 
-function KategoriKart({
+function KategoriBolum({
   blok,
   aktifGundem,
   aktifFaaliyet,
@@ -628,54 +628,76 @@ function KategoriKart({
   aktifManeviyat: boolean;
 }) {
   const { kategori, kisiler } = blok;
-  const dolu = kisiler.filter(
+  const toplamKayit = kisiler.reduce(
+    (a, k) =>
+      a +
+      (aktifGundem ? k.gundemler.length : 0) +
+      (aktifFaaliyet ? k.faaliyetler.length : 0),
+    0,
+  );
+  const aktifKisiler = kisiler.filter(
     (k) =>
       (aktifGundem && k.gundemler.length) ||
       (aktifFaaliyet && k.faaliyetler.length) ||
       (aktifManeviyat && k.maneviyat),
   );
+  const [acik, setAcik] = React.useState(true);
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
-      <header className="flex items-center justify-between gap-3 border-b border-border bg-muted/30 px-5 py-3">
+    <Collapsible open={acik} onOpenChange={setAcik}>
+      <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 py-3 text-left">
         <div className="flex items-center gap-2.5">
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground transition-transform ${
+              acik ? "" : "-rotate-90"
+            }`}
+          />
           <span
-            className="h-2.5 w-2.5 rounded-full"
+            className="h-2 w-2 rounded-full"
             style={{ background: kategori?.renk ?? "hsl(var(--muted-foreground))" }}
           />
-          <h2 className="text-base font-semibold tracking-tight">
+          <h2 className="text-sm font-semibold tracking-tight">
             {kategori?.ad ?? "Kategorisiz"}
           </h2>
-          <Badge variant="outline" className="text-[10px]">
-            <Users className="h-3 w-3" /> {kisiler.length}
-          </Badge>
         </div>
         <span className="text-[11px] text-muted-foreground">
-          {dolu.length} aktif kardeş
+          {aktifKisiler.length}/{kisiler.length} kardeş · {toplamKayit} kayıt
         </span>
-      </header>
-
-      {kisiler.length === 0 ? (
-        <div className="px-5 py-6 text-sm text-muted-foreground">
-          Bu kategoride kayıtlı kardeş yok.
-        </div>
-      ) : (
-        <div className="divide-y divide-border">
-          {kisiler.map((k) => (
-            <KisiBlokSatir
-              key={k.kisi_id}
-              blok={k}
-              aktifGundem={aktifGundem}
-              aktifFaaliyet={aktifFaaliyet}
-              aktifManeviyat={aktifManeviyat}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        {kisiler.length === 0 ? (
+          <p className="pb-3 pl-7 text-xs text-muted-foreground">
+            Bu kategoride kayıtlı kardeş yok.
+          </p>
+        ) : (
+          <div className="divide-y divide-border/50 border-t border-border/50">
+            {kisiler.map((k) => (
+              <KisiSatir
+                key={k.kisi_id}
+                blok={k}
+                aktifGundem={aktifGundem}
+                aktifFaaliyet={aktifFaaliyet}
+                aktifManeviyat={aktifManeviyat}
+              />
+            ))}
+          </div>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
-function KisiBlokSatir({
+/** Birleşik kronolojik öğe — gündem ve faaliyetleri tek listede. */
+type ZamanOgesi = {
+  id: string;
+  tarih: string;
+  tip: "gundem" | "faaliyet";
+  baslik: string;
+  sonuc: string | null;
+  durum?: string;
+};
+
+function KisiSatir({
   blok,
   aktifGundem,
   aktifFaaliyet,
@@ -686,183 +708,135 @@ function KisiBlokSatir({
   aktifFaaliyet: boolean;
   aktifManeviyat: boolean;
 }) {
+  const [acik, setAcik] = React.useState(false);
+  const gSayi = aktifGundem ? blok.gundemler.length : 0;
+  const fSayi = aktifFaaliyet ? blok.faaliyetler.length : 0;
   const bos =
-    (!aktifGundem || blok.gundemler.length === 0) &&
-    (!aktifFaaliyet || blok.faaliyetler.length === 0) &&
-    (!aktifManeviyat || !blok.maneviyat);
+    gSayi === 0 && fSayi === 0 && (!aktifManeviyat || !blok.maneviyat);
+
+  // Birleşik kronolojik liste
+  const ogeler: ZamanOgesi[] = React.useMemo(() => {
+    const r: ZamanOgesi[] = [];
+    if (aktifGundem) {
+      blok.gundemler.forEach((g) =>
+        r.push({
+          id: `g-${g.id}`,
+          tarih: g.istisare_tarih,
+          tip: "gundem",
+          baslik: g.icerik,
+          sonuc: g.karar,
+          durum: g.durum,
+        }),
+      );
+    }
+    if (aktifFaaliyet) {
+      blok.faaliyetler.forEach((f) =>
+        r.push({
+          id: `f-${f.id}`,
+          tarih: f.tarih,
+          tip: "faaliyet",
+          baslik: `${ETKINLIK_TIP_MAP[f.tip]?.ad ?? f.tip} · ${f.baslik}`,
+          sonuc: f.sonuc,
+        }),
+      );
+    }
+    return r.sort((a, b) => b.tarih.localeCompare(a.tarih));
+  }, [blok.gundemler, blok.faaliyetler, aktifGundem, aktifFaaliyet]);
 
   return (
-    <div className="px-5 py-4">
-      <div className="mb-2 flex items-center justify-between">
-        <Link
-          to="/network/kisi/$id"
-          params={{ id: blok.kisi_id }}
-          search={{ kt: "profil" }}
-          className="group flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary"
-        >
-          {blok.kisi_ad}
-          <ChevronRight className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
-        </Link>
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-          {aktifGundem && (
-            <Badge variant="secondary" className="text-[10px]">
-              {blok.gundemler.length} gündem
-            </Badge>
+    <div className="pl-7">
+      <button
+        onClick={() => !bos && setAcik((v) => !v)}
+        disabled={bos}
+        className="flex w-full items-center justify-between gap-3 py-2.5 text-left disabled:cursor-default"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          {!bos && (
+            <ChevronDown
+              className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${
+                acik ? "" : "-rotate-90"
+              }`}
+            />
           )}
-          {aktifFaaliyet && (
-            <Badge variant="secondary" className="text-[10px]">
-              {blok.faaliyetler.length} faaliyet
-            </Badge>
-          )}
+          {bos && <span className="w-3.5 shrink-0" />}
+          <span className="truncate text-sm text-foreground">{blok.kisi_ad}</span>
         </div>
-      </div>
-
-      {bos ? (
-        <p className="text-xs text-muted-foreground">
-          Bu aralıkta kayıt yok.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {aktifGundem && blok.gundemler.length > 0 && (
-            <MiniListe
-              icon={<FileText className="h-3 w-3" />}
-              baslik="Gündem kararları"
-              satirlar={blok.gundemler.map((g) => ({
-                id: g.id,
-                tarih: g.istisare_tarih,
-                sol: g.icerik,
-                sag: g.karar,
-                rozetler: [
-                  <Badge
-                    key="d"
-                    variant={g.durum === "yapildi" ? "default" : "outline"}
-                    className="text-[10px]"
-                  >
-                    {g.durum}
-                  </Badge>,
-                ],
-              }))}
-            />
-          )}
-          {aktifFaaliyet && blok.faaliyetler.length > 0 && (
-            <MiniListe
-              icon={<Activity className="h-3 w-3" />}
-              baslik="Faaliyetler & sonuçlar"
-              satirlar={blok.faaliyetler.map((f) => ({
-                id: f.id,
-                tarih: f.tarih,
-                sol: `${ETKINLIK_TIP_MAP[f.tip]?.ad ?? f.tip} · ${f.baslik}`,
-                sag: f.sonuc,
-              }))}
-            />
-          )}
+        <div className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
+          {aktifGundem && gSayi > 0 && <span>{gSayi} gündem</span>}
+          {aktifFaaliyet && fSayi > 0 && <span>{fSayi} faaliyet</span>}
           {aktifManeviyat && blok.maneviyat && (
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-background/60 px-3 py-2 text-xs">
-              <span className="flex items-center gap-1.5 text-muted-foreground">
-                <Sparkles className="h-3 w-3" /> Maneviyat
-              </span>
+            <span className="inline-flex items-center gap-0.5 text-foreground/80">
+              <Sparkles className="h-3 w-3" />%
+              {blok.maneviyat.mufredat_ilerleme_yuzde}
+            </span>
+          )}
+          {bos && <span className="italic">kayıt yok</span>}
+        </div>
+      </button>
+
+      {!bos && acik && (
+        <div className="space-y-1 pb-3 pl-5">
+          {ogeler.map((o) => (
+            <ZamanSatiri key={o.id} oge={o} />
+          ))}
+          {aktifManeviyat && blok.maneviyat && (
+            <div className="flex flex-wrap gap-3 pt-1 text-[11px] text-muted-foreground">
               <span>
-                Müfredat:{" "}
+                Müfredat{" "}
                 <strong className="text-foreground">
-                  {blok.maneviyat.mufredat_ilerleme_yuzde}%
+                  %{blok.maneviyat.mufredat_ilerleme_yuzde}
                 </strong>{" "}
                 ({blok.maneviyat.aktif_mufredat_sayisi} aktif)
               </span>
               <span>
-                Evrad:{" "}
+                Evrad{" "}
                 <strong className="text-foreground">
-                  {blok.maneviyat.evrad_doluluk_yuzde}%
+                  %{blok.maneviyat.evrad_doluluk_yuzde}
                 </strong>{" "}
-                ({blok.maneviyat.evrad_kayit_sayisi}/{blok.maneviyat.evrad_madde_sayisi}{" "}
-                madde)
+                ({blok.maneviyat.evrad_kayit_sayisi}/{blok.maneviyat.evrad_madde_sayisi})
               </span>
             </div>
           )}
+          <div className="pt-1">
+            <Link
+              to="/network/kisi/$id"
+              params={{ id: blok.kisi_id }}
+              search={{ kt: "profil" }}
+              className="text-[11px] text-muted-foreground hover:text-primary"
+            >
+              Profile git →
+            </Link>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function MiniListe({
-  icon,
-  baslik,
-  satirlar,
-}: {
-  icon: React.ReactNode;
-  baslik: string;
-  satirlar: Array<{
-    id: string;
-    tarih: string;
-    sol: string;
-    sag: string | null;
-    rozetler?: React.ReactNode[];
-  }>;
-}) {
+function ZamanSatiri({ oge }: { oge: ZamanOgesi }) {
+  const Ikon = oge.tip === "gundem" ? FileText : Activity;
+  const dolu = (oge.sonuc ?? "").trim().length > 0;
   return (
-    <div>
-      <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-        {icon} {baslik}
-      </p>
-      <ul className="space-y-1.5">
-        {satirlar.map((s) => (
-          <li
-            key={s.id}
-            className="grid grid-cols-[60px_1fr_1.4fr_auto] items-start gap-2 rounded-md border border-border/60 bg-background/40 px-2.5 py-1.5 text-xs"
-          >
-            <span className="text-muted-foreground">
-              {format(parseISO(s.tarih), "d MMM", { locale: tr })}
-            </span>
-            <span className="text-foreground">{s.sol}</span>
-            <span className="text-foreground/90">
-              {s.sag?.trim() ? (
-                s.sag
-              ) : (
-                <span className="inline-flex items-center gap-1 text-destructive">
-                  <AlertCircle className="h-3 w-3" /> Sonuç eksik
-                </span>
-              )}
-            </span>
-            <span className="flex items-center gap-1">{s.rozetler}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function OzetKart({
-  baslik,
-  ana,
-  altSatirlar,
-  yukleniyor,
-}: {
-  baslik: string;
-  ana: string;
-  altSatirlar: string[];
-  yukleniyor?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
-        {baslik}
-      </p>
-      <p className="mt-1 text-2xl font-semibold tracking-tight">
-        {yukleniyor ? "…" : ana}
-      </p>
-      <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
-        {altSatirlar.map((s, i) => (
-          <li key={i}>{s}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function BosKutu({ mesaj }: { mesaj: string }) {
-  return (
-    <div className="rounded-xl border border-dashed border-border bg-card/50 p-8 text-center text-sm text-muted-foreground">
-      {mesaj}
+    <div className="flex items-start gap-2 py-1 text-xs">
+      <Ikon className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+      <span className="w-12 shrink-0 text-muted-foreground">
+        {format(parseISO(oge.tarih), "d MMM", { locale: tr })}
+      </span>
+      <div className="min-w-0 flex-1">
+        <span className="text-foreground">{oge.baslik}</span>
+        {dolu ? (
+          <span className="text-foreground/70"> → {oge.sonuc}</span>
+        ) : (
+          <span className="ml-1 inline-flex items-center gap-0.5 text-destructive/80">
+            <AlertCircle className="h-3 w-3" /> sonuç eksik
+          </span>
+        )}
+        {oge.tip === "gundem" && oge.durum === "bekliyor" && (
+          <Badge variant="outline" className="ml-1.5 h-4 px-1 text-[9px]">
+            bekliyor
+          </Badge>
+        )}
+      </div>
     </div>
   );
 }
