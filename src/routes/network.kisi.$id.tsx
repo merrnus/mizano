@@ -191,7 +191,7 @@ function KisiDetay() {
           <TabsTrigger value="maneviyat">Maneviyat</TabsTrigger>
         </TabsList>
         <TabsContent value="profil">
-          <KardesProfilForm kisi={kisi} kategoriler={kategoriler} />
+          <KardesProfilForm kisi={kisi} />
         </TabsContent>
         <TabsContent value="faaliyetler">
           <KardesFaaliyetTimeline kisiId={kisi.id} />
