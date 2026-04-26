@@ -1,10 +1,12 @@
 import * as React from "react";
-import { Plus, Trash2, Pencil, Check, X, Filter } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, Filter, CalendarPlus } from "lucide-react";
 import { format, parseISO, isThisWeek, isThisMonth, isToday } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -17,6 +19,7 @@ import {
   useKardesEtkinlikEkle,
   useKardesEtkinlikGuncelle,
   useKardesEtkinlikSil,
+  useKisi,
 } from "@/lib/network-hooks";
 import {
   ETKINLIK_TIP_LISTE,
@@ -31,6 +34,7 @@ const SONUC_GEREKEN: KardesEtkinlikTip[] = ["sinav", "yarisma"];
 
 export function KardesFaaliyetTimeline({ kisiId }: { kisiId: string }) {
   const { data: etkinlikler = [], isLoading } = useKardesEtkinlikler(kisiId);
+  const { data: kisi } = useKisi(kisiId);
   const ekle = useKardesEtkinlikEkle();
   const sil = useKardesEtkinlikSil();
 
@@ -43,10 +47,17 @@ export function KardesFaaliyetTimeline({ kisiId }: { kisiId: string }) {
   const [baslik, setBaslik] = React.useState("");
   const [notlar, setNotlar] = React.useState("");
   const [sonuc, setSonuc] = React.useState("");
+  const [baslangicSaati, setBaslangicSaati] = React.useState("");
+  const [bitisSaati, setBitisSaati] = React.useState("");
+  const [takvimeEkle, setTakvimeEkle] = React.useState(true);
 
   const ekleEtkinlik = async () => {
     if (!baslik.trim()) {
       toast.error("Başlık gerekli");
+      return;
+    }
+    if (baslangicSaati && bitisSaati && bitisSaati <= baslangicSaati) {
+      toast.error("Bitiş saati başlangıçtan sonra olmalı");
       return;
     }
     await ekle.mutateAsync({
@@ -56,10 +67,16 @@ export function KardesFaaliyetTimeline({ kisiId }: { kisiId: string }) {
       baslik: baslik.trim(),
       notlar: notlar.trim() || null,
       sonuc: sonuc.trim() || null,
+      baslangic_saati: baslangicSaati || null,
+      bitis_saati: bitisSaati || null,
+      takvime_ekle: takvimeEkle,
+      kisi_ad: kisi?.ad,
     });
     setBaslik("");
     setNotlar("");
     setSonuc("");
+    setBaslangicSaati("");
+    setBitisSaati("");
     toast.success("Etkinlik eklendi");
   };
 
@@ -127,7 +144,39 @@ export function KardesFaaliyetTimeline({ kisiId }: { kisiId: string }) {
             className="mt-3"
           />
         )}
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+          <div className="grid gap-1">
+            <Label htmlFor="bas-saat" className="text-[11px] text-muted-foreground">
+              Başlangıç (ops.)
+            </Label>
+            <Input
+              id="bas-saat"
+              type="time"
+              value={baslangicSaati}
+              onChange={(e) => setBaslangicSaati(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="bit-saat" className="text-[11px] text-muted-foreground">
+              Bitiş (ops.)
+            </Label>
+            <Input
+              id="bit-saat"
+              type="time"
+              value={bitisSaati}
+              onChange={(e) => setBitisSaati(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+            <Checkbox
+              checked={takvimeEkle}
+              onCheckedChange={(v) => setTakvimeEkle(v === true)}
+            />
+            <CalendarPlus className="h-3.5 w-3.5" />
+            Mizan Takvim'e ekle
+          </label>
           <Button size="sm" onClick={ekleEtkinlik} disabled={!baslik.trim() || ekle.isPending}>
             <Plus className="h-3.5 w-3.5" /> Ekle
           </Button>
@@ -254,6 +303,9 @@ function EtkinlikSatir({
   const meta = ETKINLIK_TIP_MAP[etkinlik.tip];
   const d = parseISO(etkinlik.tarih);
   const tarihEt = isToday(d) ? "Bugün" : format(d, "d MMM yyyy", { locale: tr });
+  const saatEt = etkinlik.baslangic_saati
+    ? `${etkinlik.baslangic_saati.slice(0, 5)}${etkinlik.bitis_saati ? "–" + etkinlik.bitis_saati.slice(0, 5) : ""}`
+    : null;
   return (
     <div
       className="group flex items-start gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/40"
@@ -273,8 +325,18 @@ function EtkinlikSatir({
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <div className="truncate text-sm font-medium text-foreground">{etkinlik.baslik}</div>
-          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{tarihEt}</span>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <div className="truncate text-sm font-medium text-foreground">{etkinlik.baslik}</div>
+            {etkinlik.takvim_etkinlik_id ? (
+              <CalendarPlus
+                className="h-3 w-3 shrink-0 text-[var(--mana)]"
+                aria-label="Mizan Takvim'de"
+              />
+            ) : null}
+          </div>
+          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+            {saatEt ? `${tarihEt} · ${saatEt}` : tarihEt}
+          </span>
         </div>
         {etkinlik.sonuc ? (
           <div className="mt-0.5 text-xs font-medium text-foreground/80">
@@ -312,14 +374,22 @@ function DuzenleSatir({
   onClose: () => void;
 }) {
   const guncelle = useKardesEtkinlikGuncelle();
+  const { data: kisi } = useKisi(etkinlik.kisi_id);
   const [tip, setTip] = React.useState<KardesEtkinlikTip>(etkinlik.tip);
   const [tarih, setTarih] = React.useState(etkinlik.tarih);
   const [baslik, setBaslik] = React.useState(etkinlik.baslik);
   const [notlar, setNotlar] = React.useState(etkinlik.notlar ?? "");
   const [sonuc, setSonuc] = React.useState(etkinlik.sonuc ?? "");
+  const [baslangicSaati, setBaslangicSaati] = React.useState(etkinlik.baslangic_saati?.slice(0, 5) ?? "");
+  const [bitisSaati, setBitisSaati] = React.useState(etkinlik.bitis_saati?.slice(0, 5) ?? "");
+  const [takvimeEkle, setTakvimeEkle] = React.useState(!!etkinlik.takvim_etkinlik_id);
 
   const kaydet = async () => {
     if (!baslik.trim()) return;
+    if (baslangicSaati && bitisSaati && bitisSaati <= baslangicSaati) {
+      toast.error("Bitiş saati başlangıçtan sonra olmalı");
+      return;
+    }
     await guncelle.mutateAsync({
       id: etkinlik.id,
       kisi_id: etkinlik.kisi_id,
@@ -328,6 +398,10 @@ function DuzenleSatir({
       baslik: baslik.trim(),
       notlar: notlar.trim() || null,
       sonuc: sonuc.trim() || null,
+      baslangic_saati: baslangicSaati || null,
+      bitis_saati: bitisSaati || null,
+      takvime_ekle: takvimeEkle,
+      kisi_ad: kisi?.ad,
     });
     toast.success("Güncellendi");
     onClose();
@@ -366,13 +440,37 @@ function DuzenleSatir({
           placeholder="Sonuç"
         />
       )}
-      <div className="mt-2 flex justify-end gap-2">
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        <Input
+          type="time"
+          value={baslangicSaati}
+          onChange={(e) => setBaslangicSaati(e.target.value)}
+          placeholder="Başlangıç"
+        />
+        <Input
+          type="time"
+          value={bitisSaati}
+          onChange={(e) => setBitisSaati(e.target.value)}
+          placeholder="Bitiş"
+        />
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+          <Checkbox
+            checked={takvimeEkle}
+            onCheckedChange={(v) => setTakvimeEkle(v === true)}
+          />
+          <CalendarPlus className="h-3.5 w-3.5" />
+          Mizan Takvim'e ekle
+        </label>
+        <div className="flex gap-2">
         <Button size="sm" variant="outline" onClick={onClose}>
           <X className="h-3.5 w-3.5" /> İptal
         </Button>
         <Button size="sm" onClick={kaydet} disabled={guncelle.isPending}>
           <Check className="h-3.5 w-3.5" /> Kaydet
         </Button>
+        </div>
       </div>
     </div>
   );

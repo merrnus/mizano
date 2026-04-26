@@ -1034,42 +1034,59 @@ export type Database = {
       }
       kardes_etkinlik: {
         Row: {
+          baslangic_saati: string | null
           baslik: string
+          bitis_saati: string | null
           created_at: string
           id: string
           kisi_id: string
           notlar: string | null
           sonuc: string | null
+          takvim_etkinlik_id: string | null
           tarih: string
           tip: Database["public"]["Enums"]["kardes_etkinlik_tip"]
           updated_at: string
           user_id: string
         }
         Insert: {
+          baslangic_saati?: string | null
           baslik: string
+          bitis_saati?: string | null
           created_at?: string
           id?: string
           kisi_id: string
           notlar?: string | null
           sonuc?: string | null
+          takvim_etkinlik_id?: string | null
           tarih?: string
           tip: Database["public"]["Enums"]["kardes_etkinlik_tip"]
           updated_at?: string
           user_id: string
         }
         Update: {
+          baslangic_saati?: string | null
           baslik?: string
+          bitis_saati?: string | null
           created_at?: string
           id?: string
           kisi_id?: string
           notlar?: string | null
           sonuc?: string | null
+          takvim_etkinlik_id?: string | null
           tarih?: string
           tip?: Database["public"]["Enums"]["kardes_etkinlik_tip"]
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "kardes_etkinlik_takvim_etkinlik_id_fkey"
+            columns: ["takvim_etkinlik_id"]
+            isOneToOne: false
+            referencedRelation: "takvim_etkinlik"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kardes_evrad_kayit: {
         Row: {
