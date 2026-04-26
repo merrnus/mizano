@@ -732,8 +732,10 @@ export function useKardesEtkinlikGuncelle() {
         yeniTakvimId = null;
       }
 
-      const finalPatch: Record<string, unknown> = { ...patch };
-      if (yeniTakvimId !== undefined) finalPatch.takvim_etkinlik_id = yeniTakvimId;
+      const finalPatch = {
+        ...patch,
+        ...(yeniTakvimId !== undefined ? { takvim_etkinlik_id: yeniTakvimId } : {}),
+      };
       const { error } = await supabase.from("kardes_etkinlik").update(finalPatch).eq("id", id);
       if (error) throw error;
     },
