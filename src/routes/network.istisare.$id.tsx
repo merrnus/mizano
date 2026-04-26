@@ -389,7 +389,7 @@ function GundemSatir({ g, onAc }: { g: GundemDetay; onAc: () => void }) {
   return (
     <div
       className={cn(
-        "group/g grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-2 border-b border-border/50 px-2 py-2 transition-colors last:border-b-0 hover:bg-accent/30",
+        "group/g grid grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-2 border-b border-border/50 px-2 py-2 transition-colors last:border-b-0 hover:bg-accent/30",
         geciken && "bg-destructive/5",
       )}
     >
