@@ -145,7 +145,7 @@ export function BugununMufredati() {
           </button>
         </header>
 
-        <ul className="divide-y divide-border">
+        <ul className="grid grid-cols-1 md:grid-cols-2">
           {bugunModulleri.map((oge) => {
             const renk = oge.alan?.renk ?? amelRenk;
             const ilerlemeMetin = `${oge.tamamlanan + 1}/${oge.toplamModul}`;
@@ -153,7 +153,7 @@ export function BugununMufredati() {
             return (
               <li
                 key={oge.modul.id}
-                className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3 px-5 py-3"
+                className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-border px-5 py-3 md:[&:nth-last-child(-n+2)]:border-b-0 md:[&:nth-child(odd)]:border-r md:[&:nth-child(odd)]:border-r-border md:[&:last-child:nth-child(odd)]:border-r-0"
               >
                 {/* Renkli nokta */}
                 <span
