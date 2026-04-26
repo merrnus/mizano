@@ -1,191 +1,116 @@
-# Amel ana sayfa entegrasyonu
+## Hedef
 
-## Konsept özet
+Ana sayfanın dikeyde uzamasını önle, **Görevler**'i ilk bakışta görünür kıl, **Amel** ile **İlim** kartlarını eşit ağırlıkta yan yana hizala.
 
-- **Mana** üstte kalır (kısa, tekrarlı eylemler — mevcut "Bugünün Çetelesi" kartı + Shorts akış)
-- **Amel** ayrı bir **"Bugünün Müfredatı"** kartına alınır (uzun odak işleri — modül kartları + Pomodoro akışı)
-- Kategoriler ana sayfada **renk noktası + kurs adı** olarak kompakt gösterilir
-- Günlük seçim **otomatik**: "izliyor" durumundaki her kursun ilk tamamlanmamış modülü bugüne girer
+## Yeni Layout (ana sayfa, `src/routes/index.tsx`)
 
----
-
-## 1. Ana sayfa düzeni (`src/routes/index.tsx`)
-
-Mevcut grid:
 ```
-[Bugünün Çetelesi (Mana+İlim+Amel mix)] | [Bugün Zaman Çizelgesi]
-[Gelecek Günler]
-[Evdekiler Widget]
-```
+┌─ Header (selamlama + Mana/İlim/Amel rozetleri) ──────────────────┐
 
-Yeni düzen:
-```
-[Bugünün Çetelesi (sadece Mana+İlim)]   | [Bugün Zaman Çizelgesi]
-[Bugünün Müfredatı (Amel)]              | (devam)
-[Gelecek Günler]
-[Evdekiler Widget]
+┌─ Bugünün Çetelesi ──┬─ Zaman Çizelgesi ──┬─ Görevler (YENİ) ────┐
+│ (Mana + İlim)       │ (bugünün programı) │ Bugün + gecikmiş     │
+│                     │                    │ + hızlı ekle input   │
+└─────────────────────┴────────────────────┴──────────────────────┘
+
+┌─ Bugünün Müfredatı (2-KOLON GRID) ───────────────────────────────┐
+│  [Amel modülü 1]              [Amel modülü 2]                    │
+│  [Amel modülü 3]              [Amel modülü 4]                    │
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ Gelecek Günler ─────────────────────────────────────────────────┐
+┌─ Evdekiler ──────────────────────────────────────────────────────┐
 ```
 
-`BugunCetelesi` bileşeninden `amel` alanını çıkarıyoruz (artık burada gösterilmiyor) — yeni `BugununMufredati` bileşeni o yükü devralacak.
+**Grid değişikliği:**
+- Mevcut: `lg:grid-cols-[5fr_7fr]` → 2 kolon
+- Yeni: `lg:grid-cols-[4fr_5fr_3fr]` → 3 kolon (çetele | zaman çizelgesi | görevler)
+- Mobilde (md altı): tek kolon, sırasıyla yığılır
 
-**Header rozet yüzdeleri:** Hardcoded `amelYuzde = 32` yerine gerçek hesap → izlenen kursların ortalama ilerleme yüzdesi.
+## Yeni Bileşen: `bugun-gorevleri.tsx`
 
----
+`src/components/mizan/dashboard/bugun-gorevleri.tsx` (yeni dosya)
 
-## 2. Yeni bileşen: `BugununMufredati`
+**Veri:**
+- `useGorevler(haftaBas, haftaSonu)` ile hafta görevlerini çek
+- Filtre: `vade <= bugün` ve `tamamlandi === false` → "Bugün + gecikmiş"
+- Bugün tamamlananları küçük "Bugün biten" sayacında göster
 
-**Dosya:** `src/components/mizan/dashboard/bugunun-mufredati.tsx`
-
-**Veri kaynağı:**
-- `useAmelAlanlar()` — alan rengi için
-- `useAmelKurslar()` — `durum === "izliyor"` kursları al
-- `useTumAmelModuller()` — her kurs için ilk `tamamlandi === false` modülü bul
-
-**Algoritma (otomatik bugün listesi):**
-```ts
-const bugunModulleri = izlenenKurslar
-  .map(kurs => {
-    const kursModulleri = tumModuller
-      .filter(m => m.kurs_id === kurs.id)
-      .sort((a, b) => a.siralama - b.siralama);
-    const ilkEksik = kursModulleri.find(m => !m.tamamlandi);
-    return ilkEksik ? { modul: ilkEksik, kurs, alan: alanlar.find(a => a.id === kurs.alan_id) } : null;
-  })
-  .filter(Boolean);
+**UI (kompakt, ~280px genişlikte):**
+```
+┌─ Görevler ─────────────────── [+] ─┐
+│ 2/5 · bugün                        │
+├────────────────────────────────────┤
+│ [GECİKMİŞ — kırmızı pill]          │
+│ ☐ Vergi formu doldur · İlim · dün │
+│                                    │
+│ [BUGÜN]                            │
+│ ☐ Kütüphane kitap iade · Mana     │
+│ ☐ Toplantı notları · Amel         │
+│ ☐ Spora gitmek · Kişisel · !      │
+├────────────────────────────────────┤
+│ ➕ Hızlı görev ekle...   [Detay]   │
+└────────────────────────────────────┘
 ```
 
-**Görsel yapı (her satır):**
-```
-🟦  CCNA · OSPF Temelleri              [☐]   [▶ Çalış]
-    Modül 12/26 · ~45 dk
-```
+**Hızlı ekleme inline input:**
+- `<input>` + Enter → bugün vadeli, varsayılan alan `kisisel`, `oncelik: orta` ile `useGorevEkle` çağrısı
+- Boş başlık ignore
+- Yanındaki "Detay" linki mevcut `GorevDialog`'u açar (alan/öncelik/vade seçilebilir)
 
-- Sol: alan renkli nokta (alan.renk veya varsayılan)
-- Orta: kurs adı + modül başlığı
-- Alt satır: ilerleme metni (örn. "Modül 12/26")
-- Sağ: checkbox (tamamla) + "Çalış" butonu (Pomodoro/Akış başlatır)
+**Etkileşim:**
+- Checkbox → `useGorevGuncelle({ tamamlandi: !x })` (mevcut hook)
+- Görev başlığına tıkla → tam dialog açılır
+- Boş durumda: "Bugün için görev yok 🎉" + inline input
 
-**Boş durum:** "Aktif kursun yok. CCNA, Linux gibi izlemekte olduğun kurslar burada görünür."  → `Link to="/mizan/amel"`
+**Görsel hiyerarşi:**
+- Gecikmiş görevler üstte, kırmızı sol-bordür (`border-l-2 border-destructive`)
+- Bugün görevleri altta, alan rengi sol-bordür
+- Yüksek öncelik için `!` rozeti (mevcut `GorevPaneli` deseni)
 
-**Başlık satırı:**
-```
-BUGÜNÜN MÜFREDATI                              [Akış Modu ▶]
-3 modül · ~2 saat 15 dk
-```
+## `BugununMufredati` — 2-kolon grid
 
-Sağdaki "Akış Modu" butonu yeni `AmelAkisModu` bileşenini açar.
+`src/components/mizan/dashboard/bugunun-mufredati.tsx`:
+- `<ul>`'u `grid grid-cols-1 md:grid-cols-2` yap
+- Her modül kartı kompaktlaştırılır (gerekirse), ama içerik aynı kalır
+- Tek kart varsa full-width görünür (grid otomatik)
 
----
+## Dialog state yönetimi
 
-## 3. Yeni bileşen: `AmelAkisModu` (Pomodoro destekli)
+Ana sayfada `GorevDialog` mount'lanır:
+```tsx
+const [gorevDialogAcik, setGorevDialogAcik] = React.useState(false);
+const [duzenlenenGorev, setDuzenlenenGorev] = React.useState<TakvimGorev | null>(null);
 
-**Dosya:** `src/components/mizan/dashboard/amel-akis-modu.tsx`
-
-Mana'nın Shorts akışından farklı olarak **dikey scroll yok** — her modül tek bir tam ekran kart. Manuel "Sonraki" / "Atla" butonları geri gelir çünkü modül tek tıkla bitmez.
-
-**Her kart içeriği:**
-- Üstte: kurs adı + alan rozeti (renk noktası)
-- Büyük başlık: modül başlığı (örn. "OSPF Temelleri")
-- Açıklama (varsa `modul.aciklama`)
-- "Kaynaklar" şeridi: bu kursa bağlı kaynakların kompakt listesi (link/lab/dosya) — tıklanınca yeni sekme/sheet
-- **Pomodoro paneli (merkezde):**
-  - Büyük zamanlayıcı: 25:00
-  - [▶ Başlat] / [⏸ Duraklat] / [↺ Sıfırla]
-  - Süre seçimi: 15 / 25 / 50 dk pill'leri
-  - Bitiminde: hafif ses/titreşim + "Mola ver" önerisi
-- Alt aksiyonlar:
-  - [✓ Tamamlandı] → modülü işaretle, sonraki karta geç
-  - [Sonraki modül →] → işaretlemeden geç
-  - [✕ Kapat]
-
-**Pomodoro state'i bileşen içinde tutulur** (basit `setInterval`). Veritabanına yazılmaz — sadece bu oturumlukdur. Sonradan istersen `pomodoro_oturum` tablosu eklenir.
-
-**Klavye:** `Space` = Pomodoro başlat/duraklat, `Enter` = tamamla, `→` = sonraki, `Esc` = kapat.
-
----
-
-## 4. Header rozet yüzdesi (gerçek veri)
-
-`src/routes/index.tsx`'te `amelYuzde` hesaplaması:
-
-```ts
-const izlenenKurslar = kurslar.filter(k => k.durum === "izliyor");
-const amelYuzde = izlenenKurslar.length === 0
-  ? 0
-  : Math.round(
-      izlenenKurslar.reduce((acc, k) => {
-        const kursModulleri = tumModuller.filter(m => m.kurs_id === k.id);
-        return acc + kursIlerleme(kursModulleri);
-      }, 0) / izlenenKurslar.length
-    );
+<GorevDialog
+  acik={gorevDialogAcik}
+  onOpenChange={setGorevDialogAcik}
+  gorev={duzenlenenGorev}
+  varsayilanVade={isoGun(simdi)}
+/>
 ```
 
-`useAmelKurslar()` ve `useTumAmelModuller()` hook'ları index.tsx'e eklenir.
+`BugunGorevleri` bileşenine `onYeni` ve `onDuzenle` prop'ları geçilir.
 
----
-
-## 5. `BugunCetelesi` güncellemesi
-
-`src/components/mizan/dashboard/bugun-cetelesi.tsx`:
-
-```diff
-- const alanlar: CeteleAlan[] = ["mana", "ilim", "amel"];
-+ const alanlar: CeteleAlan[] = ["mana", "ilim"];
-```
-
-Amel artık çetele şablonlarından beslenmiyor; modüllerden besleniyor → ayrı kart. Mana/İlim çetelesi sade kalıyor.
-
----
-
-## 6. Sıralama tahminleri (modül süresi)
-
-Modül kartında "~45 dk" göstermek için `amel_modul` tablosuna ek kolon yok — şimdilik **statik tahmin**:
-- Modül `aciklama` boşsa → 30 dk varsayılan
-- Modül `aciklama` doluysa → karakter sayısına göre kabaca 30/45/60 dk
-
-İleride istersen `amel_modul.tahmini_dakika integer` kolonu eklenebilir, ama şu an gereksiz karmaşıklık.
-
----
-
-## Etkilenen dosyalar
+## Dosya değişiklikleri
 
 **Yeni:**
-- `src/components/mizan/dashboard/bugunun-mufredati.tsx` (~180 satır)
-- `src/components/mizan/dashboard/amel-akis-modu.tsx` (~250 satır, Pomodoro mantığı dahil)
+- `src/components/mizan/dashboard/bugun-gorevleri.tsx`
 
-**Düzenlenen:**
-- `src/routes/index.tsx` — yeni kartı yerleştir, amelYuzde gerçek hesap
-- `src/components/mizan/dashboard/bugun-cetelesi.tsx` — amel alanını listeden çıkar
+**Düzenlenecek:**
+- `src/routes/index.tsx` — grid 3-kolon, GorevDialog mount, BugunGorevleri yerleştir
+- `src/components/mizan/dashboard/bugunun-mufredati.tsx` — liste → 2-kolon grid
 
-**Veritabanı değişikliği:** Yok. Mevcut `amel_kurs.durum` ve `amel_modul.tamamlandi` kolonları yeterli.
+## Edge case'ler
 
----
+- **Görev yok:** "Bugün için görev yok 🎉" + inline ekleme
+- **Mobil (<lg):** 3 kolon → 1 kolon, sırasıyla: Çetele → Zaman çizelgesi → Görevler → Müfredat
+- **Çok dar viewport (849px tablet):** `lg:` breakpoint 1024'te aktif olduğu için zaten tek kolon (mevcut davranışa benzer)
+- **Hızlı ekleme:** Boş input Enter'a basılırsa hiçbir şey yapmaz; başarılı eklemede input temizlenir
+- **`varsayilanVade`:** GorevDialog'un mevcut prop'larını kontrol et, gerekirse minimal genişletme yapılır
 
-## Çıkış sonrası görünüm (mockup)
+## Sonuç
 
-```
-─────────────────────────────────────────────────────────────
-  Cumartesi, 26 Nisan 2026
-  ☀️ Hayırlı günler              [● Mana 65%] [● İlim 58%] [● Amel 18%]
-─────────────────────────────────────────────────────────────
-
-┌─ BUGÜNÜN ÇETELESİ ────────┐  ┌─ BUGÜN ZAMAN ÇİZELGESİ ─┐
-│  ● MANA      [▶ Akış · 3] │  │ 09:00 ...               │
-│  □ Sabah Evrad     [+]    │  │ 12:30 ...               │
-│  □ Kuran Tilavet   [+]    │  │ ...                     │
-│  ● İLİM      [▶ Akış · 2] │  │                         │
-│  □ Hadis-i Şerif   [+]    │  │                         │
-└───────────────────────────┘  │                         │
-                               │                         │
-┌─ BUGÜNÜN MÜFREDATI [Akış▶]┐  │                         │
-│  3 modül · ~2 sa 15 dk    │  │                         │
-│  🟦 CCNA · OSPF Temelleri │  │                         │
-│      12/26 · ~45 dk  ☐ ▶  │  │                         │
-│  🟢 Linux · Bash Scripts  │  │                         │
-│      3/8 · ~30 dk    ☐ ▶  │  │                         │
-│  🟡 Git · Branching       │  │                         │
-│      2/4 · ~30 dk    ☐ ▶  │  │                         │
-└───────────────────────────┘  └─────────────────────────┘
-```
-
-Onaylarsan implementasyona geçerim.
+- Mana, İlim, Görevler tek satırda yan yana → "bugün ne yapacağım" sorusunun tam cevabı tek bakışta
+- Amel müfredatı 2-kolon grid → ilim ve amelin görsel ağırlığı eşitlenir
+- Sayfa dikeyde ~%30 daha kısa, kaydırma azalır
+- Hem hızlı ekleme (inline) hem detaylı ekleme (dialog) mevcut
