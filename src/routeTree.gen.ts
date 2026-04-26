@@ -33,6 +33,7 @@ import { Route as MizanIlimIndexRouteImport } from './routes/mizan.ilim.index'
 import { Route as MizanAmelIndexRouteImport } from './routes/mizan.amel.index'
 import { Route as WorkspaceTabloIdRouteImport } from './routes/workspace.tablo.$id'
 import { Route as WorkspaceBelgeIdRouteImport } from './routes/workspace.belge.$id'
+import { Route as NetworkKisiIdRouteImport } from './routes/network.kisi.$id'
 import { Route as NetworkIstisareIdRouteImport } from './routes/network.istisare.$id'
 import { Route as MizanIlimIdRouteImport } from './routes/mizan.ilim.$id'
 import { Route as MizanHedefIdRouteImport } from './routes/mizan.hedef.$id'
@@ -158,6 +159,11 @@ const WorkspaceBelgeIdRoute = WorkspaceBelgeIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => WorkspaceBelgeRoute,
 } as any)
+const NetworkKisiIdRoute = NetworkKisiIdRouteImport.update({
+  id: '/kisi/$id',
+  path: '/kisi/$id',
+  getParentRoute: () => NetworkRoute,
+} as any)
 const NetworkIstisareIdRoute = NetworkIstisareIdRouteImport.update({
   id: '/istisare/$id',
   path: '/istisare/$id',
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/mizan/hedef/$id': typeof MizanHedefIdRoute
   '/mizan/ilim/$id': typeof MizanIlimIdRoute
   '/network/istisare/$id': typeof NetworkIstisareIdRoute
+  '/network/kisi/$id': typeof NetworkKisiIdRoute
   '/workspace/belge/$id': typeof WorkspaceBelgeIdRoute
   '/workspace/tablo/$id': typeof WorkspaceTabloIdRoute
   '/mizan/amel/': typeof MizanAmelIndexRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByTo {
   '/mizan/hedef/$id': typeof MizanHedefIdRoute
   '/mizan/ilim/$id': typeof MizanIlimIdRoute
   '/network/istisare/$id': typeof NetworkIstisareIdRoute
+  '/network/kisi/$id': typeof NetworkKisiIdRoute
   '/workspace/belge/$id': typeof WorkspaceBelgeIdRoute
   '/workspace/tablo/$id': typeof WorkspaceTabloIdRoute
   '/mizan/amel': typeof MizanAmelIndexRoute
@@ -261,6 +269,7 @@ export interface FileRoutesById {
   '/mizan/hedef/$id': typeof MizanHedefIdRoute
   '/mizan/ilim/$id': typeof MizanIlimIdRoute
   '/network/istisare/$id': typeof NetworkIstisareIdRoute
+  '/network/kisi/$id': typeof NetworkKisiIdRoute
   '/workspace/belge/$id': typeof WorkspaceBelgeIdRoute
   '/workspace/tablo/$id': typeof WorkspaceTabloIdRoute
   '/mizan/amel/': typeof MizanAmelIndexRoute
@@ -293,6 +302,7 @@ export interface FileRouteTypes {
     | '/mizan/hedef/$id'
     | '/mizan/ilim/$id'
     | '/network/istisare/$id'
+    | '/network/kisi/$id'
     | '/workspace/belge/$id'
     | '/workspace/tablo/$id'
     | '/mizan/amel/'
@@ -319,6 +329,7 @@ export interface FileRouteTypes {
     | '/mizan/hedef/$id'
     | '/mizan/ilim/$id'
     | '/network/istisare/$id'
+    | '/network/kisi/$id'
     | '/workspace/belge/$id'
     | '/workspace/tablo/$id'
     | '/mizan/amel'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/mizan/hedef/$id'
     | '/mizan/ilim/$id'
     | '/network/istisare/$id'
+    | '/network/kisi/$id'
     | '/workspace/belge/$id'
     | '/workspace/tablo/$id'
     | '/mizan/amel/'
@@ -535,6 +547,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceBelgeIdRouteImport
       parentRoute: typeof WorkspaceBelgeRoute
     }
+    '/network/kisi/$id': {
+      id: '/network/kisi/$id'
+      path: '/kisi/$id'
+      fullPath: '/network/kisi/$id'
+      preLoaderRoute: typeof NetworkKisiIdRouteImport
+      parentRoute: typeof NetworkRoute
+    }
     '/network/istisare/$id': {
       id: '/network/istisare/$id'
       path: '/istisare/$id'
@@ -620,10 +639,12 @@ const MizanRouteWithChildren = MizanRoute._addFileChildren(MizanRouteChildren)
 
 interface NetworkRouteChildren {
   NetworkIstisareIdRoute: typeof NetworkIstisareIdRoute
+  NetworkKisiIdRoute: typeof NetworkKisiIdRoute
 }
 
 const NetworkRouteChildren: NetworkRouteChildren = {
   NetworkIstisareIdRoute: NetworkIstisareIdRoute,
+  NetworkKisiIdRoute: NetworkKisiIdRoute,
 }
 
 const NetworkRouteWithChildren =

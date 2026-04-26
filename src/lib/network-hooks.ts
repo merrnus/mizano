@@ -12,6 +12,8 @@ import {
   type GundemYorum,
   type GundemDurum,
   type GundemOncelik,
+  type KardesEtkinlik,
+  type KardesEtkinlikTip,
   VARSAYILAN_KATEGORILER,
 } from "./network-tipleri";
 
@@ -153,6 +155,60 @@ export function useKisiGuncelle() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["network", "kisiler"] }),
+  });
+}
+
+/** Tek kişi getir (detay sayfası için) */
+export function useKisi(id: string | undefined) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["network", "kisi", id],
+    enabled: !!user && !!id,
+    queryFn: async (): Promise<KisiDetay | null> => {
+      const [kisiRes, baglantiRes] = await Promise.all([
+        supabase.from("gundem_kisi").select("*").eq("id", id!).maybeSingle(),
+        supabase.from("gundem_kisi_kategori").select("kategori_id").eq("kisi_id", id!),
+      ]);
+      if (kisiRes.error) throw kisiRes.error;
+      if (baglantiRes.error) throw baglantiRes.error;
+      if (!kisiRes.data) return null;
+      return {
+        ...(kisiRes.data as Kisi),
+        kategori_ids: (baglantiRes.data ?? []).map((b) => b.kategori_id),
+      };
+    },
+  });
+}
+
+/** Genişletilmiş kişi alanlarını günceller (derin_takip + tüm yeni profil alanları). */
+export function useKisiGuncelleDetay() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (k: {
+      id: string;
+      ad?: string;
+      notlar?: string | null;
+      derin_takip?: boolean;
+      telefon?: string | null;
+      dogum_tarihi?: string | null;
+      foto_url?: string | null;
+      universite?: string | null;
+      bolum?: string | null;
+      sinif?: string | null;
+      gano?: number | null;
+      akademik_durum?: string | null;
+      ilgi_alanlari?: string[];
+      sorumluluk_notu?: string | null;
+    }) => {
+      const { id, ...patch } = k;
+      const { error } = await supabase.from("gundem_kisi").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["network", "kisiler"] });
+      qc.invalidateQueries({ queryKey: ["network", "kisi", v.id] });
+      qc.invalidateQueries({ queryKey: ["network", "evdekiler"] });
+    },
   });
 }
 
@@ -538,6 +594,182 @@ export function useGundemYorumSil() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["network", "yorumlar"] });
       qc.invalidateQueries({ queryKey: ["network", "gundemler"] });
+    },
+  });
+}
+
+/* ---------------- KARDEŞ ETKİNLİK ---------------- */
+
+export function useKardesEtkinlikler(kisi_id: string | undefined) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["network", "etkinlikler", kisi_id],
+    enabled: !!user && !!kisi_id,
+    queryFn: async (): Promise<KardesEtkinlik[]> => {
+      const { data, error } = await supabase
+        .from("kardes_etkinlik")
+        .select("*")
+        .eq("kisi_id", kisi_id!)
+        .order("tarih", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as KardesEtkinlik[];
+    },
+  });
+}
+
+export function useKardesEtkinlikEkle() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (k: {
+      kisi_id: string;
+      tip: KardesEtkinlikTip;
+      tarih: string;
+      baslik: string;
+      notlar?: string | null;
+      sonuc?: string | null;
+    }) => {
+      if (!user) throw new Error("Giriş gerekli");
+      const { error } = await supabase.from("kardes_etkinlik").insert({
+        user_id: user.id,
+        kisi_id: k.kisi_id,
+        tip: k.tip,
+        tarih: k.tarih,
+        baslik: k.baslik,
+        notlar: k.notlar ?? null,
+        sonuc: k.sonuc ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["network", "etkinlikler", v.kisi_id] });
+      qc.invalidateQueries({ queryKey: ["network", "evdekiler"] });
+    },
+  });
+}
+
+export function useKardesEtkinlikGuncelle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (k: {
+      id: string;
+      kisi_id: string;
+      tip?: KardesEtkinlikTip;
+      tarih?: string;
+      baslik?: string;
+      notlar?: string | null;
+      sonuc?: string | null;
+    }) => {
+      const { id, kisi_id: _k, ...patch } = k;
+      const { error } = await supabase.from("kardes_etkinlik").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["network", "etkinlikler", v.kisi_id] });
+      qc.invalidateQueries({ queryKey: ["network", "evdekiler"] });
+    },
+  });
+}
+
+export function useKardesEtkinlikSil() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (k: { id: string; kisi_id: string }) => {
+      const { error } = await supabase.from("kardes_etkinlik").delete().eq("id", k.id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["network", "etkinlikler", v.kisi_id] });
+      qc.invalidateQueries({ queryKey: ["network", "evdekiler"] });
+    },
+  });
+}
+
+/** Ana sayfa "Bu hafta Evdekiler" widget'ı için özet. */
+export type EvdekilerOzet = {
+  dogumGunu: { kisi: Kisi; gun: number }[]; // bu hafta
+  tekeTekBekleyen: { kisi: Kisi; sonTarih: string | null; gunGectiKi: number | null }[];
+  yaklaşanProgram: { kisi: Kisi; tip: KardesEtkinlikTip; tarih: string; baslik: string }[];
+};
+
+export function useEvdekilerOzet() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["network", "evdekiler", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<EvdekilerOzet> => {
+      const { data: kisilerRaw, error: e1 } = await supabase
+        .from("gundem_kisi")
+        .select("*")
+        .eq("derin_takip", true);
+      if (e1) throw e1;
+      const kisiler = (kisilerRaw ?? []) as Kisi[];
+      if (kisiler.length === 0) {
+        return { dogumGunu: [], tekeTekBekleyen: [], yaklaşanProgram: [] };
+      }
+      const ids = kisiler.map((k) => k.id);
+
+      const { data: etkinliklerRaw, error: e2 } = await supabase
+        .from("kardes_etkinlik")
+        .select("*")
+        .in("kisi_id", ids);
+      if (e2) throw e2;
+      const etkinlikler = (etkinliklerRaw ?? []) as KardesEtkinlik[];
+
+      const bugun = new Date();
+      const yedi = new Date();
+      yedi.setDate(bugun.getDate() + 7);
+
+      // Doğum günü — bu hafta (önümüzdeki 7 gün)
+      const dogumGunu: EvdekilerOzet["dogumGunu"] = [];
+      kisiler.forEach((k) => {
+        if (!k.dogum_tarihi) return;
+        const d = new Date(k.dogum_tarihi);
+        // Bu yıl içindeki doğum günü
+        const buYil = new Date(bugun.getFullYear(), d.getMonth(), d.getDate());
+        const fark = Math.floor(
+          (buYil.getTime() - new Date(bugun.getFullYear(), bugun.getMonth(), bugun.getDate()).getTime()) /
+            (1000 * 60 * 60 * 24),
+        );
+        if (fark >= 0 && fark <= 7) {
+          dogumGunu.push({ kisi: k, gun: fark });
+        }
+      });
+      dogumGunu.sort((a, b) => a.gun - b.gun);
+
+      // Teke-tek bekleyen: son teke_tek 14+ gün önce ya da hiç yok
+      const tekeTekBekleyen: EvdekilerOzet["tekeTekBekleyen"] = [];
+      kisiler.forEach((k) => {
+        const son = etkinlikler
+          .filter((e) => e.kisi_id === k.id && e.tip === "teke_tek")
+          .sort((a, b) => b.tarih.localeCompare(a.tarih))[0];
+        if (!son) {
+          tekeTekBekleyen.push({ kisi: k, sonTarih: null, gunGectiKi: null });
+        } else {
+          const gun = Math.floor((bugun.getTime() - new Date(son.tarih).getTime()) / (1000 * 60 * 60 * 24));
+          if (gun >= 14) tekeTekBekleyen.push({ kisi: k, sonTarih: son.tarih, gunGectiKi: gun });
+        }
+      });
+      tekeTekBekleyen.sort((a, b) => (b.gunGectiKi ?? 9999) - (a.gunGectiKi ?? 9999));
+
+      // Yaklaşan kandil/kamp/sohbet — sonraki 7 gün
+      const bugunStr = bugun.toISOString().slice(0, 10);
+      const yediStr = yedi.toISOString().slice(0, 10);
+      const yaklaşanProgram: EvdekilerOzet["yaklaşanProgram"] = etkinlikler
+        .filter(
+          (e) =>
+            e.tarih >= bugunStr &&
+            e.tarih <= yediStr &&
+            (e.tip === "kandil" || e.tip === "kamp" || e.tip === "sohbet" || e.tip === "sophia"),
+        )
+        .sort((a, b) => a.tarih.localeCompare(b.tarih))
+        .map((e) => {
+          const k = kisiler.find((x) => x.id === e.kisi_id)!;
+          return { kisi: k, tip: e.tip, tarih: e.tarih, baslik: e.baslik };
+        });
+
+      return { dogumGunu, tekeTekBekleyen, yaklaşanProgram };
     },
   });
 }

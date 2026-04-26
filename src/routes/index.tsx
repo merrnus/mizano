@@ -8,6 +8,7 @@ import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { BugunCetelesi } from "@/components/mizan/dashboard/bugun-cetelesi";
 import { BugunZamanCizelgesi } from "@/components/mizan/dashboard/bugun-zaman-cizelgesi";
 import { GelecekGunler } from "@/components/mizan/dashboard/gelecek-gunler";
+import { EvdekilerWidget } from "@/components/mizan/dashboard/evdekiler-widget";
 import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { useAuth } from "@/lib/auth-context";
@@ -155,6 +156,9 @@ function AnaDashboard() {
 
       {/* Gelecek günler */}
       <GelecekGunler simdi={simdi} />
+
+      {/* Bu hafta Evdekiler */}
+      <EvdekilerWidget />
 
       <AlanDetaySheet
         alan={acikAlan}

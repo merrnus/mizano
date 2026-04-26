@@ -1,0 +1,171 @@
+import * as React from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, Eye, EyeOff, Star } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useKategoriler, useKisi, useKisiGuncelleDetay } from "@/lib/network-hooks";
+import { KardesProfilForm } from "@/components/mizan/network/kardes-profil-form";
+import { KardesFaaliyetTimeline } from "@/components/mizan/network/kardes-faaliyet-timeline";
+import { format, parseISO } from "date-fns";
+import { tr } from "date-fns/locale";
+import { toast } from "sonner";
+
+type Search = { tab?: "profil" | "faaliyetler" };
+
+export const Route = createFileRoute("/network/kisi/$id")({
+  head: ({ params }) => ({
+    meta: [
+      { title: `Kişi · ${params.id} — Mizan` },
+      { name: "description", content: "Kardeş profili ve faaliyet geçmişi." },
+    ],
+  }),
+  validateSearch: (s: Record<string, unknown>): Search => {
+    const t = s.tab;
+    return { tab: t === "faaliyetler" ? "faaliyetler" : "profil" };
+  },
+  component: KisiDetay,
+  notFoundComponent: () => (
+    <div className="mx-auto max-w-md py-12 text-center">
+      <p className="text-sm text-muted-foreground">Bu kişi bulunamadı.</p>
+      <Link to="/network" search={{ tab: "kisiler" }} className="mt-3 inline-block underline">
+        Kişilere dön
+      </Link>
+    </div>
+  ),
+});
+
+function KisiDetay() {
+  const { id } = Route.useParams();
+  const search = Route.useSearch();
+  const navigate = useNavigate();
+  const tab = search.tab ?? "profil";
+
+  const { data: kisi, isLoading } = useKisi(id);
+  const { data: kategoriler = [] } = useKategoriler();
+  const guncelle = useKisiGuncelleDetay();
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8 text-sm text-muted-foreground">Yükleniyor…</div>
+    );
+  }
+  if (!kisi) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-12 text-center">
+        <p className="text-sm text-muted-foreground">Bu kişi bulunamadı.</p>
+        <Link
+          to="/network"
+          search={{ tab: "kisiler" }}
+          className="mt-3 inline-block text-sm underline"
+        >
+          Kişilere dön
+        </Link>
+      </div>
+    );
+  }
+
+  const initials = kisi.ad
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  const kisiKategoriler = kategoriler.filter((k) => kisi.kategori_ids.includes(k.id));
+
+  return (
+    <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+      {/* Üst nav */}
+      <Button
+        asChild
+        variant="ghost"
+        size="sm"
+        className="mb-4 -ml-2 h-8 text-muted-foreground hover:text-foreground"
+      >
+        <Link to="/network" search={{ tab: "kisiler" }}>
+          <ArrowLeft className="h-3.5 w-3.5" /> Kişilere dön
+        </Link>
+      </Button>
+
+      {/* Üst kart */}
+      <header className="mb-6 flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:gap-5">
+        <Avatar className="h-16 w-16 border border-border sm:h-20 sm:w-20">
+          {kisi.foto_url ? <AvatarImage src={kisi.foto_url} alt={kisi.ad} /> : null}
+          <AvatarFallback className="bg-muted text-base">{initials}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">{kisi.ad}</h1>
+            {kisi.derin_takip && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary">
+                <Star className="h-3 w-3" /> Derin takip
+              </span>
+            )}
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            {kisi.universite && <span>{kisi.universite}</span>}
+            {kisi.bolum && <span>· {kisi.bolum}</span>}
+            {kisi.sinif && <span>· {kisi.sinif}</span>}
+            {kisi.dogum_tarihi && (
+              <span>· 🎂 {format(parseISO(kisi.dogum_tarihi), "d MMMM", { locale: tr })}</span>
+            )}
+          </div>
+          {kisiKategoriler.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {kisiKategoriler.map((k) => (
+                <Badge key={k.id} variant="outline" className="text-[10px]">
+                  {k.ad}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={async () => {
+            await guncelle.mutateAsync({ id: kisi.id, derin_takip: !kisi.derin_takip });
+            toast.success(kisi.derin_takip ? "Derin takip kapatıldı" : "Derin takibe alındı");
+          }}
+        >
+          {kisi.derin_takip ? (
+            <>
+              <EyeOff className="h-3.5 w-3.5" /> Derin takibi kapat
+            </>
+          ) : (
+            <>
+              <Eye className="h-3.5 w-3.5" /> Derin takibe al
+            </>
+          )}
+        </Button>
+      </header>
+
+      {/* Tabs */}
+      <Tabs
+        value={tab}
+        onValueChange={(v) =>
+          navigate({
+            to: "/network/kisi/$id",
+            params: { id },
+            // routeTree henüz regenerate edilmediği için search tipi geniş tutuluyor
+            search: { tab: v } as never,
+            replace: true,
+          })
+        }
+      >
+        <TabsList className="mb-4">
+          <TabsTrigger value="profil">Profil</TabsTrigger>
+          <TabsTrigger value="faaliyetler">Faaliyetler</TabsTrigger>
+        </TabsList>
+        <TabsContent value="profil">
+          <KardesProfilForm kisi={kisi} kategoriler={kategoriler} />
+        </TabsContent>
+        <TabsContent value="faaliyetler">
+          <KardesFaaliyetTimeline kisiId={kisi.id} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
