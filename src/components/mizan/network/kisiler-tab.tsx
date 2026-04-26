@@ -366,29 +366,47 @@ function KisiDetaySheet({
   onClose: () => void;
 }) {
   const guncelle = useKisiGuncelle();
+  const guncelleDetay = useKisiGuncelleDetay();
+  const navigate = useNavigate();
   const ayarla = useKisiKategoriAyarla();
   const sil = useKisiSil();
   const [silAcik, setSilAcik] = React.useState(false);
   const [ad, setAd] = React.useState("");
   const [notlar, setNotlar] = React.useState("");
   const [secKategoriler, setSecKategoriler] = React.useState<string[]>([]);
+  const [derin, setDerin] = React.useState(false);
 
   React.useEffect(() => {
     if (kisi) {
       setAd(kisi.ad);
       setNotlar(kisi.notlar ?? "");
       setSecKategoriler(kisi.kategori_ids);
+      setDerin(kisi.derin_takip);
     }
   }, [kisi?.id]);
 
   const kaydet = async () => {
     if (!kisi) return;
+    const derinDegisti = derin !== kisi.derin_takip;
     await Promise.all([
       guncelle.mutateAsync({ id: kisi.id, ad: ad.trim() || kisi.ad, notlar: notlar || null }),
       ayarla.mutateAsync({ kisi_id: kisi.id, kategori_ids: secKategoriler }),
+      derinDegisti
+        ? guncelleDetay.mutateAsync({ id: kisi.id, derin_takip: derin })
+        : Promise.resolve(),
     ]);
     toast.success("Kaydedildi");
-    onClose();
+    if (derinDegisti && derin) {
+      // Yeni derin takibe alındı → tam profil sayfasına yönlendir
+      onClose();
+      navigate({
+        to: "/network/kisi/$id",
+        params: { id: kisi.id },
+        search: { tab: "profil" } as never,
+      });
+    } else {
+      onClose();
+    }
   };
 
   const toggleKat = (id: string) => {
@@ -447,6 +465,15 @@ function KisiDetaySheet({
                     rows={4}
                     placeholder="Bu kişiyle ilgili notlar…"
                   />
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border bg-card/50 p-3">
+                  <div className="min-w-0">
+                    <Label className="text-sm font-medium">Derin takip</Label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Açıkken kişi tam profil sayfasında açılır (akademik, faaliyetler, etkinlik geçmişi).
+                    </p>
+                  </div>
+                  <Switch checked={derin} onCheckedChange={setDerin} />
                 </div>
                 <div className="flex justify-between gap-2 border-t border-border pt-4">
                   <Button
