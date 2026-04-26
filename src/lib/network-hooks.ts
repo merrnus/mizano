@@ -852,90 +852,67 @@ function addMinutes(saat: string, dk: number): string {
   return `${String(sa).padStart(2, "0")}:${String(dkk).padStart(2, "0")}`;
 }
 
-/** Ana sayfa "Bu hafta Evdekiler" widget'ı için özet. */
-export type EvdekilerOzet = {
-  dogumGunu: { kisi: Kisi; gun: number }[]; // bu hafta
-  tekeTekBekleyen: { kisi: Kisi; sonTarih: string | null; gunGectiKi: number | null }[];
-  yaklaşanProgram: { kisi: Kisi; tip: KardesEtkinlikTip; tarih: string; baslik: string }[];
+/** Ana sayfa "Bu hafta" widget'ı için özet — tüm kişiler, Pzt–Paz haftası. */
+export type BuHaftaOzet = {
+  programlar: { kisi: Kisi; etkinlik: KardesEtkinlik }[]; // istisare + sohbet
+  faaliyetler: { kisi: Kisi; etkinlik: KardesEtkinlik }[]; // diğerleri
+  haftaBas: string; // YYYY-MM-DD
+  haftaSon: string; // YYYY-MM-DD
 };
 
-export function useEvdekilerOzet() {
+function haftaSinirlari(now: Date): { bas: string; son: string } {
+  const d = new Date(now);
+  const gun = d.getDay(); // 0 Paz, 1 Pzt ...
+  const offsetPzt = gun === 0 ? -6 : 1 - gun;
+  const bas = new Date(d.getFullYear(), d.getMonth(), d.getDate() + offsetPzt);
+  const son = new Date(bas);
+  son.setDate(bas.getDate() + 6);
+  const fmt = (x: Date) =>
+    `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+  return { bas: fmt(bas), son: fmt(son) };
+}
+
+export function useBuHaftaOzet() {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["network", "evdekiler", user?.id],
+    queryKey: ["network", "bu-hafta", user?.id],
     enabled: !!user,
-    queryFn: async (): Promise<EvdekilerOzet> => {
-      const { data: kisilerRaw, error: e1 } = await supabase
-        .from("gundem_kisi")
-        .select("*")
-        .eq("derin_takip", true);
+    queryFn: async (): Promise<BuHaftaOzet> => {
+      const { bas, son } = haftaSinirlari(new Date());
+
+      const { data: kisilerRaw, error: e1 } = await supabase.from("gundem_kisi").select("*");
       if (e1) throw e1;
       const kisiler = (kisilerRaw ?? []) as Kisi[];
-      if (kisiler.length === 0) {
-        return { dogumGunu: [], tekeTekBekleyen: [], yaklaşanProgram: [] };
-      }
-      const ids = kisiler.map((k) => k.id);
+      const kisiMap = new Map(kisiler.map((k) => [k.id, k] as const));
 
       const { data: etkinliklerRaw, error: e2 } = await supabase
         .from("kardes_etkinlik")
         .select("*")
-        .in("kisi_id", ids);
+        .gte("tarih", bas)
+        .lte("tarih", son);
       if (e2) throw e2;
       const etkinlikler = (etkinliklerRaw ?? []) as KardesEtkinlik[];
 
-      const bugun = new Date();
-      const yedi = new Date();
-      yedi.setDate(bugun.getDate() + 7);
+      const sirala = (a: KardesEtkinlik, b: KardesEtkinlik) => {
+        const t = a.tarih.localeCompare(b.tarih);
+        if (t !== 0) return t;
+        return (a.baslangic_saati ?? "").localeCompare(b.baslangic_saati ?? "");
+      };
 
-      // Doğum günü — bu hafta (önümüzdeki 7 gün)
-      const dogumGunu: EvdekilerOzet["dogumGunu"] = [];
-      kisiler.forEach((k) => {
-        if (!k.dogum_tarihi) return;
-        const d = new Date(k.dogum_tarihi);
-        // Bu yıl içindeki doğum günü
-        const buYil = new Date(bugun.getFullYear(), d.getMonth(), d.getDate());
-        const fark = Math.floor(
-          (buYil.getTime() - new Date(bugun.getFullYear(), bugun.getMonth(), bugun.getDate()).getTime()) /
-            (1000 * 60 * 60 * 24),
-        );
-        if (fark >= 0 && fark <= 7) {
-          dogumGunu.push({ kisi: k, gun: fark });
-        }
-      });
-      dogumGunu.sort((a, b) => a.gun - b.gun);
+      const programlar: BuHaftaOzet["programlar"] = [];
+      const faaliyetler: BuHaftaOzet["faaliyetler"] = [];
 
-      // Teke-tek bekleyen: son teke_tek 14+ gün önce ya da hiç yok
-      const tekeTekBekleyen: EvdekilerOzet["tekeTekBekleyen"] = [];
-      kisiler.forEach((k) => {
-        const son = etkinlikler
-          .filter((e) => e.kisi_id === k.id && e.tip === "teke_tek")
-          .sort((a, b) => b.tarih.localeCompare(a.tarih))[0];
-        if (!son) {
-          tekeTekBekleyen.push({ kisi: k, sonTarih: null, gunGectiKi: null });
+      etkinlikler.sort(sirala).forEach((e) => {
+        const k = kisiMap.get(e.kisi_id);
+        if (!k) return;
+        if (e.tip === "istisare" || e.tip === "sohbet") {
+          programlar.push({ kisi: k, etkinlik: e });
         } else {
-          const gun = Math.floor((bugun.getTime() - new Date(son.tarih).getTime()) / (1000 * 60 * 60 * 24));
-          if (gun >= 14) tekeTekBekleyen.push({ kisi: k, sonTarih: son.tarih, gunGectiKi: gun });
+          faaliyetler.push({ kisi: k, etkinlik: e });
         }
       });
-      tekeTekBekleyen.sort((a, b) => (b.gunGectiKi ?? 9999) - (a.gunGectiKi ?? 9999));
 
-      // Yaklaşan kandil/kamp/sohbet — sonraki 7 gün
-      const bugunStr = bugun.toISOString().slice(0, 10);
-      const yediStr = yedi.toISOString().slice(0, 10);
-      const yaklaşanProgram: EvdekilerOzet["yaklaşanProgram"] = etkinlikler
-        .filter(
-          (e) =>
-            e.tarih >= bugunStr &&
-            e.tarih <= yediStr &&
-            (e.tip === "kandil" || e.tip === "kamp" || e.tip === "sohbet" || e.tip === "sophia"),
-        )
-        .sort((a, b) => a.tarih.localeCompare(b.tarih))
-        .map((e) => {
-          const k = kisiler.find((x) => x.id === e.kisi_id)!;
-          return { kisi: k, tip: e.tip, tarih: e.tarih, baslik: e.baslik };
-        });
-
-      return { dogumGunu, tekeTekBekleyen, yaklaşanProgram };
+      return { programlar, faaliyetler, haftaBas: bas, haftaSon: son };
     },
   });
 }
