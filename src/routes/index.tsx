@@ -7,13 +7,16 @@ import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-h
 import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { BugunCetelesi } from "@/components/mizan/dashboard/bugun-cetelesi";
 import { BugunZamanCizelgesi } from "@/components/mizan/dashboard/bugun-zaman-cizelgesi";
+import { BugunGorevleri } from "@/components/mizan/dashboard/bugun-gorevleri";
 import { GelecekGunler } from "@/components/mizan/dashboard/gelecek-gunler";
 import { EvdekilerWidget } from "@/components/mizan/dashboard/evdekiler-widget";
 import { BugununMufredati } from "@/components/mizan/dashboard/bugunun-mufredati";
 import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
+import { GorevDialog } from "@/components/mizan/takvim/gorev-dialog";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { useAmelKurslar, useTumAmelModuller } from "@/lib/amel-hooks";
 import { kursIlerleme } from "@/lib/amel-tipleri";
+import type { TakvimGorev } from "@/lib/takvim-tipleri";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -79,6 +82,9 @@ function AnaDashboard() {
   const [acikAlan, setAcikAlan] = React.useState<CeteleAlan | null>(null);
   const acikYuzde =
     acikAlan === "mana" ? manaYuzde : acikAlan === "ilim" ? ilimYuzde : amelYuzde;
+
+  const [gorevDialogAcik, setGorevDialogAcik] = React.useState(false);
+  const [duzenlenenGorev, setDuzenlenenGorev] = React.useState<TakvimGorev | null>(null);
 
   const saat = simdi.getHours();
   const selamlama =
@@ -164,9 +170,20 @@ function AnaDashboard() {
       </header>
 
       {/* Bugünün çetelesi + zaman çizelgesi */}
-      <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,4fr)_minmax(0,5fr)_minmax(0,3fr)]">
         <BugunCetelesi simdi={simdi} />
         <BugunZamanCizelgesi simdi={simdi} />
+        <BugunGorevleri
+          simdi={simdi}
+          onYeni={() => {
+            setDuzenlenenGorev(null);
+            setGorevDialogAcik(true);
+          }}
+          onDuzenle={(g) => {
+            setDuzenlenenGorev(g);
+            setGorevDialogAcik(true);
+          }}
+        />
       </div>
 
       {/* Bugünün Müfredatı (Amel) */}
@@ -184,6 +201,16 @@ function AnaDashboard() {
         alan={acikAlan}
         onOpenChange={(o) => !o && setAcikAlan(null)}
         yuzde={acikYuzde}
+      />
+
+      <GorevDialog
+        acik={gorevDialogAcik}
+        onOpenChange={(o) => {
+          setGorevDialogAcik(o);
+          if (!o) setDuzenlenenGorev(null);
+        }}
+        varsayilanVade={simdi}
+        duzenle={duzenlenenGorev}
       />
     </div>
   );
