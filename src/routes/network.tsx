@@ -54,7 +54,8 @@ function Network() {
   const tab: TabKey = search.tab ?? "gundemler";
   const setTab = (v: TabKey) => {
     if (v === "rapor") {
-      navigate({ to: "/network/rapor", replace: true });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      navigate({ to: "/network/rapor", search: (() => ({})) as any, replace: true });
       return;
     }
     navigate({ to: "/network", search: { tab: v }, replace: true });

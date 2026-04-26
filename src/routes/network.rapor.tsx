@@ -1,25 +1,19 @@
 import * as React from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Download, FileText, Activity, Sparkles, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Download,
+  FileText,
+  Activity,
+  Sparkles,
+  AlertCircle,
+  Users,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   useKategoriler,
   useKisiler,
@@ -27,10 +21,21 @@ import {
   useRaporGundemler,
   useRaporManeviyat,
   type RaporFiltre,
+  type RaporFaaliyetSatir,
+  type RaporGundemSatir,
+  type RaporManeviyatKisi,
 } from "@/lib/network-hooks";
+import type { Kategori, KisiDetay } from "@/lib/network-tipleri";
 import { ETKINLIK_TIP_MAP } from "@/lib/network-tipleri";
 import { raporPdfUret } from "@/lib/network-rapor-pdf";
-import { format, parseISO, startOfMonth, startOfWeek, subDays, subMonths } from "date-fns";
+import {
+  format,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+  subDays,
+  subMonths,
+} from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -39,11 +44,11 @@ type Kapsam = "gundem" | "faaliyet" | "maneviyat";
 type Search = {
   from: string;
   to: string;
-  kisiId?: string;
   kategoriIds: string[];
   kapsam: Kapsam[];
   sonucDurumu: "tumu" | "dolu" | "bos";
   gundemDurumu: "tumu" | "bekliyor" | "yapildi";
+  bosGoster: boolean;
 };
 
 function bugun(): string {
@@ -57,7 +62,10 @@ export const Route = createFileRoute("/network/rapor")({
   head: () => ({
     meta: [
       { title: "Rapor — Rehberlik" },
-      { name: "description", content: "Gündem ve faaliyet raporu, PDF dışa aktarımı." },
+      {
+        name: "description",
+        content: "Kategori bazlı rehberlik raporu, PDF dışa aktarımı.",
+      },
     ],
   }),
   validateSearch: (s: Record<string, unknown>): Search => {
@@ -66,7 +74,9 @@ export const Route = createFileRoute("/network/rapor")({
     const kapsamRaw = arr(s.kapsam) as Kapsam[];
     const kapsam: Kapsam[] = (
       kapsamRaw.length
-        ? kapsamRaw.filter((k) => k === "gundem" || k === "faaliyet" || k === "maneviyat")
+        ? kapsamRaw.filter(
+            (k) => k === "gundem" || k === "faaliyet" || k === "maneviyat",
+          )
         : ["gundem", "faaliyet"]
     ) as Kapsam[];
     const sonucDurumu =
@@ -78,15 +88,87 @@ export const Route = createFileRoute("/network/rapor")({
     return {
       from: typeof s.from === "string" ? s.from : gunlerOnce(30),
       to: typeof s.to === "string" ? s.to : bugun(),
-      kisiId: typeof s.kisiId === "string" && s.kisiId ? s.kisiId : undefined,
       kategoriIds: arr(s.kategoriIds),
       kapsam,
       sonucDurumu,
       gundemDurumu,
+      bosGoster: s.bosGoster === true,
     };
   },
   component: RaporPage,
 });
+
+/* ============== Gruplama ============== */
+
+type KisiBlok = {
+  kisi_id: string;
+  kisi_ad: string;
+  gundemler: RaporGundemSatir[];
+  faaliyetler: RaporFaaliyetSatir[];
+  maneviyat: RaporManeviyatKisi | null;
+};
+
+type KategoriBlok = {
+  kategori: { id: string; ad: string; renk: string | null } | null; // null = "Kategorisiz"
+  kisiler: KisiBlok[];
+};
+
+function gruplandir(
+  kisiler: KisiDetay[],
+  kategoriler: Kategori[],
+  seciliKategoriIds: string[],
+  gundemler: RaporGundemSatir[],
+  faaliyetler: RaporFaaliyetSatir[],
+  maneviyat: RaporManeviyatKisi[],
+): KategoriBlok[] {
+  const aktifKategoriler = seciliKategoriIds.length
+    ? kategoriler.filter((k) => seciliKategoriIds.includes(k.id))
+    : kategoriler;
+
+  const adMap = new Map<string, string>();
+  kisiler.forEach((k) => adMap.set(k.id, k.ad));
+  const maneviyatMap = new Map<string, RaporManeviyatKisi>();
+  maneviyat.forEach((m) => maneviyatMap.set(m.kisi_id, m));
+
+  // Bir kişi için gündem/faaliyet topla
+  const kisiBloku = (kid: string): KisiBlok => ({
+    kisi_id: kid,
+    kisi_ad: adMap.get(kid) ?? "—",
+    gundemler: gundemler.filter((g) => g.sorumlu_ids.includes(kid)),
+    faaliyetler: faaliyetler.filter((f) => f.kisi_id === kid),
+    maneviyat: maneviyatMap.get(kid) ?? null,
+  });
+
+  const sonuc: KategoriBlok[] = aktifKategoriler.map((kat) => {
+    const katKisileri = kisiler.filter((k) => k.kategori_ids.includes(kat.id));
+    return {
+      kategori: { id: kat.id, ad: kat.ad, renk: kat.renk ?? null },
+      kisiler: katKisileri
+        .map((k) => kisiBloku(k.id))
+        .sort((a, b) => a.kisi_ad.localeCompare(b.kisi_ad, "tr")),
+    };
+  });
+
+  // Kategorisiz: hiçbir aktif kategoride olmayan ama gündem/faaliyet kaydı olan kişiler.
+  // Sadece kullanıcı kategori filtresi YAPMAMIŞSA göster (filtre varsa zaten ilgisiz).
+  if (seciliKategoriIds.length === 0) {
+    const kategoride = new Set<string>();
+    kisiler.forEach((k) => {
+      if (k.kategori_ids.length > 0) kategoride.add(k.id);
+    });
+    const kategorisiz = kisiler
+      .filter((k) => !kategoride.has(k.id))
+      .map((k) => kisiBloku(k.id))
+      .filter((b) => b.gundemler.length || b.faaliyetler.length || b.maneviyat);
+    if (kategorisiz.length > 0) {
+      sonuc.push({ kategori: null, kisiler: kategorisiz });
+    }
+  }
+
+  return sonuc;
+}
+
+/* ============== Sayfa ============== */
 
 function RaporPage() {
   const search = Route.useSearch();
@@ -95,7 +177,6 @@ function RaporPage() {
   const filtre: RaporFiltre = {
     from: search.from,
     to: search.to,
-    kisiId: search.kisiId,
     kategoriIds: search.kategoriIds.length ? search.kategoriIds : undefined,
     sonucDurumu: search.sonucDurumu,
     gundemDurumu: search.gundemDurumu,
@@ -104,7 +185,7 @@ function RaporPage() {
   const setSearch = (patch: Partial<Search>) =>
     navigate({
       to: "/network/rapor",
-      search: (prev: Search) => ({ ...prev, ...patch }),
+      search: (prev) => ({ ...(prev as Search), ...patch }),
       replace: true,
     });
 
@@ -119,7 +200,6 @@ function RaporPage() {
   const faaliyetQ = useRaporFaaliyetler(filtre, aktifFaaliyet);
   const maneviyatQ = useRaporManeviyat(filtre, aktifManeviyat);
 
-  const kisi = kisiler.find((k) => k.id === search.kisiId);
   const seciliKategoriler = kategoriler.filter((k) =>
     search.kategoriIds.includes(k.id),
   );
@@ -128,6 +208,34 @@ function RaporPage() {
     (aktifGundem && gundemQ.isLoading) ||
     (aktifFaaliyet && faaliyetQ.isLoading) ||
     (aktifManeviyat && maneviyatQ.isLoading);
+
+  const gundemler = gundemQ.data ?? [];
+  const faaliyetler = faaliyetQ.data ?? [];
+  const maneviyat = maneviyatQ.data ?? [];
+
+  const gruplar = React.useMemo(
+    () =>
+      gruplandir(
+        kisiler,
+        kategoriler,
+        search.kategoriIds,
+        gundemler,
+        faaliyetler,
+        maneviyat,
+      ),
+    [kisiler, kategoriler, search.kategoriIds, gundemler, faaliyetler, maneviyat],
+  );
+
+  const goruntulenecekGruplar = search.bosGoster
+    ? gruplar
+    : gruplar.filter((g) =>
+        g.kisiler.some(
+          (k) =>
+            (aktifGundem && k.gundemler.length) ||
+            (aktifFaaliyet && k.faaliyetler.length) ||
+            (aktifManeviyat && k.maneviyat),
+        ),
+      );
 
   const hizli = (etiket: string, from: string, to: string) => (
     <Button
@@ -144,11 +252,9 @@ function RaporPage() {
     try {
       raporPdfUret({
         filtre,
-        kisiAd: kisi?.ad ?? null,
         kategoriAdlar: seciliKategoriler.map((k) => k.ad),
-        gundemler: aktifGundem ? gundemQ.data ?? [] : undefined,
-        faaliyetler: aktifFaaliyet ? faaliyetQ.data ?? [] : undefined,
-        maneviyat: aktifManeviyat ? maneviyatQ.data ?? [] : undefined,
+        gruplar: goruntulenecekGruplar,
+        kapsam: { gundem: aktifGundem, faaliyet: aktifFaaliyet, maneviyat: aktifManeviyat },
       });
       toast.success("PDF indirildi");
     } catch (e) {
@@ -157,25 +263,10 @@ function RaporPage() {
     }
   };
 
-  /* ---- ÖZET ---- */
-  const gundemler = gundemQ.data ?? [];
-  const faaliyetler = faaliyetQ.data ?? [];
-  const maneviyat = maneviyatQ.data ?? [];
+  /* ÖZET KARTLARI */
   const gTamam = gundemler.filter((g) => g.durum === "yapildi").length;
   const gSonuclu = gundemler.filter((g) => (g.karar ?? "").trim().length > 0).length;
   const fSonuclu = faaliyetler.filter((f) => (f.sonuc ?? "").trim().length > 0).length;
-  const enAktif = (() => {
-    if (!faaliyetler.length) return null;
-    const sayim = new Map<string, { ad: string; n: number }>();
-    for (const f of faaliyetler) {
-      const cur = sayim.get(f.kisi_id) ?? { ad: f.kisi_ad, n: 0 };
-      cur.n += 1;
-      sayim.set(f.kisi_id, cur);
-    }
-    let m: { ad: string; n: number } | null = null;
-    for (const v of sayim.values()) if (!m || v.n > m.n) m = v;
-    return m;
-  })();
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
@@ -217,7 +308,11 @@ function RaporPage() {
               Tarih aralığı
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {hizli("Bu hafta", format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"), bugun())}
+              {hizli(
+                "Bu hafta",
+                format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"),
+                bugun(),
+              )}
               {hizli("Bu ay", format(startOfMonth(new Date()), "yyyy-MM-dd"), bugun())}
               {hizli("Son 30 gün", gunlerOnce(30), bugun())}
               {hizli("Son 3 ay", format(subMonths(new Date(), 3), "yyyy-MM-dd"), bugun())}
@@ -239,29 +334,9 @@ function RaporPage() {
             </div>
           </div>
 
-          {/* Kişi + sonuç */}
+          {/* Sonuç + gündem durum */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Kişi</label>
-            <Select
-              value={search.kisiId ?? "__all__"}
-              onValueChange={(v) =>
-                setSearch({ kisiId: v === "__all__" ? undefined : v })
-              }
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder="Tüm kişiler" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Tüm kişiler</SelectItem>
-                {kisiler.map((k) => (
-                  <SelectItem key={k.id} value={k.id}>
-                    {k.ad}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-[10px] uppercase tracking-wide text-muted-foreground">
                   Sonuç doluluğu
@@ -275,9 +350,15 @@ function RaporPage() {
                   }
                   className="mt-1 justify-start"
                 >
-                  <ToggleGroupItem value="tumu" className="text-xs">Tümü</ToggleGroupItem>
-                  <ToggleGroupItem value="dolu" className="text-xs">Dolu</ToggleGroupItem>
-                  <ToggleGroupItem value="bos" className="text-xs">Boş</ToggleGroupItem>
+                  <ToggleGroupItem value="tumu" className="text-xs">
+                    Tümü
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="dolu" className="text-xs">
+                    Dolu
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="bos" className="text-xs">
+                    Boş
+                  </ToggleGroupItem>
                 </ToggleGroup>
               </div>
               <div>
@@ -293,12 +374,27 @@ function RaporPage() {
                   }
                   className="mt-1 justify-start"
                 >
-                  <ToggleGroupItem value="tumu" className="text-xs">Tümü</ToggleGroupItem>
-                  <ToggleGroupItem value="bekliyor" className="text-xs">Bekliyor</ToggleGroupItem>
-                  <ToggleGroupItem value="yapildi" className="text-xs">Yapıldı</ToggleGroupItem>
+                  <ToggleGroupItem value="tumu" className="text-xs">
+                    Tümü
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="bekliyor" className="text-xs">
+                    Bekliyor
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="yapildi" className="text-xs">
+                    Yapıldı
+                  </ToggleGroupItem>
                 </ToggleGroup>
               </div>
             </div>
+            <label className="mt-2 flex cursor-pointer items-center gap-2 pt-1 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={search.bosGoster}
+                onChange={(e) => setSearch({ bosGoster: e.target.checked })}
+                className="h-3.5 w-3.5 rounded border-border"
+              />
+              Boş kategorileri göster
+            </label>
           </div>
         </div>
 
@@ -306,7 +402,7 @@ function RaporPage() {
         {kategoriler.length > 0 && (
           <div className="mt-4 space-y-2">
             <label className="text-xs font-medium text-muted-foreground">
-              Kategori
+              Kategori (boşsa hepsi)
             </label>
             <div className="flex flex-wrap gap-1.5">
               {kategoriler.map((k) => {
@@ -371,7 +467,9 @@ function RaporPage() {
             ana={`${gundemler.length}`}
             altSatirlar={[
               `${gTamam} tamamlandı`,
-              `${gSonuclu} sonuç yazılı (${gundemler.length ? Math.round((gSonuclu / gundemler.length) * 100) : 0}%)`,
+              `${gSonuclu} sonuç yazılı (${
+                gundemler.length ? Math.round((gSonuclu / gundemler.length) * 100) : 0
+              }%)`,
             ]}
             yukleniyor={gundemQ.isLoading}
           />
@@ -381,8 +479,15 @@ function RaporPage() {
             baslik="Faaliyetler"
             ana={`${faaliyetler.length}`}
             altSatirlar={[
-              `${fSonuclu} sonuç yazılı (${faaliyetler.length ? Math.round((fSonuclu / faaliyetler.length) * 100) : 0}%)`,
-              enAktif ? `En aktif: ${enAktif.ad} (${enAktif.n})` : "—",
+              `${fSonuclu} sonuç yazılı (${
+                faaliyetler.length
+                  ? Math.round((fSonuclu / faaliyetler.length) * 100)
+                  : 0
+              }%)`,
+              `${goruntulenecekGruplar.reduce(
+                (a, g) => a + g.kisiler.length,
+                0,
+              )} kardeş kapsamda`,
             ]}
             yukleniyor={faaliyetQ.isLoading}
           />
@@ -414,165 +519,243 @@ function RaporPage() {
         )}
       </section>
 
-      {/* GÜNDEMLER */}
-      {aktifGundem && (
-        <section className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold tracking-tight">
-            Gündemler ve Kararlar
-          </h2>
-          {gundemQ.isLoading ? (
-            <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-              Yükleniyor…
-            </div>
-          ) : gundemler.length === 0 ? (
-            <BosKutu mesaj="Bu kriterlerle gündem bulunamadı." />
-          ) : (
-            <div className="overflow-hidden rounded-xl border border-border bg-card">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[90px]">Tarih</TableHead>
-                    <TableHead>İstişare</TableHead>
-                    <TableHead>Gündem</TableHead>
-                    <TableHead>Karar</TableHead>
-                    <TableHead className="w-[140px]">Sorumlu</TableHead>
-                    <TableHead className="w-[90px]">Durum</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {gundemler.map((g) => (
-                    <TableRow key={g.id}>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {format(parseISO(g.istisare_tarih), "d MMM", { locale: tr })}
-                      </TableCell>
-                      <TableCell className="text-xs">{g.istisare_baslik}</TableCell>
-                      <TableCell className="max-w-[280px] text-sm">{g.icerik}</TableCell>
-                      <TableCell className="max-w-[280px] text-sm">
-                        {g.karar?.trim() ? (
-                          g.karar
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-destructive">
-                            <AlertCircle className="h-3 w-3" /> Sonuç eksik
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {g.sorumlu_adlar.join(", ") || "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={g.durum === "yapildi" ? "default" : "outline"}
-                          className="text-[10px]"
-                        >
-                          {g.durum}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </section>
-      )}
+      {/* KATEGORİ → KİŞİ HİYERARŞİSİ */}
+      <section className="space-y-6">
+        {yukleniyor ? (
+          <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+            Yükleniyor…
+          </div>
+        ) : goruntulenecekGruplar.length === 0 ? (
+          <BosKutu mesaj="Bu kriterlerle kayıt bulunamadı." />
+        ) : (
+          goruntulenecekGruplar.map((g, i) => (
+            <KategoriKart
+              key={g.kategori?.id ?? `_kategorisiz_${i}`}
+              blok={g}
+              aktifGundem={aktifGundem}
+              aktifFaaliyet={aktifFaaliyet}
+              aktifManeviyat={aktifManeviyat}
+            />
+          ))
+        )}
+      </section>
+    </div>
+  );
+}
 
-      {/* FAALİYETLER */}
-      {aktifFaaliyet && (
-        <section className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold tracking-tight">
-            Kardeş Faaliyetleri
-          </h2>
-          {faaliyetQ.isLoading ? (
-            <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-              Yükleniyor…
-            </div>
-          ) : faaliyetler.length === 0 ? (
-            <BosKutu mesaj="Bu kriterlerle faaliyet bulunamadı." />
-          ) : (
-            <div className="overflow-hidden rounded-xl border border-border bg-card">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[90px]">Tarih</TableHead>
-                    <TableHead className="w-[140px]">Kişi</TableHead>
-                    <TableHead className="w-[110px]">Tip</TableHead>
-                    <TableHead>Başlık</TableHead>
-                    <TableHead>Sonuç</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {faaliyetler.map((f) => (
-                    <TableRow key={f.id}>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {format(parseISO(f.tarih), "d MMM", { locale: tr })}
-                      </TableCell>
-                      <TableCell className="text-sm">{f.kisi_ad}</TableCell>
-                      <TableCell className="text-xs">
-                        {ETKINLIK_TIP_MAP[f.tip]?.ad ?? f.tip}
-                      </TableCell>
-                      <TableCell className="max-w-[260px] text-sm">{f.baslik}</TableCell>
-                      <TableCell className="max-w-[320px] text-sm">
-                        {f.sonuc?.trim() ? (
-                          f.sonuc
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-destructive">
-                            <AlertCircle className="h-3 w-3" /> Sonuç eksik
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </section>
-      )}
+/* ============== Alt bileşenler ============== */
 
-      {/* MANEVİYAT */}
-      {aktifManeviyat && (
-        <section className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold tracking-tight">Maneviyat</h2>
-          {maneviyatQ.isLoading ? (
-            <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-              Yükleniyor…
-            </div>
-          ) : maneviyat.length === 0 ? (
-            <BosKutu mesaj="Bu kriterlerle maneviyat verisi bulunamadı." />
-          ) : (
-            <div className="overflow-hidden rounded-xl border border-border bg-card">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Kişi</TableHead>
-                    <TableHead className="w-[120px]">Aktif müfredat</TableHead>
-                    <TableHead className="w-[140px]">Müfredat ilerleme</TableHead>
-                    <TableHead className="w-[120px]">Evrad madde</TableHead>
-                    <TableHead className="w-[120px]">Tik sayısı</TableHead>
-                    <TableHead className="w-[140px]">Doluluk</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {maneviyat.map((m) => (
-                    <TableRow key={m.kisi_id}>
-                      <TableCell className="text-sm">{m.kisi_ad}</TableCell>
-                      <TableCell className="text-sm">{m.aktif_mufredat_sayisi}</TableCell>
-                      <TableCell>
-                        <Yuzde deger={m.mufredat_ilerleme_yuzde} />
-                      </TableCell>
-                      <TableCell className="text-sm">{m.evrad_madde_sayisi}</TableCell>
-                      <TableCell className="text-sm">{m.evrad_kayit_sayisi}</TableCell>
-                      <TableCell>
-                        <Yuzde deger={m.evrad_doluluk_yuzde} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+function KategoriKart({
+  blok,
+  aktifGundem,
+  aktifFaaliyet,
+  aktifManeviyat,
+}: {
+  blok: KategoriBlok;
+  aktifGundem: boolean;
+  aktifFaaliyet: boolean;
+  aktifManeviyat: boolean;
+}) {
+  const { kategori, kisiler } = blok;
+  const dolu = kisiler.filter(
+    (k) =>
+      (aktifGundem && k.gundemler.length) ||
+      (aktifFaaliyet && k.faaliyetler.length) ||
+      (aktifManeviyat && k.maneviyat),
+  );
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <header className="flex items-center justify-between gap-3 border-b border-border bg-muted/30 px-5 py-3">
+        <div className="flex items-center gap-2.5">
+          <span
+            className="h-2.5 w-2.5 rounded-full"
+            style={{ background: kategori?.renk ?? "hsl(var(--muted-foreground))" }}
+          />
+          <h2 className="text-base font-semibold tracking-tight">
+            {kategori?.ad ?? "Kategorisiz"}
+          </h2>
+          <Badge variant="outline" className="text-[10px]">
+            <Users className="h-3 w-3" /> {kisiler.length}
+          </Badge>
+        </div>
+        <span className="text-[11px] text-muted-foreground">
+          {dolu.length} aktif kardeş
+        </span>
+      </header>
+
+      {kisiler.length === 0 ? (
+        <div className="px-5 py-6 text-sm text-muted-foreground">
+          Bu kategoride kayıtlı kardeş yok.
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {kisiler.map((k) => (
+            <KisiBlokSatir
+              key={k.kisi_id}
+              blok={k}
+              aktifGundem={aktifGundem}
+              aktifFaaliyet={aktifFaaliyet}
+              aktifManeviyat={aktifManeviyat}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KisiBlokSatir({
+  blok,
+  aktifGundem,
+  aktifFaaliyet,
+  aktifManeviyat,
+}: {
+  blok: KisiBlok;
+  aktifGundem: boolean;
+  aktifFaaliyet: boolean;
+  aktifManeviyat: boolean;
+}) {
+  const bos =
+    (!aktifGundem || blok.gundemler.length === 0) &&
+    (!aktifFaaliyet || blok.faaliyetler.length === 0) &&
+    (!aktifManeviyat || !blok.maneviyat);
+
+  return (
+    <div className="px-5 py-4">
+      <div className="mb-2 flex items-center justify-between">
+        <Link
+          to="/network/kisi/$id"
+          params={{ id: blok.kisi_id }}
+          search={{ kt: "profil" }}
+          className="group flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary"
+        >
+          {blok.kisi_ad}
+          <ChevronRight className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+        </Link>
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          {aktifGundem && (
+            <Badge variant="secondary" className="text-[10px]">
+              {blok.gundemler.length} gündem
+            </Badge>
+          )}
+          {aktifFaaliyet && (
+            <Badge variant="secondary" className="text-[10px]">
+              {blok.faaliyetler.length} faaliyet
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {bos ? (
+        <p className="text-xs text-muted-foreground">
+          Bu aralıkta kayıt yok.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {aktifGundem && blok.gundemler.length > 0 && (
+            <MiniListe
+              icon={<FileText className="h-3 w-3" />}
+              baslik="Gündem kararları"
+              satirlar={blok.gundemler.map((g) => ({
+                id: g.id,
+                tarih: g.istisare_tarih,
+                sol: g.icerik,
+                sag: g.karar,
+                rozetler: [
+                  <Badge
+                    key="d"
+                    variant={g.durum === "yapildi" ? "default" : "outline"}
+                    className="text-[10px]"
+                  >
+                    {g.durum}
+                  </Badge>,
+                ],
+              }))}
+            />
+          )}
+          {aktifFaaliyet && blok.faaliyetler.length > 0 && (
+            <MiniListe
+              icon={<Activity className="h-3 w-3" />}
+              baslik="Faaliyetler & sonuçlar"
+              satirlar={blok.faaliyetler.map((f) => ({
+                id: f.id,
+                tarih: f.tarih,
+                sol: `${ETKINLIK_TIP_MAP[f.tip]?.ad ?? f.tip} · ${f.baslik}`,
+                sag: f.sonuc,
+              }))}
+            />
+          )}
+          {aktifManeviyat && blok.maneviyat && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-background/60 px-3 py-2 text-xs">
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <Sparkles className="h-3 w-3" /> Maneviyat
+              </span>
+              <span>
+                Müfredat:{" "}
+                <strong className="text-foreground">
+                  {blok.maneviyat.mufredat_ilerleme_yuzde}%
+                </strong>{" "}
+                ({blok.maneviyat.aktif_mufredat_sayisi} aktif)
+              </span>
+              <span>
+                Evrad:{" "}
+                <strong className="text-foreground">
+                  {blok.maneviyat.evrad_doluluk_yuzde}%
+                </strong>{" "}
+                ({blok.maneviyat.evrad_kayit_sayisi}/{blok.maneviyat.evrad_madde_sayisi}{" "}
+                madde)
+              </span>
             </div>
           )}
-        </section>
+        </div>
       )}
+    </div>
+  );
+}
+
+function MiniListe({
+  icon,
+  baslik,
+  satirlar,
+}: {
+  icon: React.ReactNode;
+  baslik: string;
+  satirlar: Array<{
+    id: string;
+    tarih: string;
+    sol: string;
+    sag: string | null;
+    rozetler?: React.ReactNode[];
+  }>;
+}) {
+  return (
+    <div>
+      <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {icon} {baslik}
+      </p>
+      <ul className="space-y-1.5">
+        {satirlar.map((s) => (
+          <li
+            key={s.id}
+            className="grid grid-cols-[60px_1fr_1.4fr_auto] items-start gap-2 rounded-md border border-border/60 bg-background/40 px-2.5 py-1.5 text-xs"
+          >
+            <span className="text-muted-foreground">
+              {format(parseISO(s.tarih), "d MMM", { locale: tr })}
+            </span>
+            <span className="text-foreground">{s.sol}</span>
+            <span className="text-foreground/90">
+              {s.sag?.trim() ? (
+                s.sag
+              ) : (
+                <span className="inline-flex items-center gap-1 text-destructive">
+                  <AlertCircle className="h-3 w-3" /> Sonuç eksik
+                </span>
+              )}
+            </span>
+            <span className="flex items-center gap-1">{s.rozetler}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -613,16 +796,4 @@ function BosKutu({ mesaj }: { mesaj: string }) {
   );
 }
 
-function Yuzde({ deger }: { deger: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full bg-primary"
-          style={{ width: `${Math.min(100, Math.max(0, deger))}%` }}
-        />
-      </div>
-      <span className="text-xs text-muted-foreground">{deger}%</span>
-    </div>
-  );
-}
+export type { KategoriBlok, KisiBlok };

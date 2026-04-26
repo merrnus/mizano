@@ -3,12 +3,8 @@ import autoTable from "jspdf-autotable";
 import { format, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 import { ETKINLIK_TIP_MAP } from "./network-tipleri";
-import type {
-  RaporFiltre,
-  RaporGundemSatir,
-  RaporFaaliyetSatir,
-  RaporManeviyatKisi,
-} from "./network-hooks";
+import type { RaporFiltre } from "./network-hooks";
+import type { KategoriBlok } from "@/routes/network.rapor";
 
 function fmt(d: string) {
   try {
@@ -19,8 +15,8 @@ function fmt(d: string) {
 }
 
 /**
- * Türkçe karakterleri jsPDF varsayılan Helvetica'nın desteklediği latin-1
- * eşdeğerlerine düşürür. (Font embed maliyeti olmadan okunabilir çıktı.)
+ * Türkçe karakterleri jsPDF varsayılan Helvetica'nın desteklediği
+ * latin-1 eşdeğerlerine düşürür.
  */
 function trText(s: string | null | undefined): string {
   if (!s) return "";
@@ -41,20 +37,24 @@ function trText(s: string | null | undefined): string {
 
 export type RaporPdfGirdi = {
   filtre: RaporFiltre;
-  kisiAd?: string | null;
   kategoriAdlar?: string[];
-  gundemler?: RaporGundemSatir[];
-  faaliyetler?: RaporFaaliyetSatir[];
-  maneviyat?: RaporManeviyatKisi[];
+  gruplar: KategoriBlok[];
+  kapsam: { gundem: boolean; faaliyet: boolean; maneviyat: boolean };
 };
+
+function getY(doc: jsPDF): number {
+  const t = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable;
+  return t ? t.finalY : 0;
+}
 
 export function raporPdfUret(g: RaporPdfGirdi): void {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const sayfaGenis = doc.internal.pageSize.getWidth();
+  const sayfaYuk = doc.internal.pageSize.getHeight();
   const sol = 40;
   let y = 48;
 
-  // Başlık
+  // ------- Başlık -------
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
   doc.text(trText("Mizan — Rehberlik Raporu"), sol, y);
@@ -64,15 +64,12 @@ export function raporPdfUret(g: RaporPdfGirdi): void {
   doc.setFontSize(10);
   doc.setTextColor(110);
   doc.text(
-    trText(
-      `Tarih araligi: ${fmt(g.filtre.from)} — ${fmt(g.filtre.to)}`,
-    ),
+    trText(`Tarih araligi: ${fmt(g.filtre.from)} — ${fmt(g.filtre.to)}`),
     sol,
     y,
   );
   y += 14;
   const filtreSatirlari: string[] = [];
-  if (g.kisiAd) filtreSatirlari.push(`Kisi: ${g.kisiAd}`);
   if (g.kategoriAdlar && g.kategoriAdlar.length)
     filtreSatirlari.push(`Kategori: ${g.kategoriAdlar.join(", ")}`);
   if (g.filtre.sonucDurumu && g.filtre.sonucDurumu !== "tumu")
@@ -81,188 +78,236 @@ export function raporPdfUret(g: RaporPdfGirdi): void {
     );
   if (g.filtre.gundemDurumu && g.filtre.gundemDurumu !== "tumu")
     filtreSatirlari.push(`Gundem durumu: ${g.filtre.gundemDurumu}`);
+  const kapsamLabels = [
+    g.kapsam.gundem && "Gundemler",
+    g.kapsam.faaliyet && "Faaliyetler",
+    g.kapsam.maneviyat && "Maneviyat",
+  ].filter(Boolean) as string[];
+  filtreSatirlari.push(`Kapsam: ${kapsamLabels.join(" + ")}`);
   if (filtreSatirlari.length) {
     doc.text(trText(filtreSatirlari.join("  ·  ")), sol, y);
     y += 14;
   }
   doc.text(
-    trText(`Olusturulma: ${format(new Date(), "d MMMM yyyy HH:mm", { locale: tr })}`),
+    trText(
+      `Olusturulma: ${format(new Date(), "d MMMM yyyy HH:mm", { locale: tr })}`,
+    ),
     sol,
     y,
   );
   y += 18;
   doc.setTextColor(0);
 
-  // ÖZET
+  // ------- Üst özet -------
+  let toplamGundem = 0;
+  let sonucluGundem = 0;
+  let toplamFaaliyet = 0;
+  let sonucluFaaliyet = 0;
+  let toplamKisi = 0;
+  for (const grp of g.gruplar) {
+    toplamKisi += grp.kisiler.length;
+    for (const k of grp.kisiler) {
+      toplamGundem += k.gundemler.length;
+      sonucluGundem += k.gundemler.filter(
+        (gg) => (gg.karar ?? "").trim().length > 0,
+      ).length;
+      toplamFaaliyet += k.faaliyetler.length;
+      sonucluFaaliyet += k.faaliyetler.filter(
+        (ff) => (ff.sonuc ?? "").trim().length > 0,
+      ).length;
+    }
+  }
+
   const ozetSatir: string[][] = [];
-  if (g.gundemler) {
-    const tamam = g.gundemler.filter((s) => s.durum === "yapildi").length;
-    const sonuclu = g.gundemler.filter((s) => (s.karar ?? "").trim()).length;
+  ozetSatir.push([
+    trText("Kategori"),
+    String(g.gruplar.length),
+    `${toplamKisi} kardes`,
+    "",
+  ]);
+  if (g.kapsam.gundem) {
     ozetSatir.push([
       trText("Gundemler"),
-      String(g.gundemler.length),
-      `${tamam} tamam`,
-      `${sonuclu} sonuclu`,
+      String(toplamGundem),
+      `${sonucluGundem} sonuclu`,
+      toplamGundem
+        ? `${Math.round((sonucluGundem / toplamGundem) * 100)}%`
+        : "—",
     ]);
   }
-  if (g.faaliyetler) {
-    const sonuclu = g.faaliyetler.filter((s) => (s.sonuc ?? "").trim()).length;
+  if (g.kapsam.faaliyet) {
     ozetSatir.push([
       trText("Faaliyetler"),
-      String(g.faaliyetler.length),
-      "—",
-      `${sonuclu} sonuclu`,
+      String(toplamFaaliyet),
+      `${sonucluFaaliyet} sonuclu`,
+      toplamFaaliyet
+        ? `${Math.round((sonucluFaaliyet / toplamFaaliyet) * 100)}%`
+        : "—",
     ]);
   }
-  if (g.maneviyat) {
-    const ortIlerleme = g.maneviyat.length
-      ? Math.round(
-          g.maneviyat.reduce((a, b) => a + b.mufredat_ilerleme_yuzde, 0) /
-            g.maneviyat.length,
-        )
-      : 0;
-    const ortDoluluk = g.maneviyat.length
-      ? Math.round(
-          g.maneviyat.reduce((a, b) => a + b.evrad_doluluk_yuzde, 0) /
-            g.maneviyat.length,
-        )
-      : 0;
-    ozetSatir.push([
-      trText("Maneviyat"),
-      `${g.maneviyat.length} kisi`,
-      `${ortIlerleme}% mufredat`,
-      `${ortDoluluk}% evrad`,
-    ]);
-  }
-  if (ozetSatir.length) {
-    autoTable(doc, {
-      startY: y,
-      head: [["Kapsam", "Toplam", "Durum", "Sonuc/Doluluk"].map(trText)],
-      body: ozetSatir,
-      styles: { font: "helvetica", fontSize: 10, cellPadding: 6 },
-      headStyles: { fillColor: [40, 40, 40], textColor: 255 },
-      margin: { left: sol, right: sol },
-    });
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 18;
-  }
 
-  // GÜNDEMLER
-  if (g.gundemler && g.gundemler.length) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text(trText("Gundemler ve Kararlar"), sol, y);
-    y += 8;
-    autoTable(doc, {
-      startY: y,
-      head: [
-        ["Tarih", "Istisare", "Gundem", "Karar / Sonuc", "Sorumlu", "Durum"].map(trText),
-      ],
-      body: g.gundemler.map((s) => [
-        fmt(s.istisare_tarih),
-        trText(s.istisare_baslik),
-        trText(s.icerik),
-        trText(s.karar ?? "—"),
-        trText(s.sorumlu_adlar.join(", ")),
-        trText(s.durum),
-      ]),
-      styles: {
-        font: "helvetica",
-        fontSize: 9,
-        cellPadding: 5,
-        valign: "top",
-        overflow: "linebreak",
-      },
-      headStyles: { fillColor: [40, 40, 40], textColor: 255 },
-      columnStyles: {
-        0: { cellWidth: 60 },
-        1: { cellWidth: 80 },
-        2: { cellWidth: 130 },
-        3: { cellWidth: 130 },
-        4: { cellWidth: 80 },
-        5: { cellWidth: 50 },
-      },
-      margin: { left: sol, right: sol },
-    });
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 18;
-  }
+  autoTable(doc, {
+    startY: y,
+    head: [["Kapsam", "Toplam", "Detay", "Oran"].map(trText)],
+    body: ozetSatir,
+    styles: { font: "helvetica", fontSize: 10, cellPadding: 6 },
+    headStyles: { fillColor: [40, 40, 40], textColor: 255 },
+    margin: { left: sol, right: sol },
+  });
+  y = getY(doc) + 22;
 
-  // FAALİYETLER
-  if (g.faaliyetler && g.faaliyetler.length) {
-    if (y > 720) {
+  // ------- Kategori → Kişi blokları -------
+  const yenISayfaGerekiyorMu = (gerekenBoslik: number) => {
+    if (y + gerekenBoslik > sayfaYuk - 60) {
       doc.addPage();
       y = 48;
     }
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text(trText("Kardes Faaliyetleri"), sol, y);
-    y += 8;
-    autoTable(doc, {
-      startY: y,
-      head: [["Tarih", "Kisi", "Tip", "Baslik", "Sonuc"].map(trText)],
-      body: g.faaliyetler.map((s) => [
-        fmt(s.tarih),
-        trText(s.kisi_ad),
-        trText(ETKINLIK_TIP_MAP[s.tip]?.ad ?? s.tip),
-        trText(s.baslik),
-        trText(s.sonuc ?? "—"),
-      ]),
-      styles: {
-        font: "helvetica",
-        fontSize: 9,
-        cellPadding: 5,
-        valign: "top",
-        overflow: "linebreak",
-      },
-      headStyles: { fillColor: [40, 40, 40], textColor: 255 },
-      columnStyles: {
-        0: { cellWidth: 60 },
-        1: { cellWidth: 90 },
-        2: { cellWidth: 60 },
-        3: { cellWidth: 160 },
-        4: { cellWidth: 160 },
-      },
-      margin: { left: sol, right: sol },
-    });
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 18;
-  }
+  };
 
-  // MANEVİYAT
-  if (g.maneviyat && g.maneviyat.length) {
-    if (y > 720) {
-      doc.addPage();
-      y = 48;
+  for (const grp of g.gruplar) {
+    yenISayfaGerekiyorMu(60);
+    // Kategori başlığı
+    doc.setDrawColor(180);
+    doc.setFillColor(245, 245, 245);
+    doc.rect(sol, y, sayfaGenis - sol * 2, 22, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(30);
+    doc.text(
+      trText(
+        `${grp.kategori?.ad ?? "Kategorisiz"}  (${grp.kisiler.length} kardes)`,
+      ),
+      sol + 8,
+      y + 15,
+    );
+    y += 30;
+
+    if (grp.kisiler.length === 0) {
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(10);
+      doc.setTextColor(140);
+      doc.text(trText("Bu kategoride kayitli kardes yok."), sol + 8, y);
+      y += 18;
+      continue;
     }
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text(trText("Maneviyat Ozeti"), sol, y);
+
+    for (const k of grp.kisiler) {
+      yenISayfaGerekiyorMu(70);
+
+      // Kişi başlığı
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(40);
+      doc.text(trText(`• ${k.kisi_ad}`), sol + 6, y);
+      y += 12;
+
+      const bos =
+        (!g.kapsam.gundem || k.gundemler.length === 0) &&
+        (!g.kapsam.faaliyet || k.faaliyetler.length === 0) &&
+        (!g.kapsam.maneviyat || !k.maneviyat);
+
+      if (bos) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(150);
+        doc.text(trText("Bu aralikta kayit yok."), sol + 16, y);
+        y += 16;
+        continue;
+      }
+
+      // Gündemler
+      if (g.kapsam.gundem && k.gundemler.length > 0) {
+        autoTable(doc, {
+          startY: y,
+          head: [["Tarih", "Gundem", "Karar / Sonuc", "Durum"].map(trText)],
+          body: k.gundemler.map((gg) => [
+            fmt(gg.istisare_tarih),
+            trText(gg.icerik),
+            trText(gg.karar ?? "—"),
+            trText(gg.durum),
+          ]),
+          styles: {
+            font: "helvetica",
+            fontSize: 9,
+            cellPadding: 4,
+            valign: "top",
+            overflow: "linebreak",
+          },
+          headStyles: {
+            fillColor: [70, 70, 70],
+            textColor: 255,
+            fontSize: 8,
+          },
+          columnStyles: {
+            0: { cellWidth: 60 },
+            1: { cellWidth: 180 },
+            2: { cellWidth: 200 },
+            3: { cellWidth: 60 },
+          },
+          margin: { left: sol + 14, right: sol },
+        });
+        y = getY(doc) + 6;
+      }
+
+      // Faaliyetler
+      if (g.kapsam.faaliyet && k.faaliyetler.length > 0) {
+        yenISayfaGerekiyorMu(60);
+        autoTable(doc, {
+          startY: y,
+          head: [["Tarih", "Tip", "Baslik", "Sonuc"].map(trText)],
+          body: k.faaliyetler.map((ff) => [
+            fmt(ff.tarih),
+            trText(ETKINLIK_TIP_MAP[ff.tip]?.ad ?? ff.tip),
+            trText(ff.baslik),
+            trText(ff.sonuc ?? "—"),
+          ]),
+          styles: {
+            font: "helvetica",
+            fontSize: 9,
+            cellPadding: 4,
+            valign: "top",
+            overflow: "linebreak",
+          },
+          headStyles: {
+            fillColor: [110, 110, 110],
+            textColor: 255,
+            fontSize: 8,
+          },
+          columnStyles: {
+            0: { cellWidth: 60 },
+            1: { cellWidth: 70 },
+            2: { cellWidth: 170 },
+            3: { cellWidth: 200 },
+          },
+          margin: { left: sol + 14, right: sol },
+        });
+        y = getY(doc) + 6;
+      }
+
+      // Maneviyat
+      if (g.kapsam.maneviyat && k.maneviyat) {
+        yenISayfaGerekiyorMu(24);
+        const m = k.maneviyat;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(80);
+        doc.text(
+          trText(
+            `Maneviyat: Mufredat ${m.mufredat_ilerleme_yuzde}% (${m.aktif_mufredat_sayisi} aktif)  ·  Evrad ${m.evrad_doluluk_yuzde}% (${m.evrad_kayit_sayisi}/${m.evrad_madde_sayisi} madde)`,
+          ),
+          sol + 16,
+          y + 10,
+        );
+        y += 18;
+      }
+
+      y += 6;
+    }
+
     y += 8;
-    autoTable(doc, {
-      startY: y,
-      head: [
-        [
-          "Kisi",
-          "Aktif mufredat",
-          "Ilerleme",
-          "Evrad madde",
-          "Tik sayisi",
-          "Doluluk",
-        ].map(trText),
-      ],
-      body: g.maneviyat.map((m) => [
-        trText(m.kisi_ad),
-        String(m.aktif_mufredat_sayisi),
-        `${m.mufredat_ilerleme_yuzde}%`,
-        String(m.evrad_madde_sayisi),
-        String(m.evrad_kayit_sayisi),
-        `${m.evrad_doluluk_yuzde}%`,
-      ]),
-      styles: { font: "helvetica", fontSize: 9, cellPadding: 5 },
-      headStyles: { fillColor: [40, 40, 40], textColor: 255 },
-      margin: { left: sol, right: sol },
-    });
   }
 
-  // Footer (sayfa no)
+  // ------- Footer -------
   const sayfaSayisi = doc.getNumberOfPages();
   for (let i = 1; i <= sayfaSayisi; i++) {
     doc.setPage(i);

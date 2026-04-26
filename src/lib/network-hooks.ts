@@ -1166,7 +1166,6 @@ export function useKardesEvradToggle() {
 export type RaporFiltre = {
   from: string; // YYYY-MM-DD
   to: string;   // YYYY-MM-DD
-  kisiId?: string;
   kategoriIds?: string[];
   sonucDurumu?: "tumu" | "dolu" | "bos";
   gundemDurumu?: "tumu" | "bekliyor" | "yapildi";
@@ -1212,7 +1211,6 @@ function _kisiUygunMu(
   kisi: KisiDetay,
   filtre: RaporFiltre,
 ): boolean {
-  if (filtre.kisiId && kisi.id !== filtre.kisiId) return false;
   if (filtre.kategoriIds && filtre.kategoriIds.length > 0) {
     const kesisim = kisi.kategori_ids.some((kid) => filtre.kategoriIds!.includes(kid));
     if (!kesisim) return false;
@@ -1230,7 +1228,6 @@ export function useRaporGundemler(filtre: RaporFiltre, aktif: boolean) {
       user?.id,
       filtre.from,
       filtre.to,
-      filtre.kisiId ?? "all",
       (filtre.kategoriIds ?? []).join(","),
       filtre.sonucDurumu ?? "tumu",
       filtre.gundemDurumu ?? "tumu",
@@ -1306,11 +1303,6 @@ export function useRaporGundemler(filtre: RaporFiltre, aktif: boolean) {
         satirlar = satirlar.filter((s) => !(s.karar ?? "").trim().length);
       }
 
-      // Kişi filtresi
-      if (filtre.kisiId) {
-        satirlar = satirlar.filter((s) => s.sorumlu_ids.includes(filtre.kisiId!));
-      }
-
       // Kategori filtresi: sorumluların kategorilere üyeliği
       if (filtre.kategoriIds && filtre.kategoriIds.length > 0) {
         const { data: bag } = await supabase
@@ -1339,18 +1331,16 @@ export function useRaporFaaliyetler(filtre: RaporFiltre, aktif: boolean) {
       user?.id,
       filtre.from,
       filtre.to,
-      filtre.kisiId ?? "all",
       (filtre.kategoriIds ?? []).join(","),
       filtre.sonucDurumu ?? "tumu",
     ],
     enabled: !!user && aktif,
     queryFn: async (): Promise<RaporFaaliyetSatir[]> => {
-      let q = supabase
+      const q = supabase
         .from("kardes_etkinlik")
         .select("*")
         .gte("tarih", filtre.from)
         .lte("tarih", filtre.to);
-      if (filtre.kisiId) q = q.eq("kisi_id", filtre.kisiId);
       const { data, error } = await q;
       if (error) throw error;
       const etk = (data ?? []) as KardesEtkinlik[];
@@ -1408,7 +1398,6 @@ export function useRaporManeviyat(filtre: RaporFiltre, aktif: boolean) {
       user?.id,
       filtre.from,
       filtre.to,
-      filtre.kisiId ?? "all",
       (filtre.kategoriIds ?? []).join(","),
     ],
     enabled: !!user && aktif,
@@ -1430,7 +1419,6 @@ export function useRaporManeviyat(filtre: RaporFiltre, aktif: boolean) {
       });
 
       let kisiIds = (kisilerRes.data ?? []).map((k) => k.id);
-      if (filtre.kisiId) kisiIds = kisiIds.filter((id) => id === filtre.kisiId);
       if (filtre.kategoriIds && filtre.kategoriIds.length > 0) {
         kisiIds = kisiIds.filter((id) =>
           (kisiKategoriMap.get(id) ?? []).some((k) => filtre.kategoriIds!.includes(k)),
