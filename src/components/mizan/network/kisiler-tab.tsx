@@ -46,6 +46,8 @@ export function KisilerTab() {
   const [arama, setArama] = React.useState("");
   const [secili, setSecili] = React.useState<KisiDetay | null>(null);
   const [yeniKisiAd, setYeniKisiAd] = React.useState("");
+  const [inlineEdit, setInlineEdit] = React.useState<{ id: string; ad: string } | null>(null);
+  const [silAdayi, setSilAdayi] = React.useState<KisiDetay | null>(null);
   const navigate = useNavigate();
 
   const kategorilerQ = useKategoriler();
@@ -54,6 +56,8 @@ export function KisilerTab() {
   const kisiler = kisilerQ.data ?? [];
 
   const ekleKisi = useKisiEkle();
+  const guncelleKisi = useKisiGuncelle();
+  const silKisi = useKisiSil();
 
   const filtreli = kisiler.filter((k) => {
     const aramaUygun = k.ad.toLowerCase().includes(arama.toLowerCase());
@@ -75,6 +79,25 @@ export function KisilerTab() {
     });
     setYeniKisiAd("");
     toast.success("Kişi eklendi");
+  };
+
+  const inlineKaydet = async () => {
+    if (!inlineEdit) return;
+    const yeniAd = inlineEdit.ad.trim();
+    if (!yeniAd) {
+      setInlineEdit(null);
+      return;
+    }
+    await guncelleKisi.mutateAsync({ id: inlineEdit.id, ad: yeniAd });
+    setInlineEdit(null);
+    toast.success("İsim güncellendi");
+  };
+
+  const silOnayla = async () => {
+    if (!silAdayi) return;
+    await silKisi.mutateAsync(silAdayi.id);
+    toast.success(`"${silAdayi.ad}" silindi`);
+    setSilAdayi(null);
   };
 
   return (
@@ -125,58 +148,120 @@ export function KisilerTab() {
           </div>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {filtreli.map((k) => (
-              <button
-                key={k.id}
-                onClick={() => {
-                  if (k.derin_takip) {
-                    navigate({
-                      to: "/network/kisi/$id",
-                      params: { id: k.id },
-                      search: { tab: "profil" } as never,
-                    });
-                  } else {
-                    setSecili(k);
-                  }
-                }}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-primary/40"
-              >
-                <Avatar className="h-9 w-9 border border-border">
-                  <AvatarFallback className="bg-muted text-xs">
-                    {k.ad.split(" ").map((p) => p[0]).join("").slice(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <div className="truncate text-sm font-medium text-foreground">
-                      {k.ad}
+            {filtreli.map((k) => {
+              const isEditing = inlineEdit?.id === k.id;
+              return (
+                <div
+                  key={k.id}
+                  className="group/kisi relative flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/40"
+                >
+                  <Avatar className="h-9 w-9 border border-border">
+                    <AvatarFallback className="bg-muted text-xs">
+                      {k.ad.split(" ").map((p) => p[0]).join("").slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {isEditing ? (
+                    <div className="flex min-w-0 flex-1 items-center gap-1">
+                      <Input
+                        autoFocus
+                        value={inlineEdit.ad}
+                        onChange={(e) =>
+                          setInlineEdit({ id: inlineEdit.id, ad: e.target.value })
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            inlineKaydet();
+                          }
+                          if (e.key === "Escape") setInlineEdit(null);
+                        }}
+                        className="h-7 text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0"
+                        onClick={inlineKaydet}
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0"
+                        onClick={() => setInlineEdit(null)}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
-                    {k.derin_takip && (
-                      <Star className="h-3 w-3 shrink-0 fill-primary text-primary" />
-                    )}
-                  </div>
-                  <div className="mt-0.5 flex flex-wrap gap-1">
-                    {k.kategori_ids.length === 0 ? (
-                      <span className="text-[10px] text-muted-foreground">—</span>
-                    ) : (
-                      k.kategori_ids.slice(0, 3).map((kid) => {
-                        const kat = kategoriler.find((x) => x.id === kid);
-                        if (!kat) return null;
-                        return (
-                          <Badge
-                            key={kid}
-                            variant="outline"
-                            className="text-[9px]"
-                          >
-                            {kat.ad}
-                          </Badge>
-                        );
-                      })
-                    )}
-                  </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (k.derin_takip) {
+                          navigate({
+                            to: "/network/kisi/$id",
+                            params: { id: k.id },
+                            search: { tab: "profil" } as never,
+                          });
+                        } else {
+                          setSecili(k);
+                        }
+                      }}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <div className="truncate text-sm font-medium text-foreground">
+                          {k.ad}
+                        </div>
+                        {k.derin_takip && (
+                          <Star className="h-3 w-3 shrink-0 fill-primary text-primary" />
+                        )}
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap gap-1">
+                        {k.kategori_ids.length === 0 ? (
+                          <span className="text-[10px] text-muted-foreground">—</span>
+                        ) : (
+                          k.kategori_ids.slice(0, 3).map((kid) => {
+                            const kat = kategoriler.find((x) => x.id === kid);
+                            if (!kat) return null;
+                            return (
+                              <Badge
+                                key={kid}
+                                variant="outline"
+                                className="text-[9px]"
+                              >
+                                {kat.ad}
+                              </Badge>
+                            );
+                          })
+                        )}
+                      </div>
+                    </button>
+                  )}
+                  {!isEditing && (
+                    <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/kisi:opacity-100 focus-within:opacity-100">
+                      <button
+                        type="button"
+                        aria-label="İsmi düzenle"
+                        onClick={() => setInlineEdit({ id: k.id, ad: k.ad })}
+                        className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Kişiyi sil"
+                        onClick={() => setSilAdayi(k)}
+                        className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -186,6 +271,27 @@ export function KisilerTab() {
         kategoriler={kategoriler}
         onClose={() => setSecili(null)}
       />
+
+      <AlertDialog open={!!silAdayi} onOpenChange={(o) => !o && setSilAdayi(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Kişiyi sil?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{silAdayi?.ad}" silinecek. Atanmış olduğu gündemlerden de çıkarılır. Bu işlem
+              geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={silOnayla}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
