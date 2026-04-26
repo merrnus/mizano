@@ -11,7 +11,7 @@ import {
   MessageSquare,
   Plus,
   Trash2,
-  X,
+  Save,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -88,6 +88,7 @@ function IstisareDetay() {
   const [baslikDuzenle, setBaslikDuzenle] = React.useState(false);
   const [baslik, setBaslik] = React.useState("");
   const [notlar, setNotlar] = React.useState("");
+  const [notlarKayitDurumu, setNotlarKayitDurumu] = React.useState<"idle" | "kaydediliyor" | "kaydedildi">("idle");
 
   React.useEffect(() => {
     if (istisareQ.data) {
@@ -95,6 +96,19 @@ function IstisareDetay() {
       setNotlar(istisareQ.data.notlar ?? "");
     }
   }, [istisareQ.data?.id]);
+
+  const notlarKaydet = async () => {
+    setNotlarKayitDurumu("kaydediliyor");
+    try {
+      await guncelle.mutateAsync({ id, notlar });
+      setNotlarKayitDurumu("kaydedildi");
+      toast.success("Notlar kaydedildi");
+      setTimeout(() => setNotlarKayitDurumu("idle"), 2000);
+    } catch {
+      setNotlarKayitDurumu("idle");
+      toast.error("Kaydedilemedi");
+    }
+  };
 
   if (istisareQ.isLoading) {
     return <div className="p-6 text-center text-sm text-muted-foreground">Yükleniyor…</div>;
@@ -220,17 +234,43 @@ function IstisareDetay() {
 
       {/* Genel notlar */}
       <div className="mb-5">
-        <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Toplantı Notları
-        </label>
+        <div className="mb-1.5 flex items-center justify-between">
+          <label className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Toplantı Notları
+          </label>
+          <div className="flex items-center gap-2">
+            {notlarKayitDurumu === "kaydedildi" && (
+              <span className="flex items-center gap-1 text-[10px] text-[var(--maneviyat)]">
+                <Check className="h-3 w-3" /> Kaydedildi
+              </span>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 gap-1 text-xs"
+              onClick={notlarKaydet}
+              disabled={
+                notlarKayitDurumu === "kaydediliyor" ||
+                notlar === (istisare.notlar ?? "")
+              }
+            >
+              <Save className="h-3 w-3" />
+              {notlarKayitDurumu === "kaydediliyor" ? "Kaydediliyor…" : "Kaydet"}
+            </Button>
+          </div>
+        </div>
         <Textarea
           value={notlar}
           onChange={(e) => setNotlar(e.target.value)}
-          onBlur={() => guncelle.mutate({ id, notlar })}
-          rows={2}
+          rows={3}
           placeholder="Genel toplantı notları, katılımcılar vb."
           className="resize-none"
         />
+        {notlar !== (istisare.notlar ?? "") && notlarKayitDurumu !== "kaydedildi" && (
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Kaydedilmemiş değişiklikler var
+          </p>
+        )}
       </div>
 
       {/* Toplu yapıştırma */}
