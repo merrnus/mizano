@@ -149,7 +149,8 @@ function KisiDetay() {
           navigate({
             to: "/network/kisi/$id",
             params: { id },
-            search: { tab: v as "profil" | "faaliyetler" },
+            // routeTree henüz regenerate edilmediği için search tipi geniş tutuluyor
+            search: { tab: v } as never,
             replace: true,
           })
         }
