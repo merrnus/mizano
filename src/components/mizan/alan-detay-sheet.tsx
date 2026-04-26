@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, BookOpen, GraduationCap, Plus, Sparkles, Target } from "lucide-react";
+import { ArrowRight, BookOpen, GraduationCap, Plus, Sparkles, Layers } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -10,14 +10,13 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useHedefler, useTumAdimlar } from "@/lib/hedef-hooks";
-import { hedefIlerleme } from "@/lib/hedef-tipleri";
 import { useSablonlar, useUcAylikKayitlari } from "@/lib/cetele-hooks";
 import { useDersler } from "@/lib/ilim-hooks";
 import { DERS_DURUM_ETIKET } from "@/lib/ilim-tipleri";
+import { useAmelKurslar, useTumAmelModuller } from "@/lib/amel-hooks";
+import { kursIlerleme, KURS_DURUM_ETIKET } from "@/lib/amel-tipleri";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { ALAN_ETIKET, ALAN_RENK_VAR } from "@/lib/cetele-tipleri";
-import { HedefKart } from "./hedef/hedef-kart";
 
 const ALAN_ALTBASLIK: Record<CeteleAlan, string> = {
   mana: "Evrâd, çetele ve manevi hedefler",
@@ -44,28 +43,15 @@ type Props = {
  * İçerik: alan özeti + 3 aylık aktif hedefler + tam sayfaya geçiş linki.
  */
 export function AlanDetaySheet({ alan, onOpenChange, yuzde }: Props) {
-  const { data: hedefler = [], isLoading } = useHedefler();
-  const { data: adimlar = [] } = useTumAdimlar();
   const { data: sablonlar = [] } = useSablonlar();
   const { data: dersler = [] } = useDersler();
+  const { data: amelKurslar = [] } = useAmelKurslar();
+  const { data: amelModuller = [] } = useTumAmelModuller();
 
   const open = alan !== null;
   const aktifAlan = alan ?? "mana";
   const renk = `var(${ALAN_RENK_VAR[aktifAlan]})`;
   const route = ALAN_ROUTE[aktifAlan];
-
-  const ilgili = React.useMemo(
-    () =>
-      hedefler
-        .filter((h) => h.alan === aktifAlan && h.durum === "aktif")
-        .sort((a, b) => {
-          const ai = hedefIlerleme(a, adimlar);
-          const bi = hedefIlerleme(b, adimlar);
-          // bitmemiş ve yüksek ilerleme önce
-          return bi - ai;
-        }),
-    [hedefler, adimlar, aktifAlan],
-  );
 
   // Mana: 3 aylık çetele hedefleri (uc_aylik_hedef tanımlı şablonlar)
   const ucAylikSablonlar = React.useMemo(
@@ -83,6 +69,22 @@ export function AlanDetaySheet({ alan, onOpenChange, yuzde }: Props) {
       ),
     [dersler],
   );
+
+  // Amel: aktif müfredat (durum = "aktif" kurslar) + ilerleme
+  const aktifKurslar = React.useMemo(() => {
+    return amelKurslar
+      .filter((k) => k.durum === "aktif")
+      .map((k) => {
+        const km = amelModuller.filter((m) => m.kurs_id === k.id);
+        return {
+          kurs: k,
+          toplam: km.length,
+          tamam: km.filter((m) => m.tamamlandi).length,
+          yuzde: kursIlerleme(km),
+        };
+      })
+      .sort((a, b) => b.yuzde - a.yuzde);
+  }, [amelKurslar, amelModuller]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
