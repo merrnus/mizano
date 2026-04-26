@@ -54,7 +54,7 @@ function Network() {
   const tab: TabKey = search.tab ?? "gundemler";
   const setTab = (v: TabKey) => {
     if (v === "rapor") {
-      navigate({ to: "/network/rapor", search: {}, replace: true });
+      navigate({ to: "/network/rapor", search: (prev) => prev, replace: true });
       return;
     }
     navigate({ to: "/network", search: { tab: v }, replace: true });
