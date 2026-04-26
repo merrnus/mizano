@@ -24,7 +24,8 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
   const { data: sablonlar = [] } = useSablonlar();
   const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
 
-  const alanlar: CeteleAlan[] = ["mana", "ilim", "amel"];
+  // Amel artık modüllerden besleniyor → "Bugünün Müfredatı" kartında gösteriliyor
+  const alanlar: CeteleAlan[] = ["mana", "ilim"];
   const gruplu = alanlar
     .map((alan) => ({
       alan,

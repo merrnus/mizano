@@ -9,8 +9,11 @@ import { BugunCetelesi } from "@/components/mizan/dashboard/bugun-cetelesi";
 import { BugunZamanCizelgesi } from "@/components/mizan/dashboard/bugun-zaman-cizelgesi";
 import { GelecekGunler } from "@/components/mizan/dashboard/gelecek-gunler";
 import { EvdekilerWidget } from "@/components/mizan/dashboard/evdekiler-widget";
+import { BugununMufredati } from "@/components/mizan/dashboard/bugunun-mufredati";
 import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
+import { useAmelKurslar, useTumAmelModuller } from "@/lib/amel-hooks";
+import { kursIlerleme } from "@/lib/amel-tipleri";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +46,8 @@ function AnaDashboard() {
   const haftaBas = haftaBaslangici(simdi);
   const { data: sablonlar = [] } = useSablonlar();
   const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
+  const { data: amelKurslar = [] } = useAmelKurslar();
+  const { data: amelModuller = [] } = useTumAmelModuller();
 
   const yuzdeHesapla = (alan: "mana" | "ilim" | "amel"): number => {
     const sb = sablonlar.filter((s) => s.alan === alan);
@@ -53,7 +58,17 @@ function AnaDashboard() {
 
   const manaYuzde = yuzdeHesapla("mana");
   const ilimYuzde = 58;
-  const amelYuzde = 32;
+
+  // Amel: izlenen kursların ortalama ilerleme yüzdesi
+  const amelYuzde = React.useMemo(() => {
+    const izlenen = amelKurslar.filter((k) => k.durum === "izliyor");
+    if (izlenen.length === 0) return 0;
+    const toplam = izlenen.reduce((acc, k) => {
+      const km = amelModuller.filter((m) => m.kurs_id === k.id);
+      return acc + kursIlerleme(km);
+    }, 0);
+    return Math.round(toplam / izlenen.length);
+  }, [amelKurslar, amelModuller]);
 
   const rozetler: Array<{ ad: string; yuzde: number; renkVar: string; alan: CeteleAlan }> = [
     { ad: "Mana", yuzde: manaYuzde, renkVar: "--mana", alan: "mana" },
@@ -152,6 +167,11 @@ function AnaDashboard() {
       <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <BugunCetelesi simdi={simdi} />
         <BugunZamanCizelgesi simdi={simdi} />
+      </div>
+
+      {/* Bugünün Müfredatı (Amel) */}
+      <div className="mb-6">
+        <BugununMufredati />
       </div>
 
       {/* Gelecek günler */}
