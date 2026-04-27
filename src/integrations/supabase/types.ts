@@ -380,6 +380,7 @@ export type Database = {
           ad: string
           aktif: boolean
           alan: Database["public"]["Enums"]["cetele_alan"]
+          baglamlar: string[]
           birim: Database["public"]["Enums"]["cetele_birim"]
           created_at: string
           hedef_deger: number
@@ -396,6 +397,7 @@ export type Database = {
           ad: string
           aktif?: boolean
           alan?: Database["public"]["Enums"]["cetele_alan"]
+          baglamlar?: string[]
           birim: Database["public"]["Enums"]["cetele_birim"]
           created_at?: string
           hedef_deger?: number
@@ -412,6 +414,7 @@ export type Database = {
           ad?: string
           aktif?: boolean
           alan?: Database["public"]["Enums"]["cetele_alan"]
+          baglamlar?: string[]
           birim?: Database["public"]["Enums"]["cetele_birim"]
           created_at?: string
           hedef_deger?: number
