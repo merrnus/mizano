@@ -6,6 +6,9 @@ import { CeteleHucre } from "@/components/mizan/cetele-hucre";
 import { haftaBaslangici, tarihFormat } from "@/lib/cetele-tarih";
 import { ALAN_ETIKET, type CeteleAlan } from "@/lib/cetele-tipleri";
 import { AkisModu } from "@/components/mizan/dashboard/akis-modu";
+import { BaglamFiltre, useBaglamFiltresi } from "@/components/mizan/baglam-filtre";
+import { BaglamChip } from "@/components/mizan/baglam-chip";
+import { baglamEslesir, type BaglamId } from "@/lib/cetele-baglam";
 
 const ALAN_ROTA: Record<CeteleAlan, "/mizan/mana" | "/mizan/ilim" | "/mizan/amel"> = {
   mana: "/mizan/mana",
@@ -23,6 +26,7 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
 
   const { data: sablonlar = [] } = useSablonlar();
   const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
+  const [baglamSec, setBaglamSec] = useBaglamFiltresi();
 
   // Amel artık "Bugünün Müfredatı" kartında; İlim ders/sınav modeli kullanıyor.
   // Çetele dashboardı sadece Mana evrâdını gösterir.
@@ -30,7 +34,9 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
   const gruplu = alanlar
     .map((alan) => ({
       alan,
-      sablonlar: sablonlar.filter((s) => s.alan === alan),
+      sablonlar: sablonlar.filter(
+        (s) => s.alan === alan && baglamEslesir(s.baglamlar, baglamSec),
+      ),
     }))
     .filter((g) => g.sablonlar.length > 0);
 
@@ -45,7 +51,9 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
       return toplam < Number(s.hedef_deger);
     }).length;
 
-  if (gruplu.length === 0) {
+  // Hiç şablon yoksa farklı, sadece filtre boş bıraktıysa farklı mesaj.
+  const hicSablonYok = sablonlar.filter((s) => s.alan === "mana").length === 0;
+  if (hicSablonYok) {
     return (
       <section className="rounded-2xl border border-border bg-card px-5 py-8 text-center">
         <p className="text-sm text-muted-foreground">
@@ -73,7 +81,23 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
         </div>
       </header>
 
+      <div className="border-b border-border px-5 py-3">
+        <BaglamFiltre deger={baglamSec} onChange={setBaglamSec} />
+      </div>
+
       <div className="divide-y divide-border">
+        {gruplu.length === 0 && (
+          <div className="px-5 py-6 text-center text-xs text-muted-foreground">
+            Bu bağlam için işaretli evrad yok.{" "}
+            <button
+              type="button"
+              onClick={() => setBaglamSec(null)}
+              className="text-foreground underline-offset-4 hover:underline"
+            >
+              Hepsini göster
+            </button>
+          </div>
+        )}
         {gruplu.map(({ alan, sablonlar: alanSablonlar }) => {
           const renk = `var(--${alan})`;
           const eksik = eksikSayisi(alanSablonlar);
@@ -142,8 +166,15 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
                   >
                     <div className="min-w-0">
                       <div className="truncate text-xs font-medium">{s.ad}</div>
-                      <div className="text-[10px] text-muted-foreground">
-                        Hedef {Number(s.hedef_deger)} {s.birim}
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <span>Hedef {Number(s.hedef_deger)} {s.birim}</span>
+                        {(s.baglamlar ?? []).length > 0 && (
+                          <span className="flex gap-0.5">
+                            {(s.baglamlar as BaglamId[]).map((b) => (
+                              <BaglamChip key={b} baglam={b} boyut="xs" emojiOnly />
+                            ))}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <CeteleHucre
@@ -163,7 +194,7 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
     <AkisModu
       acik={akisAlan !== null}
       alan={akisAlan}
-      sablonlar={sablonlar}
+      sablonlar={sablonlar.filter((s) => baglamEslesir(s.baglamlar, baglamSec))}
       kayitlar={kayitlar}
       tarihStr={bugunStr}
       onClose={() => setAkisAlan(null)}

@@ -24,6 +24,10 @@ import { UcAylikIlerleme } from "@/components/mizan/uc-aylik-ilerleme";
 import { ceteleyiPdfeAktar } from "@/lib/cetele-pdf";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { BAGLAMLAR, BAGLAM_SINIF, BAGLAM_MAP, type BaglamId } from "@/lib/cetele-baglam";
+import { HaftalikHedefNoktalar } from "@/components/mizan/haftalik-hedef-noktalar";
+import type { CeteleSablon } from "@/lib/cetele-tipleri";
 
 export const Route = createFileRoute("/mizan/mana")({
   head: () => ({
@@ -46,6 +50,26 @@ function ManaSayfasi() {
 
   const mana = sablonlar.filter((s) => s.alan === "mana");
   const bos = !isLoading && mana.length === 0;
+
+  // Bağlama göre gruplama: bir madde birden fazla bağlamdaysa her grupta bir kez görünür.
+  // Etiketsiz (boş baglamlar) en altta ayrı grup.
+  type Grup = { id: BaglamId | "etiketsiz"; etiket: string; emoji: string; renk: string; sablonlar: CeteleSablon[] };
+  const gruplar: Grup[] = React.useMemo(() => {
+    const out: Grup[] = BAGLAMLAR.map((b) => ({
+      id: b.id,
+      etiket: b.etiket,
+      emoji: b.emoji,
+      renk: b.renk,
+      sablonlar: mana.filter((s) => (s.baglamlar ?? []).includes(b.id)),
+    })).filter((g) => g.sablonlar.length > 0);
+
+    const etiketsiz = mana.filter((s) => !s.baglamlar || s.baglamlar.length === 0);
+    if (etiketsiz.length > 0) {
+      out.push({ id: "etiketsiz", etiket: "Etiketsiz", emoji: "·", renk: "muted", sablonlar: etiketsiz });
+    }
+    return out;
+  }, [mana]);
+
   const ucAyliklar = sablonlar.filter((s) => s.uc_aylik_hedef);
   const { data: ucAylikKayitlari = [] } = useUcAylikKayitlari(
     ucAyliklar.map((s) => s.id),
@@ -170,10 +194,32 @@ function ManaSayfasi() {
                 </tr>
               </thead>
               <tbody>
-                {mana.map((s) => {
-                  const haftaSum = haftaToplami(kayitlar, s.id);
+                {gruplar.map((grup) => {
+                  const c = grup.id === "etiketsiz" ? null : BAGLAM_SINIF[BAGLAM_MAP[grup.id as BaglamId].renk];
+                  const totalCols = 1 + gunler.length + 2;
                   return (
-                    <tr key={s.id} className="text-xs">
+                    <React.Fragment key={grup.id}>
+                      <tr>
+                        <td colSpan={totalCols} className="px-0 pt-3 pb-1">
+                          <div
+                            className={cn(
+                              "flex items-center gap-2 rounded-md border px-3 py-1.5",
+                              c ? cn(c.yumusakBg, c.yumusakBorder) : "bg-muted/30 border-border",
+                            )}
+                          >
+                            <span className={cn("h-3 w-1 rounded-full", c ? c.serit : "bg-muted-foreground/30")} aria-hidden />
+                            <span aria-hidden className="text-sm">{grup.emoji}</span>
+                            <span className={cn("text-xs font-semibold tracking-wide", c ? c.metin : "text-muted-foreground")}>
+                              {grup.etiket}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">· {grup.sablonlar.length} madde</span>
+                          </div>
+                        </td>
+                      </tr>
+                      {grup.sablonlar.map((s) => {
+                        const haftaSum = haftaToplami(kayitlar, s.id);
+                        return (
+                          <tr key={`${grup.id}-${s.id}`} className="text-xs">
                       <td className="sticky left-0 z-10 w-[160px] border-r border-border bg-card px-2 pl-4 align-middle sm:pl-5">
                         <div className="font-medium">{s.ad}</div>
                         {s.notlar ? (
@@ -202,9 +248,7 @@ function ManaSayfasi() {
                       <td className="px-2 text-right align-middle">
                         <div className="text-[11px] font-medium text-foreground">
                           {s.hedef_tipi === "haftalik" ? (
-                            <>
-                              {haftaSum}/{Number(s.hedef_deger)} <span className="text-muted-foreground">/h</span>
-                            </>
+                            <HaftalikHedefNoktalar toplam={haftaSum} hedef={Number(s.hedef_deger)} />
                           ) : s.hedef_tipi === "gunluk" ? (
                             <>
                               {Number(s.hedef_deger)} <span className="text-muted-foreground">/g</span>
@@ -229,6 +273,9 @@ function ManaSayfasi() {
                         </div>
                       </td>
                     </tr>
+                        );
+                      })}
+                    </React.Fragment>
                   );
                 })}
               </tbody>

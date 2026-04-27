@@ -25,6 +25,8 @@ import type {
   CeteleHedefTipi,
   CeteleSablon,
 } from "@/lib/cetele-tipleri";
+import { BaglamCokluSecici } from "@/components/mizan/baglam-chip";
+import type { BaglamId } from "@/lib/cetele-baglam";
 import { toast } from "sonner";
 
 export function SablonForm({
@@ -43,6 +45,9 @@ export function SablonForm({
     duzenle?.uc_aylik_hedef != null ? String(duzenle.uc_aylik_hedef) : "",
   );
   const [notlar, setNotlar] = React.useState(duzenle?.notlar ?? "");
+  const [baglamlar, setBaglamlar] = React.useState<BaglamId[]>(
+    (duzenle?.baglamlar as BaglamId[] | undefined) ?? [],
+  );
   const ekle = useSablonEkle();
   const guncelle = useSablonGuncelle();
   const isEdit = !!duzenle;
@@ -56,6 +61,7 @@ export function SablonForm({
       setHedefDeger(String(duzenle.hedef_deger));
       setUcAylik(duzenle.uc_aylik_hedef != null ? String(duzenle.uc_aylik_hedef) : "");
       setNotlar(duzenle.notlar ?? "");
+      setBaglamlar((duzenle.baglamlar as BaglamId[] | undefined) ?? []);
     }
   }, [acik, duzenle]);
 
@@ -70,6 +76,7 @@ export function SablonForm({
         hedef_deger: Number(hedefDeger) || 1,
         uc_aylik_hedef: ucAylik ? Number(ucAylik) : null,
         notlar: notlar.trim() || null,
+        baglamlar,
       };
       if (isEdit && duzenle) {
         await guncelle.mutateAsync({ id: duzenle.id, ...payload });
@@ -85,6 +92,7 @@ export function SablonForm({
         setHedefDeger("1");
         setUcAylik("");
         setNotlar("");
+        setBaglamlar([]);
       }
       setAcik(false);
     } catch (e) {
@@ -177,6 +185,13 @@ export function SablonForm({
             />
             <p className="text-[10px] text-muted-foreground">
               "Risale" gibi genel başlıklar için hangi kitap / cilt / sayfa olduğunu yazabilirsin.
+            </p>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs">Bağlamlar (ops.)</Label>
+            <BaglamCokluSecici secili={baglamlar} onChange={setBaglamlar} />
+            <p className="text-[10px] text-muted-foreground">
+              Hangi durum/yerlerde yapılabilir? Boş bırakırsan her bağlamda görünür.
             </p>
           </div>
           <Button type="submit" disabled={pending} className="mt-2">
