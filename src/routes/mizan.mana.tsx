@@ -24,6 +24,7 @@ import { UcAylikIlerleme } from "@/components/mizan/uc-aylik-ilerleme";
 import { ceteleyiPdfeAktar } from "@/lib/cetele-pdf";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { BAGLAMLAR, BAGLAM_SINIF, BAGLAM_MAP, type BaglamId } from "@/lib/cetele-baglam";
 import { HaftalikHedefNoktalar } from "@/components/mizan/haftalik-hedef-noktalar";
 import type { CeteleSablon } from "@/lib/cetele-tipleri";
