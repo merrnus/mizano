@@ -160,14 +160,14 @@ function BaglamSatir({ baglam }: { baglam: BaglamTanim }) {
   }
 
   return (
-    <li className={cn("flex items-center gap-2 rounded-md border px-2 py-1.5", c.yumusakBg, c.yumusakBorder)}>
+    <li className={cn("flex items-center gap-1.5 rounded-md border px-2 py-1.5", c.yumusakBg, c.yumusakBorder)}>
       {duzenle ? (
         <>
           <EmojiSecici deger={emoji} onChange={setEmoji} />
           <Input
             value={ad}
             onChange={(e) => setAd(e.target.value)}
-            className="h-8 flex-1 text-xs"
+            className="h-8 min-w-0 flex-1 text-xs"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === "Enter") { e.preventDefault(); kaydet(); }
@@ -178,7 +178,7 @@ function BaglamSatir({ baglam }: { baglam: BaglamTanim }) {
             type="button"
             onClick={kaydet}
             disabled={guncelle.isPending}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-emerald-600 hover:bg-emerald-500/10"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-emerald-600 hover:bg-emerald-500/10"
             aria-label="Kaydet"
           >
             <Check className="h-4 w-4" />
@@ -186,7 +186,7 @@ function BaglamSatir({ baglam }: { baglam: BaglamTanim }) {
           <button
             type="button"
             onClick={() => { setDuzenle(false); setAd(baglam.etiket); setEmoji(baglam.emoji); }}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
             aria-label="İptal"
           >
             <X className="h-4 w-4" />
@@ -197,15 +197,15 @@ function BaglamSatir({ baglam }: { baglam: BaglamTanim }) {
           <button
             type="button"
             onClick={() => setDuzenle(true)}
-            className="flex flex-1 items-center gap-2 text-left"
+            className="flex min-w-0 flex-1 items-center gap-2 text-left"
           >
             <span aria-hidden className="text-base leading-none">{baglam.emoji}</span>
-            <span className={cn("text-sm font-medium", c.metin)}>{baglam.etiket}</span>
+            <span className={cn("truncate text-sm font-medium", c.metin)}>{baglam.etiket}</span>
           </button>
           <button
             type="button"
             onClick={() => setSilOnay(true)}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
             aria-label="Sil"
           >
             <Trash2 className="h-3.5 w-3.5" />
