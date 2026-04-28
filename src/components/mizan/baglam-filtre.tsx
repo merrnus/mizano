@@ -1,6 +1,8 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { BAGLAMLAR, BAGLAM_SINIF, type BaglamId } from "@/lib/cetele-baglam";
+import { BAGLAM_SINIF, type BaglamId } from "@/lib/cetele-baglam";
+import { useBaglamlar } from "@/lib/cetele-baglam-hooks";
+import { BaglamYonetimDialog } from "@/components/mizan/baglam-yonetim-dialog";
 
 const STORAGE_KEY = "cetele-baglam";
 
@@ -12,34 +14,38 @@ export function BaglamFiltre({
   deger: BaglamId | null;
   onChange: (yeni: BaglamId | null) => void;
 }) {
+  const { data: baglamlar = [] } = useBaglamlar();
   return (
-    <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <FiltreButon
-        secili={deger === null}
-        onClick={() => onChange(null)}
-        etiket="Hepsi"
-      />
-      {BAGLAMLAR.map((b) => {
-        const c = BAGLAM_SINIF[b.renk];
-        const secili = deger === b.id;
-        return (
-          <button
-            key={b.id}
-            type="button"
-            onClick={() => onChange(b.id)}
-            aria-pressed={secili}
-            className={cn(
-              "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs whitespace-nowrap transition-all snap-start",
-              secili
-                ? cn(c.dolguBg, c.yumusakBorder, c.dolguMetin, "font-medium")
-                : "bg-transparent border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
-            )}
-          >
-            <span aria-hidden>{b.emoji}</span>
-            <span>{b.etiket}</span>
-          </button>
-        );
-      })}
+    <div className="flex items-center gap-1.5">
+      <div className="-mx-1 flex flex-1 items-center gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <FiltreButon
+          secili={deger === null}
+          onClick={() => onChange(null)}
+          etiket="Hepsi"
+        />
+        {baglamlar.map((b) => {
+          const c = BAGLAM_SINIF[b.renk];
+          const secili = deger === b.slug;
+          return (
+            <button
+              key={b.slug}
+              type="button"
+              onClick={() => onChange(b.slug)}
+              aria-pressed={secili}
+              className={cn(
+                "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs whitespace-nowrap transition-all snap-start",
+                secili
+                  ? cn(c.dolguBg, c.yumusakBorder, c.dolguMetin, "font-medium")
+                  : "bg-transparent border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground",
+              )}
+            >
+              <span aria-hidden>{b.emoji}</span>
+              <span>{b.etiket}</span>
+            </button>
+          );
+        })}
+      </div>
+      <BaglamYonetimDialog />
     </div>
   );
 }
@@ -76,10 +82,7 @@ export function useBaglamFiltresi(): [BaglamId | null, (v: BaglamId | null) => v
   React.useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw && raw !== "null") {
-        const v = raw as BaglamId;
-        if (["masa", "yol", "cami", "dinlenme"].includes(v)) setDeger(v);
-      }
+      if (raw && raw !== "null") setDeger(raw);
     } catch {}
   }, []);
   const setKalici = React.useCallback((v: BaglamId | null) => {
