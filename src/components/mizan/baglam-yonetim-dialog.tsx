@@ -29,7 +29,7 @@ export function BaglamYonetimDialog() {
           <Settings2 className="h-3.5 w-3.5" />
         </button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] w-[calc(100vw-1.5rem)] max-w-md overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Bağlamları Yönet</DialogTitle>
         </DialogHeader>
@@ -75,13 +75,13 @@ function BaglamYonetimIcerik() {
 
       <div className="rounded-lg border border-dashed border-border p-3">
         <p className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">Yeni bağlam</p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <EmojiSecici deger={yeniEmoji} onChange={setYeniEmoji} />
           <Input
             value={yeniAd}
             onChange={(e) => setYeniAd(e.target.value)}
             placeholder="Örn. Spor salonunda"
-            className="h-9 flex-1"
+            className="h-9 min-w-0 flex-1"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -89,7 +89,12 @@ function BaglamYonetimIcerik() {
               }
             }}
           />
-          <Button size="sm" onClick={onEkle} disabled={ekle.isPending || !yeniAd.trim()} className="gap-1">
+          <Button
+            size="sm"
+            onClick={onEkle}
+            disabled={ekle.isPending || !yeniAd.trim()}
+            className="h-9 w-full gap-1 sm:w-auto"
+          >
             <Plus className="h-3.5 w-3.5" /> Ekle
           </Button>
         </div>
@@ -155,14 +160,14 @@ function BaglamSatir({ baglam }: { baglam: BaglamTanim }) {
   }
 
   return (
-    <li className={cn("flex items-center gap-2 rounded-md border px-2 py-1.5", c.yumusakBg, c.yumusakBorder)}>
+    <li className={cn("flex items-center gap-1.5 rounded-md border px-2 py-1.5", c.yumusakBg, c.yumusakBorder)}>
       {duzenle ? (
         <>
           <EmojiSecici deger={emoji} onChange={setEmoji} />
           <Input
             value={ad}
             onChange={(e) => setAd(e.target.value)}
-            className="h-8 flex-1 text-xs"
+            className="h-8 min-w-0 flex-1 text-xs"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === "Enter") { e.preventDefault(); kaydet(); }
@@ -173,7 +178,7 @@ function BaglamSatir({ baglam }: { baglam: BaglamTanim }) {
             type="button"
             onClick={kaydet}
             disabled={guncelle.isPending}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-emerald-600 hover:bg-emerald-500/10"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-emerald-600 hover:bg-emerald-500/10"
             aria-label="Kaydet"
           >
             <Check className="h-4 w-4" />
@@ -181,7 +186,7 @@ function BaglamSatir({ baglam }: { baglam: BaglamTanim }) {
           <button
             type="button"
             onClick={() => { setDuzenle(false); setAd(baglam.etiket); setEmoji(baglam.emoji); }}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
             aria-label="İptal"
           >
             <X className="h-4 w-4" />
@@ -192,15 +197,15 @@ function BaglamSatir({ baglam }: { baglam: BaglamTanim }) {
           <button
             type="button"
             onClick={() => setDuzenle(true)}
-            className="flex flex-1 items-center gap-2 text-left"
+            className="flex min-w-0 flex-1 items-center gap-2 text-left"
           >
             <span aria-hidden className="text-base leading-none">{baglam.emoji}</span>
-            <span className={cn("text-sm font-medium", c.metin)}>{baglam.etiket}</span>
+            <span className={cn("truncate text-sm font-medium", c.metin)}>{baglam.etiket}</span>
           </button>
           <button
             type="button"
             onClick={() => setSilOnay(true)}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
             aria-label="Sil"
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -214,11 +219,11 @@ function BaglamSatir({ baglam }: { baglam: BaglamTanim }) {
 function EmojiSecici({ deger, onChange }: { deger: string; onChange: (v: string) => void }) {
   const [acik, setAcik] = React.useState(false);
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       <button
         type="button"
         onClick={() => setAcik((v) => !v)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-base hover:border-foreground/30"
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-base hover:border-foreground/30"
         aria-label="Emoji seç"
       >
         {deger || "📌"}
@@ -231,7 +236,7 @@ function EmojiSecici({ deger, onChange }: { deger: string; onChange: (v: string)
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setAcik(false)}
           />
-          <div className="absolute left-0 top-full z-50 mt-1 grid w-56 grid-cols-5 gap-1 rounded-lg border border-border bg-popover p-2 shadow-lg">
+          <div className="absolute left-0 top-full z-50 mt-1 grid w-[14rem] max-w-[calc(100vw-2rem)] grid-cols-5 gap-1 rounded-lg border border-border bg-popover p-2 shadow-lg">
             {EMOJI_ONERI.map((e) => (
               <button
                 key={e}
