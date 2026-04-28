@@ -219,11 +219,11 @@ function BaglamSatir({ baglam }: { baglam: BaglamTanim }) {
 function EmojiSecici({ deger, onChange }: { deger: string; onChange: (v: string) => void }) {
   const [acik, setAcik] = React.useState(false);
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       <button
         type="button"
         onClick={() => setAcik((v) => !v)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-base hover:border-foreground/30"
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-base hover:border-foreground/30"
         aria-label="Emoji seç"
       >
         {deger || "📌"}
@@ -236,7 +236,7 @@ function EmojiSecici({ deger, onChange }: { deger: string; onChange: (v: string)
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setAcik(false)}
           />
-          <div className="absolute left-0 top-full z-50 mt-1 grid w-56 grid-cols-5 gap-1 rounded-lg border border-border bg-popover p-2 shadow-lg">
+          <div className="absolute left-0 top-full z-50 mt-1 grid w-[14rem] max-w-[calc(100vw-2rem)] grid-cols-5 gap-1 rounded-lg border border-border bg-popover p-2 shadow-lg">
             {EMOJI_ONERI.map((e) => (
               <button
                 key={e}
