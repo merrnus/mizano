@@ -337,6 +337,42 @@ export type Database = {
           },
         ]
       }
+      cetele_baglam: {
+        Row: {
+          created_at: string
+          emoji: string
+          etiket: string
+          id: string
+          renk: string
+          siralama: number
+          slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string
+          etiket: string
+          id?: string
+          renk?: string
+          siralama?: number
+          slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          etiket?: string
+          id?: string
+          renk?: string
+          siralama?: number
+          slug?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cetele_kayit: {
         Row: {
           created_at: string

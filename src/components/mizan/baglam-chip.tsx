@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { BAGLAM_MAP, BAGLAM_SINIF, type BaglamId } from "@/lib/cetele-baglam";
+import { BAGLAM_SINIF, type BaglamId, type BaglamTanim } from "@/lib/cetele-baglam";
+import { useBaglamMap, useBaglamlar } from "@/lib/cetele-baglam-hooks";
 
 type Boyut = "xs" | "sm";
 
@@ -21,8 +22,10 @@ export function BaglamChip({
   boyut?: Boyut;
   emojiOnly?: boolean;
 }) {
-  const tanim = BAGLAM_MAP[baglam];
-  const c = BAGLAM_SINIF[tanim.renk];
+  const map = useBaglamMap();
+  const tanim: BaglamTanim | undefined = map[baglam];
+  // Bilinmeyen slug (silinmiş bağlam) — sade gri etiket
+  const c = tanim ? BAGLAM_SINIF[tanim.renk] : null;
   const interaktif = !!onClick;
   const Tag = interaktif ? "button" : "span";
 
@@ -34,14 +37,14 @@ export function BaglamChip({
       className={cn(
         "inline-flex items-center gap-1 rounded-full border whitespace-nowrap transition-colors",
         boyut === "xs" ? "h-5 px-1.5 text-[10px]" : "h-7 px-2.5 text-xs",
-        secili
+        secili && c
           ? cn(c.dolguBg, c.yumusakBorder, c.dolguMetin, "font-medium")
           : cn("bg-transparent border-border text-muted-foreground", interaktif && "hover:border-foreground/30 hover:text-foreground"),
       )}
-      title={tanim.etiket}
+      title={tanim?.etiket ?? baglam}
     >
-      <span aria-hidden>{tanim.emoji}</span>
-      {!emojiOnly && <span>{tanim.etiket}</span>}
+      <span aria-hidden>{tanim?.emoji ?? "·"}</span>
+      {!emojiOnly && <span>{tanim?.etiket ?? baglam}</span>}
     </Tag>
   );
 }
@@ -56,14 +59,18 @@ export function BaglamCokluSecici({
   secili: BaglamId[];
   onChange: (yeni: BaglamId[]) => void;
 }) {
+  const { data: baglamlar = [] } = useBaglamlar();
   const toggle = (id: BaglamId) => {
     if (secili.includes(id)) onChange(secili.filter((x) => x !== id));
     else onChange([...secili, id]);
   };
   return (
     <div className="flex flex-wrap gap-1.5">
-      {(Object.keys(BAGLAM_MAP) as BaglamId[]).map((id) => (
-        <BaglamChip key={id} baglam={id} secili={secili.includes(id)} onClick={() => toggle(id)} />
+      {baglamlar.length === 0 && (
+        <span className="text-[10px] text-muted-foreground">Henüz bağlam yok.</span>
+      )}
+      {baglamlar.map((b) => (
+        <BaglamChip key={b.slug} baglam={b.slug} secili={secili.includes(b.slug)} onClick={() => toggle(b.slug)} />
       ))}
     </div>
   );

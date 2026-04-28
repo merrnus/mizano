@@ -1,131 +1,71 @@
+# Bağlam Yönetimi (CRUD)
 
-# Bağlam Temelli Çetele
+Şu an 4 bağlam (`masa`, `yol`, `cami`, `dinlenme`) kodda sabit. Bunu kullanıcının kendi bağlamlarını yönetebileceği esnek bir yapıya çeviriyoruz.
 
-## Hedef
+## Ne Olacak
 
-Çetele maddelerini hayatın akışına göre düzenlenebilir hale getir:
-- Her madde 0+ bağlama atanabilir (Masa Başı, Yolda, Camide, Dinlenme).
-- Ana sayfada "şu an buradayım" filtresi → odak modu.
-- Haftalık Mana tablosunda bağlama göre gruplanmış bölümler.
-- Haftalık hedefler (Oruç 0/2) için mini nokta göstergesi.
+- Kullanıcı **kendi bağlamlarını** ekleyebilir (örn. "Spor salonunda", "Uyumadan önce").
+- Mevcut bağlamların **adını ve emojisini** değiştirebilir.
+- Bağlam **silebilir** — silinince o bağlama atanmış maddelerden etiket otomatik kaldırılır.
+- **Renkler sabit** kalır: 4 renk (mavi/yeşil/turuncu/mor) sırayla atanır, kullanıcı renk seçemez (istek üzerine).
+- İlk kez yükleyen mevcut kullanıcılara default 4 bağlam **otomatik seed** edilir (geriye dönük uyum).
 
-Drag-drop YOK — chip toggle her şeyi karşılıyor, mobilde de pürüzsüz.
+## Veritabanı Değişikliği
 
----
+Yeni tablo: `cetele_baglam`
 
-## 1. Veri Modeli (Migration)
-
-`cetele_sablon` tablosuna `baglamlar text[] not null default '{}'` kolonu eklenir.
-
-Bağlam değerleri serbest string array — başlangıçta 4 sabit ID kullanılır:
-- `masa` → 🏠 Masa Başı
-- `yol`  → 🚌 Yolda
-- `cami` → 🕌 Camide
-- `dinlenme` → 🛋️ Dinlenme
-
-Sabit liste TS tarafında (`src/lib/cetele-baglam.ts`) tutulur — etiket, emoji, soft renk (mavi/yeşil/turuncu/mor) bir arada. İleride genişletmek için array kullandığımızdan veri tabanı şeması değişmez.
-
-Mevcut 11 başlangıç paketi maddesinin varsayılan bağlamları:
-- Kuran, Risale, Pırlanta, Manevi kitap, mp3 → `masa`, `yol`, `dinlenme`
-- Cevşen, Virdler → `yol`, `cami`
-- Evvâbîn, Teheccüd → `cami` (ev de olabilir ama ana çağrışım namaz)
-- Oruç → tüm bağlamlar (gün boyu)
-- Ezber → `yol`, `dinlenme`
-
-`BASLANGIC_PAKETI` (cetele-tipleri.ts) güncellenir, yeni eklenen şablonlarda da bağlam seçilebilir.
-
----
-
-## 2. Bağlam Yönetimi UI
-
-### `SablonForm` (yeni şablon / düzenle)
-Form'a "Bağlamlar" bölümü eklenir: 4 chip, tıklayınca toggle. Birden fazla seçilebilir, hiç seçmemek de geçerli (boş = "her yerde" / filtresiz görünür).
-
-### Satır içi chip'ler
-Her şablon satırının yanında bağlam ikon-chip'leri görünür (sadece atananlar, küçük & soft). Bir chip'e uzun tıklamak yerine — küçük "düzenle" popover'ından chip'leri toggle ederek hızlıca güncelle. (Tablo satırını şişirmemek için.)
-
----
-
-## 3. Ana Sayfa — "Şu Anda Buradayım" Filtresi
-
-`BugunCetelesi` üstüne yatay chip-bar:
 ```text
-[ Hepsi ] [ 🏠 Masa ] [ 🚌 Yol ] [ 🕌 Cami ] [ 🛋️ Dinlenme ]
-```
-- Tek seçim (segmented control). Varsayılan: "Hepsi".
-- Seçilen chip belirgin (soft renk dolgulu), diğerleri sade outline.
-- Filtre `localStorage`'da hatırlanır (`cetele-baglam`).
-- "Hepsi" dışında bir bağlam seçilirse: `baglamlar.includes(seçim) || baglamlar.length === 0` koşuluna uyan şablonlar gösterilir (boş = her yerde).
-- Filtre sonucu boşsa nazik mesaj: "Bu bağlamda evrad yok — düzenle butonuyla ekleyebilirsin."
-
-`AkışModu` ve "eksik sayısı" hesabı da filtreden geçen şablonlar üzerinden çalışır.
-
----
-
-## 4. Haftalık Tablo — Bağlama Göre Gruplandırma
-
-`/mizan/mana` (`mizan.mana.tsx`):
-- Üstte filtre yerine, tablonun gövdesi bağlam başlıklarına bölünür.
-- Her grup için tablo içine bir "başlık satırı" (`<tr>` colspan ile) — sol şerit + soft arka plan + bağlam adı + madde sayısı.
-- Sıralama: kullanıcının en çok kullandığı bağlamlar önce (basitçe sabit sıra: Masa → Yol → Cami → Dinlenme → Etiketsiz).
-- Bir madde birden fazla bağlama atanmışsa: her grupta bir kez görünür (tablonun tablo özelliği bozulmasın). Aynı madde 2 kez olursa veri kayıtları zaten ortak (sablon_id aynı) — kafa karıştırmaz, çift görünür ama her iki satırdaki kutucuklar aynı veriyi gösterir/değiştirir.
-- "Etiketsiz" grubu (boş `baglamlar`) en altta, soft gri.
-
-Pzt-Paz × kutucuk × Hedef sütunu yapısı **olduğu gibi korunur**.
-
-### Haftalık hedef göstergesi
-Mevcut "Hedef" hücresinde `2/2 /h` yerine:
-- Haftalık tip: küçük noktalar `● ● ○ ○` (hedef kadar nokta, doluluk kadar dolu) + alt satır sayı.
-- Günlük tip: değişmez.
-- Boyut küçük, sayı yine yanında — dokunulabilirlik etkilenmez.
-
----
-
-## 5. Görsel Detaylar
-
-`src/lib/cetele-baglam.ts` içinde her bağlam için:
-```ts
-{ id: 'masa', etiket: 'Masa Başı', emoji: '🏠', renk: 'sky' }    // mavi
-{ id: 'yol',  etiket: 'Yolda',     emoji: '🚌', renk: 'emerald'} // yeşil
-{ id: 'cami', etiket: 'Camide',    emoji: '🕌', renk: 'amber'}   // turuncu
-{ id: 'dinlenme', etiket: 'Dinlenme', emoji: '🛋️', renk: 'violet'} // mor
+id          uuid PK
+user_id     uuid NOT NULL
+slug        text NOT NULL    -- kalıcı id, sablon.baglamlar[] içinde bu kullanılır
+etiket      text NOT NULL    -- "Masa Başı"
+emoji       text NOT NULL    -- "🏠"
+renk        text NOT NULL    -- 'sky' | 'emerald' | 'amber' | 'violet'
+siralama    int  NOT NULL    -- chip sırası
+created_at, updated_at
+UNIQUE(user_id, slug)
 ```
 
-Renkler mevcut alan renklerinin (mana/ilim/amel) yanında **ikincil tonlar** olarak. Asla onlarla çakışmaz (alan = sol şerit, bağlam = chip + grup başlığı).
+- RLS: standart 4 policy (user_id = auth.uid()).
+- `cetele_sablon.baglamlar` text[] aynen kalır — slug'ları tutar.
+- Bağlam silindiğinde: client tarafı tek transaction'da o slug'ı tüm `cetele_sablon.baglamlar` array'lerinden çıkarır.
 
----
+## Yeni / Değişen Dosyalar
 
-## 6. Dosya Değişiklikleri
+**Yeni**
+- `src/lib/cetele-baglam-hooks.ts` — `useBaglamlar()`, `useBaglamMutations()` (TanStack Query).
+- `src/components/mizan/baglam-yonetim-dialog.tsx` — ekle/düzenle/sil modali. Liste + satır içi düzenleme + emoji picker (basit text input + öneri grid).
+- `src/components/mizan/baglam-form.tsx` — tek bağlam için form (etiket + emoji + renk dropdown, ki şimdilik gizli/otomatik).
 
-**Migration:**
-- `cetele_sablon.baglamlar text[] not null default '{}'`
+**Değişen**
+- `src/lib/cetele-baglam.ts` — sabit `BAGLAMLAR` kalkar; sadece **renk paleti** ve helper'lar (`baglamEslesir`, renk class'ları) burada kalır. `BaglamId = string`.
+- `src/components/mizan/baglam-filtre.tsx` — kullanıcı bağlamlarını DB'den okur. Sağında küçük "⚙️ Yönet" butonu → dialog'u açar. Hiç bağlam yoksa yardımcı boş durum.
+- `src/components/mizan/baglam-chip.tsx` — slug + etiket + emoji + renk prop alır.
+- `src/components/mizan/sablon-form.tsx` — bağlam chip'leri DB'den gelir.
+- `src/components/mizan/dashboard/bugun-cetelesi.tsx` — bağlam listesini hook'tan alır.
+- `src/routes/mizan.mana.tsx` — gruplama başlıkları DB'deki bağlamlardan oluşur.
 
-**Yeni:**
-- `src/lib/cetele-baglam.ts` — bağlam sabitleri + helper'lar
-- `src/components/mizan/baglam-chip.tsx` — toggle/display chip
-- `src/components/mizan/baglam-filtre.tsx` — ana sayfa filtre çubuğu
-- `src/components/mizan/haftalik-hedef-noktalar.tsx` — mini nokta göstergesi
+## Migration İçeriği
 
-**Güncellenen:**
-- `src/lib/cetele-tipleri.ts` — `BASLANGIC_PAKETI` + tip
-- `src/components/mizan/sablon-form.tsx` — bağlam seçici
-- `src/components/mizan/dashboard/bugun-cetelesi.tsx` — filtre entegrasyonu
-- `src/routes/mizan.mana.tsx` — gruplama + nokta göstergesi
-- `src/lib/cetele-hooks.ts` — insert/update'te `baglamlar` alanı
+1. `CREATE TABLE public.cetele_baglam` + indexler (user_id, siralama).
+2. RLS aç + 4 policy.
+3. `set_updated_at()` trigger.
+4. **Seed function** + **bir defalık seed**: mevcut tüm kullanıcılar için default 4 bağlamı (`masa/yol/cami/dinlenme`) ekle (eğer yoksa). Yeni kayıt olan kullanıcılar için signup akışında auto-seed yapmıyoruz; bunun yerine `useBaglamlar()` hook'u **kullanıcının hiç bağlamı yoksa** ilk yüklemede 4 default'u ekler (idempotent client seed).
 
----
+## Silme Davranışı
 
-## 7. Mobile / Responsive
+Kullanıcı bağlam siliyor → onay dialog'u: "Bu bağlam X maddeden kaldırılacak. Maddeler silinmez, sadece etiket çıkar." → Onaylanırsa:
+1. İlgili sablonların `baglamlar` array'lerinden slug'ı çıkar (tek `update` döngüsü).
+2. `cetele_baglam` satırını sil.
 
-- Filtre chip-bar: yatay scroll, `snap-x`, dokunma hedefleri 36px+.
-- Tablo gruplama: mevcut `overflow-x-auto` zaten var, başlık satırı sticky değil (basitlik için).
-- Bağlam chip toggle SablonForm dialog içinde — mobil tam ekran açılır, sorun yok.
+## UI Akışı
 
----
+- Bağlam filtre barının sağında küçük ikon buton (`Settings2`).
+- Tıklayınca dialog açılır: liste + her satırda inline edit (emoji + ad + sürükle sırala + sil butonu) + altta "+ Yeni bağlam" satırı.
+- Renk seçimi UI'da yok; yeni bağlam eklendiğinde sıradaki renk otomatik atanır (4 renk arasında modulo).
 
-## Kapsam Dışı (Şimdilik)
+## Etki Alanı
 
-- Saatlere göre otomatik bağlam önerisi ("Sabah → Camide" vb.)
-- Konum-tabanlı otomatik geçiş
-- Drag-drop sıralama
-- Özel/yeni bağlam ekleme (4 sabit yeterli; ileride array açık)
+- Mevcut data uyumlu (slug'lar `masa/yol/cami/dinlenme` kalır).
+- `BaglamId` artık `string` — tip değişimi tüm bileşenlere yayılır ama imza aynı.
+- Ek paket gerekmez.

@@ -25,7 +25,8 @@ import { ceteleyiPdfeAktar } from "@/lib/cetele-pdf";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { BAGLAMLAR, BAGLAM_SINIF, BAGLAM_MAP, type BaglamId } from "@/lib/cetele-baglam";
+import { BAGLAM_SINIF, type BaglamId, type BaglamRenk } from "@/lib/cetele-baglam";
+import { useBaglamlar } from "@/lib/cetele-baglam-hooks";
 import { HaftalikHedefNoktalar } from "@/components/mizan/haftalik-hedef-noktalar";
 import type { CeteleSablon } from "@/lib/cetele-tipleri";
 
@@ -50,25 +51,28 @@ function ManaSayfasi() {
 
   const mana = sablonlar.filter((s) => s.alan === "mana");
   const bos = !isLoading && mana.length === 0;
+  const { data: baglamlar = [] } = useBaglamlar();
 
   // Bağlama göre gruplama: bir madde birden fazla bağlamdaysa her grupta bir kez görünür.
   // Etiketsiz (boş baglamlar) en altta ayrı grup.
-  type Grup = { id: BaglamId | "etiketsiz"; etiket: string; emoji: string; renk: string; sablonlar: CeteleSablon[] };
+  type Grup = { id: BaglamId | "etiketsiz"; etiket: string; emoji: string; renk: BaglamRenk | "muted"; sablonlar: CeteleSablon[] };
   const gruplar: Grup[] = React.useMemo(() => {
-    const out: Grup[] = BAGLAMLAR.map((b) => ({
-      id: b.id,
-      etiket: b.etiket,
-      emoji: b.emoji,
-      renk: b.renk,
-      sablonlar: mana.filter((s) => (s.baglamlar ?? []).includes(b.id)),
-    })).filter((g) => g.sablonlar.length > 0);
+    const out: Grup[] = baglamlar
+      .map((b) => ({
+        id: b.slug,
+        etiket: b.etiket,
+        emoji: b.emoji,
+        renk: b.renk as BaglamRenk | "muted",
+        sablonlar: mana.filter((s) => (s.baglamlar ?? []).includes(b.slug)),
+      }))
+      .filter((g) => g.sablonlar.length > 0);
 
     const etiketsiz = mana.filter((s) => !s.baglamlar || s.baglamlar.length === 0);
     if (etiketsiz.length > 0) {
       out.push({ id: "etiketsiz", etiket: "Etiketsiz", emoji: "·", renk: "muted", sablonlar: etiketsiz });
     }
     return out;
-  }, [mana]);
+  }, [mana, baglamlar]);
 
   const ucAyliklar = sablonlar.filter((s) => s.uc_aylik_hedef);
   const { data: ucAylikKayitlari = [] } = useUcAylikKayitlari(
@@ -195,7 +199,7 @@ function ManaSayfasi() {
               </thead>
               <tbody>
                 {gruplar.map((grup) => {
-                  const c = grup.id === "etiketsiz" ? null : BAGLAM_SINIF[BAGLAM_MAP[grup.id as BaglamId].renk];
+                  const c = grup.renk === "muted" ? null : BAGLAM_SINIF[grup.renk];
                   const totalCols = 1 + gunler.length + 2;
                   return (
                     <React.Fragment key={grup.id}>
