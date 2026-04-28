@@ -94,7 +94,7 @@ export function useBaglamGuncelle() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { id: string; etiket?: string; emoji?: string; renk?: BaglamRenk }) => {
-      const patch: Record<string, unknown> = {};
+      const patch: { etiket?: string; emoji?: string; renk?: BaglamRenk } = {};
       if (input.etiket !== undefined) patch.etiket = input.etiket.trim() || "Yeni";
       if (input.emoji !== undefined) patch.emoji = input.emoji || "📌";
       if (input.renk !== undefined) patch.renk = input.renk;
