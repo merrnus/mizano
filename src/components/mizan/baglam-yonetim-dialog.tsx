@@ -29,7 +29,7 @@ export function BaglamYonetimDialog() {
           <Settings2 className="h-3.5 w-3.5" />
         </button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] w-[calc(100vw-1.5rem)] max-w-md overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Bağlamları Yönet</DialogTitle>
         </DialogHeader>
@@ -75,13 +75,13 @@ function BaglamYonetimIcerik() {
 
       <div className="rounded-lg border border-dashed border-border p-3">
         <p className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">Yeni bağlam</p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <EmojiSecici deger={yeniEmoji} onChange={setYeniEmoji} />
           <Input
             value={yeniAd}
             onChange={(e) => setYeniAd(e.target.value)}
             placeholder="Örn. Spor salonunda"
-            className="h-9 flex-1"
+            className="h-9 min-w-0 flex-1"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -89,7 +89,12 @@ function BaglamYonetimIcerik() {
               }
             }}
           />
-          <Button size="sm" onClick={onEkle} disabled={ekle.isPending || !yeniAd.trim()} className="gap-1">
+          <Button
+            size="sm"
+            onClick={onEkle}
+            disabled={ekle.isPending || !yeniAd.trim()}
+            className="h-9 w-full gap-1 sm:w-auto"
+          >
             <Plus className="h-3.5 w-3.5" /> Ekle
           </Button>
         </div>
