@@ -1,26 +1,27 @@
-// Bağlam (context) sabitleri — çetele maddelerinin "ne zaman/nerede" yapılabileceği etiketleri.
-// Veri tabanında cetele_sablon.baglamlar text[] olarak tutulur, burası UI tarafı.
+// Bağlam (context) — kullanıcı tarafından yönetilen etiketler (cetele_baglam tablosu).
+// cetele_sablon.baglamlar text[] içinde slug'lar tutulur.
 
-export type BaglamId = "masa" | "yol" | "cami" | "dinlenme";
+/** Bağlam slug'ı — kullanıcı tanımlı, ama tip olarak string. */
+export type BaglamId = string;
 
+export type BaglamRenk = "sky" | "emerald" | "amber" | "violet";
+
+export const BAGLAM_RENKLERI: readonly BaglamRenk[] = ["sky", "emerald", "amber", "violet"] as const;
+
+/** Veri tabanından gelen bağlam tanımı (tek satır). */
 export type BaglamTanim = {
-  id: BaglamId;
+  id: string;        // db row id
+  slug: string;      // sablon.baglamlar[] içinde tutulan değer
   etiket: string;
   emoji: string;
-  /** Tailwind renk ailesi (sky / emerald / amber / violet) */
-  renk: "sky" | "emerald" | "amber" | "violet";
+  renk: BaglamRenk;
+  siralama: number;
 };
 
-export const BAGLAMLAR: readonly BaglamTanim[] = [
-  { id: "masa", etiket: "Masa Başı", emoji: "🏠", renk: "sky" },
-  { id: "yol", etiket: "Yolda", emoji: "🚌", renk: "emerald" },
-  { id: "cami", etiket: "Camide", emoji: "🕌", renk: "amber" },
-  { id: "dinlenme", etiket: "Dinlenme", emoji: "🛋️", renk: "violet" },
-] as const;
-
-export const BAGLAM_MAP: Record<BaglamId, BaglamTanim> = Object.fromEntries(
-  BAGLAMLAR.map((b) => [b.id, b]),
-) as Record<BaglamId, BaglamTanim>;
+/** Yeni eklenen bağlama otomatik renk: mevcut sayıya göre rotasyon. */
+export function siradakiRenk(mevcutSayi: number): BaglamRenk {
+  return BAGLAM_RENKLERI[mevcutSayi % BAGLAM_RENKLERI.length];
+}
 
 /** Bir şablon, verilen bağlam filtresine uyuyor mu? */
 export function baglamEslesir(sablonBaglamlari: string[] | null | undefined, secim: BaglamId | null): boolean {
@@ -33,7 +34,7 @@ export function baglamEslesir(sablonBaglamlari: string[] | null | undefined, sec
 
 /** Renk → soft arka plan / kenar / metin sınıfları (Tailwind, statik string). */
 export const BAGLAM_SINIF: Record<
-  BaglamTanim["renk"],
+  BaglamRenk,
   { yumusakBg: string; yumusakBorder: string; metin: string; dolguBg: string; dolguMetin: string; serit: string }
 > = {
   sky: {
