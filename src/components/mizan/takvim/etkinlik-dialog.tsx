@@ -102,7 +102,11 @@ export function EtkinlikDialog({ acik, onOpenChange, varsayilanBaslangic, duzenl
       setKonum("");
       setTekrar("yok");
     }
-  }, [acik, duzenle, varsayilanBaslangic]);
+    // Sadece dialog ilk açıldığında initialize et — varsayilanBaslangic her
+    // dakika yeni Date referansı olduğundan, dependency'e konursa kullanıcı
+    // yazarken form sıfırlanır.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acik, duzenle?.id]);
 
   // Başlangıç değişince bitiş hâlâ önceyse otomatik +1 saat ileri kaydır
   const baslangicDegisti = (yeniTarih: string, yeniSaat: string) => {

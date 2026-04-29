@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { BAGLAM_SINIF, type BaglamId, type BaglamRenk } from "@/lib/cetele-baglam";
 import { useBaglamlar } from "@/lib/cetele-baglam-hooks";
 import { HaftalikHedefNoktalar } from "@/components/mizan/haftalik-hedef-noktalar";
+import { BaglamAtaPopover } from "@/components/mizan/baglam-ata-popover";
 import type { CeteleSablon } from "@/lib/cetele-tipleri";
 
 export const Route = createFileRoute("/mizan/mana")({
@@ -225,7 +226,13 @@ function ManaSayfasi() {
                         return (
                           <tr key={`${grup.id}-${s.id}`} className="text-xs">
                       <td className="sticky left-0 z-10 w-[160px] border-r border-border bg-card px-2 pl-4 align-middle sm:pl-5">
-                        <div className="font-medium">{s.ad}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate font-medium">{s.ad}</span>
+                          <BaglamAtaPopover
+                            sablonId={s.id}
+                            mevcut={(s.baglamlar ?? []) as BaglamId[]}
+                          />
+                        </div>
                         {s.notlar ? (
                           <div className="text-[10px] text-muted-foreground line-clamp-2">
                             {s.notlar}

@@ -16,19 +16,33 @@ import { toast } from "sonner";
 
 const EMOJI_ONERI = ["🏠", "🚌", "🕌", "🛋️", "💻", "📚", "🌅", "🌙", "🏃", "🍽️", "👨‍👩‍👧", "✈️", "🌳", "🛏️", "📌"];
 
-export function BaglamYonetimDialog() {
-  const [acik, setAcik] = React.useState(false);
+export function BaglamYonetimDialog({
+  acik: acikProp,
+  onOpenChange,
+}: {
+  acik?: boolean;
+  onOpenChange?: (a: boolean) => void;
+} = {}) {
+  const [icAcik, setIcAcik] = React.useState(false);
+  const controlled = acikProp !== undefined;
+  const acik = controlled ? acikProp : icAcik;
+  const setAcik = (v: boolean) => {
+    if (!controlled) setIcAcik(v);
+    onOpenChange?.(v);
+  };
   return (
     <Dialog open={acik} onOpenChange={setAcik}>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          aria-label="Bağlamları yönet"
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-        >
-          <Settings2 className="h-3.5 w-3.5" />
-        </button>
-      </DialogTrigger>
+      {!controlled && (
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            aria-label="Bağlamları yönet"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+          </button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-h-[90dvh] w-[calc(100vw-1.5rem)] max-w-md overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Bağlamları Yönet</DialogTitle>

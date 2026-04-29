@@ -68,7 +68,11 @@ export function GorevDialog({ acik, onOpenChange, varsayilanVade, duzenle }: Pro
       setOncelik("orta");
       setAlan("kisisel");
     }
-  }, [acik, duzenle, varsayilanVade]);
+    // Sadece dialog ilk açıldığında initialize et — varsayilanVade her dakika
+    // yeni Date referansı olduğu için dependency'e koymamak gerekiyor; yoksa
+    // kullanıcı yazarken form sıfırlanıyor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acik, duzenle?.id]);
 
   const kaydet = async () => {
     if (!baslik.trim()) {

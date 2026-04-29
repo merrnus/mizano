@@ -8,6 +8,7 @@ import { ALAN_ETIKET, type CeteleAlan } from "@/lib/cetele-tipleri";
 import { AkisModu } from "@/components/mizan/dashboard/akis-modu";
 import { BaglamFiltre, useBaglamFiltresi } from "@/components/mizan/baglam-filtre";
 import { BaglamChip } from "@/components/mizan/baglam-chip";
+import { BaglamAtaPopover } from "@/components/mizan/baglam-ata-popover";
 import { baglamEslesir, type BaglamId } from "@/lib/cetele-baglam";
 
 const ALAN_ROTA: Record<CeteleAlan, "/mizan/mana" | "/mizan/ilim" | "/mizan/amel"> = {
@@ -175,6 +176,10 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
                             ))}
                           </span>
                         )}
+                          <BaglamAtaPopover
+                            sablonId={s.id}
+                            mevcut={(s.baglamlar ?? []) as BaglamId[]}
+                          />
                       </div>
                     </div>
                     <CeteleHucre
