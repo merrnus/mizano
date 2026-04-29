@@ -69,9 +69,9 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
 
   return (
     <>
-    <section className="rounded-2xl border border-border bg-card">
+    <section className="min-w-0 rounded-2xl border border-border bg-card">
       <header className="flex items-end justify-between gap-3 border-b border-border px-5 py-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
             Bugünün Çetelesi
           </p>
@@ -81,7 +81,7 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
         </div>
       </header>
 
-      <div className="border-b border-border px-5 py-3">
+      <div className="min-w-0 border-b border-border px-5 py-3">
         <BaglamFiltre deger={baglamSec} onChange={setBaglamSec} />
       </div>
 
@@ -104,8 +104,8 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
           const tumuTamam = eksik === 0;
           return (
             <div key={alan} className="px-5 py-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
                   <span
                     className="h-2 w-2 rounded-full"
                     style={{
@@ -151,7 +151,7 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
                 </div>
                 <Link
                   to={ALAN_ROTA[alan]}
-                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                  className="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Detay
                   <ArrowRight className="h-3 w-3" />
@@ -166,10 +166,10 @@ export function BugunCetelesi({ simdi }: { simdi: Date }) {
                   >
                     <div className="min-w-0">
                       <div className="truncate text-xs font-medium">{s.ad}</div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-muted-foreground">
                         <span>Hedef {Number(s.hedef_deger)} {s.birim}</span>
                         {(s.baglamlar ?? []).length > 0 && (
-                          <span className="flex gap-0.5">
+                          <span className="flex max-w-full flex-wrap gap-0.5">
                             {(s.baglamlar as BaglamId[]).map((b) => (
                               <BaglamChip key={b} baglam={b} boyut="xs" emojiOnly />
                             ))}
