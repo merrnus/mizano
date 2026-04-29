@@ -48,6 +48,20 @@ function AnaDashboard() {
     return () => clearInterval(id);
   }, []);
 
+  // "bugun" referansı yalnızca tarih (gün) değiştiğinde yenilensin — "simdi"
+  // her dakika yeni bir Date referansı oluyor, bu da prop drilling sırasında
+  // child component'lerde gereksiz re-init'lere yol açıyor (özellikle dialog
+  // formlarının sıfırlanması). Aşağıdaki memo, gün boyu aynı referansı tutar.
+  const bugun = React.useMemo(() => {
+    const d = new Date(simdi);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [
+    simdi.getFullYear(),
+    simdi.getMonth(),
+    simdi.getDate(),
+  ]);
+
   const haftaBas = haftaBaslangici(simdi);
   const { data: sablonlar = [] } = useSablonlar();
   const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
