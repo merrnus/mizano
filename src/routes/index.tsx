@@ -253,14 +253,14 @@ function AnaDashboard() {
           setGorevDialogAcik(o);
           if (!o) setDuzenlenenGorev(null);
         }}
-        varsayilanVade={simdi}
+        varsayilanVade={bugun}
         duzenle={duzenlenenGorev}
       />
 
       <EtkinlikDialog
         acik={etkinlikDialogAcik}
         onOpenChange={setEtkinlikDialogAcik}
-        varsayilanBaslangic={simdi}
+        varsayilanBaslangic={bugun}
       />
     </div>
   );
