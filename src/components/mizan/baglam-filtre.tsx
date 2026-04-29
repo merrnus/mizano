@@ -16,8 +16,8 @@ export function BaglamFiltre({
 }) {
   const { data: baglamlar = [] } = useBaglamlar();
   return (
-    <div className="flex items-center gap-1.5">
-      <div className="-mx-1 flex flex-1 items-center gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex w-full min-w-0 items-center gap-1.5">
+      <div className="-mx-1 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <FiltreButon
           secili={deger === null}
           onClick={() => onChange(null)}

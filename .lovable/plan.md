@@ -1,71 +1,52 @@
-# Bağlam Yönetimi (CRUD)
+## Sorun
 
-Şu an 4 bağlam (`masa`, `yol`, `cami`, `dinlenme`) kodda sabit. Bunu kullanıcının kendi bağlamlarını yönetebileceği esnek bir yapıya çeviriyoruz.
+729 px (tablet/mobil) görünümde:
+- "Bugünün Çetelesi" kartının sağ kısmı kırpılıyor.
+- Altındaki "Bugünün Programı" (zaman çizelgesi) kartı da sağ kısmı kırpılıyor.
 
-## Ne Olacak
+Sebep: `app-shell.tsx` içindeki `<main>` elemanında `overflow-x-hidden` var. İçerideki bazı flex/grid çocukları yatayda parent'tan taşıyor; taşma scroll yerine kırpılma olarak görünüyor. Suçlular:
 
-- Kullanıcı **kendi bağlamlarını** ekleyebilir (örn. "Spor salonunda", "Uyumadan önce").
-- Mevcut bağlamların **adını ve emojisini** değiştirebilir.
-- Bağlam **silebilir** — silinince o bağlama atanmış maddelerden etiket otomatik kaldırılır.
-- **Renkler sabit** kalır: 4 renk (mavi/yeşil/turuncu/mor) sırayla atanır, kullanıcı renk seçemez (istek üzerine).
-- İlk kez yükleyen mevcut kullanıcılara default 4 bağlam **otomatik seed** edilir (geriye dönük uyum).
+1. **`bugun-cetelesi.tsx`** — kart başlığı altındaki `BaglamFiltre` satırı `flex` ama `min-w-0` yok. İçindeki yatay scroll alanının yanına `BaglamYonetimDialog` butonu eklendi; flex çocukları küçülemediği için satır parent'ı zorluyor.
+2. **`bugun-cetelesi.tsx`** — şablon listesindeki satır `grid-cols-[minmax(0,1fr)_5rem]` + `BaglamChip` listesi `flex gap-0.5` (wrap yok). Çok bağlamı olan şablonda chipler sağa taşıyor.
+3. **`bugun-zaman-cizelgesi.tsx`** — etkinlik kartı `grid-cols-[3.5rem_minmax(0,1fr)_auto]`. "Sıradaki" rozeti + uzun başlık dar ekranda 3-sütun grid'i parent'tan büyütüyor; ayrıca üst-seviye `<section>` parent flex/grid'inde `min-w-0` zinciri eksik olduğu için kart taşıyor.
+4. **`index.tsx`** — `<div className="grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">` mobilde tek sütun ama child `<section>`'lara `min-w-0` aktarılmıyor; içerideki uzun içerik bazı tarayıcılarda parent'ı genişletebiliyor.
 
-## Veritabanı Değişikliği
+## Yapılacak değişiklikler
 
-Yeni tablo: `cetele_baglam`
+### `src/components/mizan/dashboard/bugun-cetelesi.tsx`
+- En dış `<section>`'a `min-w-0` ekle.
+- Header'daki başlık bloğuna `min-w-0` ekle, başlık metninde `truncate` zaten var ama parent zincirine ekleyelim.
+- "Hızlı işaretle" satırı (`<div className="border-b ... px-5 py-3">`) içindeki `BaglamFiltre`'nin doğru daralabilmesi için bu container'a `min-w-0` ekle.
+- Şablon satırındaki bağlam chip listesini `flex gap-0.5` → `flex flex-wrap gap-0.5 max-w-full` yap; `min-w-0` ekle ki uzun bağlam dizisi 2. satıra düşsün.
+- Alan başlığı satırı (`mb-3 flex items-center justify-between`) — sol gruba `min-w-0` + sağ "Detay" linkine `shrink-0` ekle.
 
-```text
-id          uuid PK
-user_id     uuid NOT NULL
-slug        text NOT NULL    -- kalıcı id, sablon.baglamlar[] içinde bu kullanılır
-etiket      text NOT NULL    -- "Masa Başı"
-emoji       text NOT NULL    -- "🏠"
-renk        text NOT NULL    -- 'sky' | 'emerald' | 'amber' | 'violet'
-siralama    int  NOT NULL    -- chip sırası
-created_at, updated_at
-UNIQUE(user_id, slug)
-```
+### `src/components/mizan/baglam-filtre.tsx`
+- Dış `<div className="flex items-center gap-1.5">`'e `min-w-0 w-full` ekle.
+- İç scroll container `flex-1`'e `min-w-0` ekle (flex çocuğu küçülebilsin diye kritik).
+- Yönetim butonu zaten `shrink-0`. Sorun yok.
 
-- RLS: standart 4 policy (user_id = auth.uid()).
-- `cetele_sablon.baglamlar` text[] aynen kalır — slug'ları tutar.
-- Bağlam silindiğinde: client tarafı tek transaction'da o slug'ı tüm `cetele_sablon.baglamlar` array'lerinden çıkarır.
+### `src/components/mizan/dashboard/bugun-zaman-cizelgesi.tsx`
+- En dış `<section>`'a `min-w-0` ekle.
+- Header'daki başlık bloğuna `min-w-0` + `min-w-0` zinciri (h2'ye `truncate`).
+- Etkinlik kart grid'i `grid-cols-[3.5rem_minmax(0,1fr)_auto]` → `grid-cols-[3.5rem_minmax(0,1fr)_auto] min-w-0` (grid'in kendisine min-w-0).
+- Kart `<button>`'una `min-w-0 max-w-full` ekle.
+- "Sıradaki" rozeti dar ekranda satıra düşmeden gizlensin: `hidden sm:inline-flex` (mobilde sıradaki vurgusu zaten kart kenarlık glow ile görünüyor).
+- Görev `<li>` satırı `flex items-center gap-2` → child'lara `min-w-0` zinciri (başlık zaten `truncate`).
+- Liste container `<ul>` ve dikey rail içeren `<div className="relative">` öğelerine `min-w-0` ekle.
 
-## Yeni / Değişen Dosyalar
+### `src/routes/index.tsx`
+- Bugünün çetelesi + zaman çizelgesi gridine `min-w-0` aktarılması için iki child wrapper'ına `min-w-0` ekle:
+  ```tsx
+  <div className="mb-3 grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+    <div className="min-w-0"><BugunCetelesi simdi={simdi} /></div>
+    <div className="min-w-0"><BugunZamanCizelgesi simdi={simdi} /></div>
+  </div>
+  ```
 
-**Yeni**
-- `src/lib/cetele-baglam-hooks.ts` — `useBaglamlar()`, `useBaglamMutations()` (TanStack Query).
-- `src/components/mizan/baglam-yonetim-dialog.tsx` — ekle/düzenle/sil modali. Liste + satır içi düzenleme + emoji picker (basit text input + öneri grid).
-- `src/components/mizan/baglam-form.tsx` — tek bağlam için form (etiket + emoji + renk dropdown, ki şimdilik gizli/otomatik).
+## Doğrulama
 
-**Değişen**
-- `src/lib/cetele-baglam.ts` — sabit `BAGLAMLAR` kalkar; sadece **renk paleti** ve helper'lar (`baglamEslesir`, renk class'ları) burada kalır. `BaglamId = string`.
-- `src/components/mizan/baglam-filtre.tsx` — kullanıcı bağlamlarını DB'den okur. Sağında küçük "⚙️ Yönet" butonu → dialog'u açar. Hiç bağlam yoksa yardımcı boş durum.
-- `src/components/mizan/baglam-chip.tsx` — slug + etiket + emoji + renk prop alır.
-- `src/components/mizan/sablon-form.tsx` — bağlam chip'leri DB'den gelir.
-- `src/components/mizan/dashboard/bugun-cetelesi.tsx` — bağlam listesini hook'tan alır.
-- `src/routes/mizan.mana.tsx` — gruplama başlıkları DB'deki bağlamlardan oluşur.
-
-## Migration İçeriği
-
-1. `CREATE TABLE public.cetele_baglam` + indexler (user_id, siralama).
-2. RLS aç + 4 policy.
-3. `set_updated_at()` trigger.
-4. **Seed function** + **bir defalık seed**: mevcut tüm kullanıcılar için default 4 bağlamı (`masa/yol/cami/dinlenme`) ekle (eğer yoksa). Yeni kayıt olan kullanıcılar için signup akışında auto-seed yapmıyoruz; bunun yerine `useBaglamlar()` hook'u **kullanıcının hiç bağlamı yoksa** ilk yüklemede 4 default'u ekler (idempotent client seed).
-
-## Silme Davranışı
-
-Kullanıcı bağlam siliyor → onay dialog'u: "Bu bağlam X maddeden kaldırılacak. Maddeler silinmez, sadece etiket çıkar." → Onaylanırsa:
-1. İlgili sablonların `baglamlar` array'lerinden slug'ı çıkar (tek `update` döngüsü).
-2. `cetele_baglam` satırını sil.
-
-## UI Akışı
-
-- Bağlam filtre barının sağında küçük ikon buton (`Settings2`).
-- Tıklayınca dialog açılır: liste + her satırda inline edit (emoji + ad + sürükle sırala + sil butonu) + altta "+ Yeni bağlam" satırı.
-- Renk seçimi UI'da yok; yeni bağlam eklendiğinde sıradaki renk otomatik atanır (4 renk arasında modulo).
-
-## Etki Alanı
-
-- Mevcut data uyumlu (slug'lar `masa/yol/cami/dinlenme` kalır).
-- `BaglamId` artık `string` — tip değişimi tüm bileşenlere yayılır ama imza aynı.
-- Ek paket gerekmez.
+Lovable preview'da tablet (729px) ve telefon (375px) viewport'larında:
+- Çetele kartı: tüm sütunlar görünüyor, "Detay" linki sağda eksiksiz, bağlam chip'leri ekranı taşırmıyor.
+- Zaman çizelgesi: saat/başlık/Sıradaki rozeti sığıyor; uzun başlıklar truncate.
+- Yatay scroll yok, kırpılma yok.
+- Masaüstünde (≥1024px) görünüm aynı kalıyor.

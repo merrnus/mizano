@@ -104,19 +104,19 @@ export function BugunZamanCizelgesi({ simdi }: { simdi: Date }) {
   };
 
   return (
-    <section className="rounded-2xl border border-border bg-card">
+    <section className="min-w-0 rounded-2xl border border-border bg-card">
       <header className="flex items-end justify-between gap-3 border-b border-border px-5 py-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
             Bugün
           </p>
-          <h2 className="mt-0.5 text-lg font-semibold tracking-tight">
+          <h2 className="mt-0.5 truncate text-lg font-semibold tracking-tight">
             {format(simdi, "d MMMM EEEE", { locale: tr })}
           </h2>
         </div>
         <Link
           to="/takvim"
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
         >
           <CalendarPlus className="h-3.5 w-3.5" />
           Takvime git
@@ -132,12 +132,12 @@ export function BugunZamanCizelgesi({ simdi }: { simdi: Date }) {
           .
         </div>
       ) : (
-        <div className="px-5 py-5">
+        <div className="min-w-0 px-5 py-5">
           {/* Etkinlikler — dikey rail SADECE burada */}
           {satirlar.length > 0 && (
-            <div className="relative">
+            <div className="relative min-w-0">
               <div className="absolute left-[1.85rem] top-3 bottom-3 w-px bg-border" />
-              <ul className="flex flex-col gap-3">
+              <ul className="flex min-w-0 flex-col gap-3">
                 {satirlar.map((s, i) => {
                   const gecmis = s.bitis.getTime() < simdi.getTime();
                   const sira = i === siradakiIdx && !gecmis;
@@ -145,7 +145,7 @@ export function BugunZamanCizelgesi({ simdi }: { simdi: Date }) {
                   const sureDk = Math.max(15, differenceInMinutes(s.bitis, s.baslangic));
 
                   return (
-                    <li key={s.id} className="relative grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3">
+                    <li key={s.id} className="relative grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] gap-3">
                       {/* nokta */}
                       <div className="relative flex items-start justify-center pt-3">
                         <span
@@ -167,7 +167,7 @@ export function BugunZamanCizelgesi({ simdi }: { simdi: Date }) {
                         type="button"
                         onClick={() => setSecilenEtkinlik(s.ham)}
                         className={cn(
-                          "block w-full rounded-xl border bg-background/50 px-4 py-3 text-left transition-colors",
+                          "block w-full min-w-0 max-w-full rounded-xl border bg-background/50 px-4 py-3 text-left transition-colors",
                           sira
                             ? "border-[color:var(--ring)]"
                             : "border-border hover:border-border/80",
@@ -181,8 +181,8 @@ export function BugunZamanCizelgesi({ simdi }: { simdi: Date }) {
                             : undefined
                         }
                       >
-                        <div className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-baseline gap-3">
-                          <div className="flex flex-col">
+                        <div className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)_auto] items-baseline gap-3">
+                          <div className="flex shrink-0 flex-col">
                             <span
                               className={cn(
                                 "font-mono text-base tabular-nums",
@@ -222,7 +222,7 @@ export function BugunZamanCizelgesi({ simdi }: { simdi: Date }) {
 
                           {sira && (
                             <span
-                              className="rounded-md border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+                              className="hidden shrink-0 rounded-md border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider sm:inline-flex"
                               style={{
                                 color: renk,
                                 borderColor: `color-mix(in oklab, ${renk} 45%, transparent)`,
@@ -245,21 +245,21 @@ export function BugunZamanCizelgesi({ simdi }: { simdi: Date }) {
           {siraliGorevler.length > 0 && (
             <div
               className={cn(
-                "border-border",
+                "min-w-0 border-border",
                 satirlar.length > 0 && "mt-5 border-t pt-4",
               )}
             >
               <div className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
                 Bugünkü görevler
               </div>
-              <ul className="flex flex-col gap-1.5">
+              <ul className="flex min-w-0 flex-col gap-1.5">
                 {siraliGorevler.map((g) => {
                   const renk = alanRengi(g.alan);
                   return (
                     <li
                       key={g.id}
                       className={cn(
-                        "group flex items-center gap-2 rounded-md border border-border bg-background/40 px-3 py-1.5 text-xs transition-opacity",
+                        "group flex min-w-0 items-center gap-2 rounded-md border border-border bg-background/40 px-3 py-1.5 text-xs transition-opacity",
                         g.tamamlandi && "opacity-50",
                       )}
                     >
@@ -270,20 +270,20 @@ export function BugunZamanCizelgesi({ simdi }: { simdi: Date }) {
                         aria-label="Tamamla"
                       />
                       <span
-                        className="h-2 w-2 rounded-full"
+                        className="h-2 w-2 shrink-0 rounded-full"
                         style={{ backgroundColor: renk }}
                       />
                       <button
                         type="button"
                         onClick={() => gorevTikla(g)}
                         className={cn(
-                          "flex-1 truncate text-left transition-colors hover:text-foreground",
+                          "min-w-0 flex-1 truncate text-left transition-colors hover:text-foreground",
                           g.tamamlandi ? "line-through" : "",
                         )}
                       >
                         {g.baslik}
                       </button>
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <span className="shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">
                         {g.oncelik}
                       </span>
                     </li>

@@ -185,8 +185,12 @@ function AnaDashboard() {
 
       {/* Bugünün çetelesi + zaman çizelgesi */}
       <div className="mb-3 grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        <BugunCetelesi simdi={simdi} />
-        <BugunZamanCizelgesi simdi={simdi} />
+        <div className="min-w-0">
+          <BugunCetelesi simdi={simdi} />
+        </div>
+        <div className="min-w-0">
+          <BugunZamanCizelgesi simdi={simdi} />
+        </div>
       </div>
 
       {/* Hızlı ekleme butonları */}
