@@ -40,10 +40,14 @@ function alanRengi(alan: CeteleAlan): string {
  * - Görevler: checkbox ile tamamlanır, tamamlananlar soluk renkte en alta düşer
  */
 export function BugunZamanCizelgesi({ simdi }: { simdi: Date }) {
-  const gunBas = new Date(simdi);
-  gunBas.setHours(0, 0, 0, 0);
-  const gunSon = new Date(simdi);
-  gunSon.setHours(23, 59, 59, 999);
+  // Gün bazlı stabil aralık — "simdi" her dakika yenilense bile aynı
+  // gün boyunca aynı Date referanslarını tutalım ki query key sabit kalsın
+  // ve gereksiz refetch olmasın.
+  const yil = simdi.getFullYear();
+  const ay = simdi.getMonth();
+  const gun = simdi.getDate();
+  const gunBas = React.useMemo(() => new Date(yil, ay, gun, 0, 0, 0, 0), [yil, ay, gun]);
+  const gunSon = React.useMemo(() => new Date(yil, ay, gun, 23, 59, 59, 999), [yil, ay, gun]);
 
   const { data: etkinlikler = [] } = useEtkinlikler(gunBas, gunSon);
   const { data: gorevler = [] } = useGorevler(gunBas, gunSon);
