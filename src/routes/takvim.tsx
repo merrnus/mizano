@@ -97,6 +97,24 @@ function TakvimSayfasi() {
   const haftaBit = endOfWeek(ankara, { weekStartsOn: 1 });
 
   const etkSorgu = useEtkinlikler(aralikBas, aralikBitis);
+  const olayTasi = React.useCallback(
+    (id: string, yeniBaslangic: Date) => {
+      const eski = (etkSorgu.data ?? []).find((e) => e.id === id);
+      if (!eski) return;
+      const basT = new Date(eski.baslangic).getTime();
+      const bitT = eski.bitis ? new Date(eski.bitis).getTime() : basT + 60 * 60 * 1000;
+      const sure = bitT - basT;
+      const yeniBitis = new Date(yeniBaslangic.getTime() + sure);
+      etkGuncelle.mutate({
+        id,
+        degisiklikler: {
+          baslangic: yeniBaslangic.toISOString(),
+          bitis: yeniBitis.toISOString(),
+        },
+      });
+    },
+    [etkSorgu.data, etkGuncelle],
+  );
   const gorevSorgu = useGorevler(haftaBas, haftaBit);
   const derslerSorgu = useDersler();
   const saatSorgu = useDersSaatleri();
