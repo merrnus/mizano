@@ -184,22 +184,11 @@ export function HaftaGorunumu({
                 const tasinabilir = !!onOlayTasi && tasinabilirMi(o);
                 const aktif =
                   surukle.durum?.id === o.id &&
-                  (surukle.durum.baslangicSutunKey === g.toISOString() ||
-                    surukle.durum.hedefSutunKey === g.toISOString());
-                const aktifBuSutun =
-                  surukle.durum?.id === o.id &&
-                  surukle.durum.modu === "tasi" &&
-                  surukle.durum.hedefSutunKey === g.toISOString() &&
-                  surukle.durum.baslangicSutunKey !== g.toISOString();
-                // Aktif & farklı bir sütuna sürüklendiyse, sadece hedef sütunda göster
-                if (
-                  surukle.durum?.id === o.id &&
-                  surukle.durum.modu === "tasi" &&
-                  surukle.durum.hedefSutunKey !== g.toISOString() &&
-                  surukle.durum.baslangicSutunKey === g.toISOString()
-                ) {
-                  return null;
-                }
+                  surukle.durum.baslangicSutunKey === g.toISOString();
+                const farkliSutunaSurukleniyor =
+                  aktif &&
+                  surukle.durum?.modu === "tasi" &&
+                  surukle.durum.hedefSutunKey !== g.toISOString();
                 const dy =
                   aktif && surukle.durum ? surukle.durum.dyPx : 0;
                 const bMinTop = ((basDk - SAATLER[0] * 60) / 60) * SAAT_PX;
@@ -228,8 +217,8 @@ export function HaftaGorunumu({
                     className={cn(
                       "absolute overflow-hidden rounded-md border-l-2 px-1.5 py-1 text-left text-[11px] leading-tight transition-colors hover:opacity-90",
                       tasinabilir && "cursor-grab touch-none active:cursor-grabbing",
-                      aktifBuSutun && "ring-2 ring-primary/40",
                       aktif && "z-30 shadow-lg",
+                      farkliSutunaSurukleniyor && "opacity-60 ring-2 ring-primary/40",
                     )}
                     style={{
                       top,
