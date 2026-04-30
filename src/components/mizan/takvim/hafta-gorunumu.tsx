@@ -1,17 +1,24 @@
 import * as React from "react";
-import { format, isSameDay, isWithinInterval, startOfDay } from "date-fns";
+import { addDays, format, isSameDay, startOfDay } from "date-fns";
 import { tr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { GUN_KISA, haftaBaslangici, haftaGunleri } from "@/lib/cetele-tarih";
 import {
   type EtkinlikOlay,
 } from "@/lib/takvim-hooks";
+import { cakismayiYerlestir } from "@/lib/takvim-cakisma";
+import { useTakvimSurukle } from "@/lib/takvim-surukle";
 
 const SAATLER = Array.from({ length: 24 }, (_, i) => i); // 00..23
 const SAAT_PX = 40; // her saat satırı yüksekliği
+const SNAP_DK = 15;
 
 function dakika(d: Date): number {
   return d.getHours() * 60 + d.getMinutes();
+}
+
+function tasinabilirMi(o: EtkinlikOlay): boolean {
+  return !o.id.startsWith("ilim:") && !o.id.startsWith("amel:");
 }
 
 type Props = {
@@ -20,15 +27,53 @@ type Props = {
   onSlotClick: (saat: Date) => void;
   onOlayClick: (olay: EtkinlikOlay) => void;
   onOlayTasi?: (id: string, yeniBaslangic: Date) => void;
+  onOlayBoyutla?: (id: string, yeniBitis: Date) => void;
 };
 
-export function HaftaGorunumu({ ankara, olaylar, onSlotClick, onOlayClick, onOlayTasi }: Props) {
+export function HaftaGorunumu({
+  ankara,
+  olaylar,
+  onSlotClick,
+  onOlayClick,
+  onOlayTasi,
+  onOlayBoyutla,
+}: Props) {
   const haftaBas = haftaBaslangici(ankara);
   const gunler = haftaGunleri(haftaBas);
   const bugun = startOfDay(new Date());
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const [simdi, setSimdi] = React.useState<Date>(() => new Date());
-  const [hover, setHover] = React.useState<string | null>(null);
+  const sutunRefs = React.useRef<Map<string, HTMLDivElement | null>>(new Map());
+
+  const sutunlar = React.useMemo(
+    () =>
+      gunler.map((g) => ({
+        key: g.toISOString(),
+        getRect: () => sutunRefs.current.get(g.toISOString())?.getBoundingClientRect() ?? null,
+      })),
+    [gunler],
+  );
+
+  const surukle = useTakvimSurukle({
+    saatPx: SAAT_PX,
+    snapDk: SNAP_DK,
+    scrollRef,
+    sutunlar,
+    onTasimaBitti: ({ id, modu, dakikaDelta, sutunDelta }) => {
+      const olay = olaylar.find((o) => o.id === id);
+      if (!olay) return;
+      if (modu === "tasi" && onOlayTasi) {
+        const yeni = new Date(olay.olayBaslangic.getTime() + dakikaDelta * 60_000);
+        const yeniGun = addDays(yeni, sutunDelta);
+        onOlayTasi(id, yeniGun);
+      } else if (modu === "boyutla" && onOlayBoyutla) {
+        const yeni = new Date(olay.olayBitis.getTime() + dakikaDelta * 60_000);
+        if (yeni.getTime() - olay.olayBaslangic.getTime() >= 15 * 60_000) {
+          onOlayBoyutla(id, yeni);
+        }
+      }
+    },
+  });
 
   React.useEffect(() => {
     const t = setInterval(() => setSimdi(new Date()), 60_000);
@@ -81,6 +126,9 @@ export function HaftaGorunumu({ ankara, olaylar, onSlotClick, onOlayClick, onOla
       <div
         ref={scrollRef}
         className="relative grid max-h-[70vh] grid-cols-[3rem_repeat(7,minmax(0,1fr))] overflow-y-auto"
+        onPointerMove={surukle.tasi}
+        onPointerUp={surukle.bitir}
+        onPointerCancel={surukle.iptal}
       >
         {/* Saat etiketleri */}
         <div className="flex flex-col">
@@ -96,10 +144,14 @@ export function HaftaGorunumu({ ankara, olaylar, onSlotClick, onOlayClick, onOla
         </div>
         {gunler.map((g) => {
           const gunOlaylari = olaylar.filter((o) => isSameDay(o.olayBaslangic, g));
+          const yerlesim = cakismayiYerlestir(gunOlaylari);
           const isToday = isSameDay(g, simdi);
           return (
             <div
               key={g.toISOString()}
+              ref={(el) => {
+                sutunRefs.current.set(g.toISOString(), el);
+              }}
               className="relative border-l border-border"
               style={{ height: SAATLER.length * SAAT_PX }}
             >
@@ -112,26 +164,7 @@ export function HaftaGorunumu({ ankara, olaylar, onSlotClick, onOlayClick, onOla
                     slot.setHours(s, 0, 0, 0);
                     onSlotClick(slot);
                   }}
-                  onDragOver={(e) => {
-                    if (!onOlayTasi) return;
-                    e.preventDefault();
-                    setHover(`${g.toISOString()}-${s}`);
-                  }}
-                  onDragLeave={() => setHover(null)}
-                  onDrop={(e) => {
-                    if (!onOlayTasi) return;
-                    e.preventDefault();
-                    setHover(null);
-                    const id = e.dataTransfer.getData("text/plain");
-                    if (!id) return;
-                    const yeni = new Date(g);
-                    yeni.setHours(s, 0, 0, 0);
-                    onOlayTasi(id, yeni);
-                  }}
-                  className={cn(
-                    "block w-full border-b border-border/60 hover:bg-accent/40",
-                    hover === `${g.toISOString()}-${s}` && "bg-primary/10",
-                  )}
+                  className="block w-full border-b border-border/60 hover:bg-accent/40"
                   style={{ height: SAAT_PX }}
                   aria-label={`${format(g, "d MMM", { locale: tr })} ${s}:00 yeni etkinlik`}
                 />
@@ -145,40 +178,53 @@ export function HaftaGorunumu({ ankara, olaylar, onSlotClick, onOlayClick, onOla
                   <span className="h-px flex-1 bg-destructive" />
                 </div>
               )}
-              {gunOlaylari.map((o, idx) => {
+              {yerlesim.map(({ olay: o, sutun, sutunSayisi }, idx) => {
                 const basDk = dakika(o.olayBaslangic);
                 const bitDk = dakika(o.olayBitis);
-                const top = ((basDk - SAATLER[0] * 60) / 60) * SAAT_PX;
-                const yukseklik = Math.max(
-                  ((bitDk - basDk) / 60) * SAAT_PX,
-                  18,
-                );
-                const tasinabilir =
-                  !!onOlayTasi &&
-                  !o.id.startsWith("ilim:") &&
-                  !o.id.startsWith("amel:") &&
-                  (o.tekrar ?? "yok") === "yok";
+                const tasinabilir = !!onOlayTasi && tasinabilirMi(o);
+                const aktif =
+                  surukle.durum?.id === o.id &&
+                  surukle.durum.baslangicSutunKey === g.toISOString();
+                const farkliSutunaSurukleniyor =
+                  aktif &&
+                  surukle.durum?.modu === "tasi" &&
+                  surukle.durum.hedefSutunKey !== g.toISOString();
+                const dy =
+                  aktif && surukle.durum ? surukle.durum.dyPx : 0;
+                const bMinTop = ((basDk - SAATLER[0] * 60) / 60) * SAAT_PX;
+                const baseH = Math.max(((bitDk - basDk) / 60) * SAAT_PX, 18);
+                const top =
+                  aktif && surukle.durum?.modu === "tasi" ? bMinTop + dy : bMinTop;
+                const yukseklik =
+                  aktif && surukle.durum?.modu === "boyutla"
+                    ? Math.max(baseH + dy, 18)
+                    : baseH;
+                const sutunGenislikYuzde = 100 / sutunSayisi;
                 return (
                   <button
                     key={`${o.id}-${idx}`}
                     type="button"
-                    draggable={tasinabilir}
-                    onDragStart={(e) => {
+                    onPointerDown={(e) => {
                       if (!tasinabilir) return;
-                      e.dataTransfer.setData("text/plain", o.id);
-                      e.dataTransfer.effectAllowed = "move";
+                      if (e.button !== 0) return;
+                      surukle.baslat(e, o.id, "tasi", g.toISOString());
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (aktif) return;
                       onOlayClick(o);
                     }}
                     className={cn(
-                      "absolute left-1 right-1 overflow-hidden rounded-md border-l-2 px-1.5 py-1 text-left text-[11px] leading-tight transition-colors hover:opacity-90",
-                      tasinabilir && "cursor-grab active:cursor-grabbing",
+                      "absolute overflow-hidden rounded-md border-l-2 px-1.5 py-1 text-left text-[11px] leading-tight transition-colors hover:opacity-90",
+                      tasinabilir && "cursor-grab touch-none active:cursor-grabbing",
+                      aktif && "z-30 shadow-lg",
+                      farkliSutunaSurukleniyor && "opacity-60 ring-2 ring-primary/40",
                     )}
                     style={{
                       top,
                       height: yukseklik,
+                      left: `calc(${sutun * sutunGenislikYuzde}% + 0.25rem)`,
+                      width: `calc(${sutunGenislikYuzde}% - 0.5rem)`,
                       backgroundColor: `color-mix(in oklab, var(--${o.alan}) 18%, transparent)`,
                       borderLeftColor: `var(--${o.alan})`,
                       color: "var(--foreground)",
@@ -190,6 +236,16 @@ export function HaftaGorunumu({ ankara, olaylar, onSlotClick, onOlayClick, onOla
                         {format(o.olayBaslangic, "HH:mm")}
                         {o.konum ? ` · ${o.konum}` : ""}
                       </div>
+                    )}
+                    {tasinabilir && onOlayBoyutla && (
+                      <span
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          surukle.baslat(e, o.id, "boyutla", g.toISOString());
+                        }}
+                        className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize touch-none hover:bg-foreground/20"
+                        aria-hidden
+                      />
                     )}
                   </button>
                 );

@@ -3,12 +3,19 @@ import { format, isSameDay } from "date-fns";
 import { tr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { type EtkinlikOlay } from "@/lib/takvim-hooks";
+import { cakismayiYerlestir } from "@/lib/takvim-cakisma";
+import { useTakvimSurukle } from "@/lib/takvim-surukle";
 
 const SAATLER = Array.from({ length: 24 }, (_, i) => i);
 const SAAT_PX = 56;
+const SNAP_DK = 15;
 
 function dakika(d: Date): number {
   return d.getHours() * 60 + d.getMinutes();
+}
+
+function tasinabilirMi(o: EtkinlikOlay): boolean {
+  return !o.id.startsWith("ilim:") && !o.id.startsWith("amel:");
 }
 
 type Props = {
@@ -17,13 +24,40 @@ type Props = {
   onSlotClick: (saat: Date) => void;
   onOlayClick: (o: EtkinlikOlay) => void;
   onOlayTasi?: (id: string, yeniBaslangic: Date) => void;
+  onOlayBoyutla?: (id: string, yeniBitis: Date) => void;
 };
 
-export function GunGorunumu({ ankara, olaylar, onSlotClick, onOlayClick, onOlayTasi }: Props) {
+export function GunGorunumu({
+  ankara,
+  olaylar,
+  onSlotClick,
+  onOlayClick,
+  onOlayTasi,
+  onOlayBoyutla,
+}: Props) {
   const gunOlaylari = olaylar.filter((o) => isSameDay(o.olayBaslangic, ankara));
+  const yerlesim = React.useMemo(() => cakismayiYerlestir(gunOlaylari), [gunOlaylari]);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const [simdi, setSimdi] = React.useState<Date>(() => new Date());
-  const [hoverSaat, setHoverSaat] = React.useState<number | null>(null);
+
+  const surukle = useTakvimSurukle({
+    saatPx: SAAT_PX,
+    snapDk: SNAP_DK,
+    scrollRef,
+    onTasimaBitti: ({ id, modu, dakikaDelta }) => {
+      const olay = gunOlaylari.find((o) => o.id === id);
+      if (!olay) return;
+      if (modu === "tasi" && onOlayTasi) {
+        const yeni = new Date(olay.olayBaslangic.getTime() + dakikaDelta * 60_000);
+        onOlayTasi(id, yeni);
+      } else if (modu === "boyutla" && onOlayBoyutla) {
+        const yeni = new Date(olay.olayBitis.getTime() + dakikaDelta * 60_000);
+        if (yeni.getTime() - olay.olayBaslangic.getTime() >= 15 * 60_000) {
+          onOlayBoyutla(id, yeni);
+        }
+      }
+    },
+  });
 
   React.useEffect(() => {
     const t = setInterval(() => setSimdi(new Date()), 60_000);
@@ -53,6 +87,9 @@ export function GunGorunumu({ ankara, olaylar, onSlotClick, onOlayClick, onOlayT
       <div
         ref={scrollRef}
         className="relative grid max-h-[70vh] grid-cols-[3.5rem_minmax(0,1fr)] overflow-y-auto"
+        onPointerMove={surukle.tasi}
+        onPointerUp={surukle.bitir}
+        onPointerCancel={surukle.iptal}
       >
         <div className="flex flex-col">
           {SAATLER.map((s) => (
@@ -75,26 +112,7 @@ export function GunGorunumu({ ankara, olaylar, onSlotClick, onOlayClick, onOlayT
                 slot.setHours(s, 0, 0, 0);
                 onSlotClick(slot);
               }}
-              onDragOver={(e) => {
-                if (!onOlayTasi) return;
-                e.preventDefault();
-                setHoverSaat(s);
-              }}
-              onDragLeave={() => setHoverSaat(null)}
-              onDrop={(e) => {
-                if (!onOlayTasi) return;
-                e.preventDefault();
-                setHoverSaat(null);
-                const id = e.dataTransfer.getData("text/plain");
-                if (!id) return;
-                const yeni = new Date(ankara);
-                yeni.setHours(s, 0, 0, 0);
-                onOlayTasi(id, yeni);
-              }}
-              className={cn(
-                "block w-full border-b border-border/60 hover:bg-accent/40",
-                hoverSaat === s && "bg-primary/10",
-              )}
+              className="block w-full border-b border-border/60 hover:bg-accent/40"
               style={{ height: SAAT_PX }}
               aria-label={`${s}:00 yeni etkinlik`}
             />
@@ -108,37 +126,42 @@ export function GunGorunumu({ ankara, olaylar, onSlotClick, onOlayClick, onOlayT
               <span className="h-px flex-1 bg-destructive" />
             </div>
           )}
-          {gunOlaylari.map((o, idx) => {
+          {yerlesim.map(({ olay: o, sutun, sutunSayisi }, idx) => {
             const basDk = dakika(o.olayBaslangic);
             const bitDk = dakika(o.olayBitis);
-            const top = ((basDk - SAATLER[0] * 60) / 60) * SAAT_PX;
-            const yukseklik = Math.max(((bitDk - basDk) / 60) * SAAT_PX, 24);
-            const tasinabilir =
-              !!onOlayTasi &&
-              !o.id.startsWith("ilim:") &&
-              !o.id.startsWith("amel:") &&
-              (o.tekrar ?? "yok") === "yok";
+            const tasinabilir = !!onOlayTasi && tasinabilirMi(o);
+            const aktif = surukle.durum?.id === o.id;
+            const dy = aktif ? surukle.durum!.dyPx : 0;
+            const bMinTop = ((basDk - SAATLER[0] * 60) / 60) * SAAT_PX;
+            const baseH = Math.max(((bitDk - basDk) / 60) * SAAT_PX, 24);
+            const top = aktif && surukle.durum!.modu === "tasi" ? bMinTop + dy : bMinTop;
+            const yukseklik =
+              aktif && surukle.durum!.modu === "boyutla" ? Math.max(baseH + dy, 24) : baseH;
+            const sutunGenislikYuzde = 100 / sutunSayisi;
             return (
               <button
                 key={`${o.id}-${idx}`}
                 type="button"
-                draggable={tasinabilir}
-                onDragStart={(e) => {
+                onPointerDown={(e) => {
                   if (!tasinabilir) return;
-                  e.dataTransfer.setData("text/plain", o.id);
-                  e.dataTransfer.effectAllowed = "move";
+                  if (e.button !== 0) return;
+                  surukle.baslat(e, o.id, "tasi");
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (aktif) return;
                   onOlayClick(o);
                 }}
                 className={cn(
-                  "absolute left-2 right-2 overflow-hidden rounded-lg border-l-4 px-2.5 py-1.5 text-left text-xs leading-tight transition-colors hover:opacity-90",
-                  tasinabilir && "cursor-grab active:cursor-grabbing",
+                  "absolute overflow-hidden rounded-lg border-l-4 px-2.5 py-1.5 text-left text-xs leading-tight transition-colors hover:opacity-90",
+                  tasinabilir && "cursor-grab touch-none active:cursor-grabbing",
+                  aktif && "z-30 shadow-lg",
                 )}
                 style={{
                   top,
                   height: yukseklik,
+                  left: `calc(${sutun * sutunGenislikYuzde}% + 0.5rem)`,
+                  width: `calc(${sutunGenislikYuzde}% - 0.75rem)`,
                   backgroundColor: `color-mix(in oklab, var(--${o.alan}) 18%, transparent)`,
                   borderLeftColor: `var(--${o.alan})`,
                 }}
@@ -148,6 +171,16 @@ export function GunGorunumu({ ankara, olaylar, onSlotClick, onOlayClick, onOlayT
                   {format(o.olayBaslangic, "HH:mm")} – {format(o.olayBitis, "HH:mm")}
                   {o.konum ? ` · ${o.konum}` : ""}
                 </div>
+                {tasinabilir && onOlayBoyutla && (
+                  <span
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      surukle.baslat(e, o.id, "boyutla");
+                    }}
+                    className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize touch-none bg-foreground/0 hover:bg-foreground/20"
+                    aria-hidden
+                  />
+                )}
               </button>
             );
           })}
