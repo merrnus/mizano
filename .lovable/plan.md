@@ -1,47 +1,36 @@
-## Plan
+## Planlama sayfası iyileştirmeleri
 
-### Sorun
-Ana sayfadaki "Görev ekle" butonuyla eklediğin görev, "Bugünün programları"nın altında (zaman çizelgesi widget'ında) görünmüyor — ama `/takvim` sayfasında görünüyor.
+Üç değişiklik:
 
-### Kök neden
-`GorevDialog` (ve aynı bug `EtkinlikDialog`'da) içindeki `useEffect`:
+### 1) Saat ızgarası 00:00'dan başlasın (24 saat)
+- `hafta-gorunumu.tsx` ve `gun-gorunumu.tsx` içindeki `SAATLER` dizisi `[6..23]` yerine `[0..23]` olacak (24 satır).
+- Hafta görünümünde `SAAT_PX = 48` yüksek olduğundan ızgara çok uzar; hafta için `SAAT_PX = 40`'a düşürülecek (24×40 = 960px). Gün görünümü 64 → 56'ya düşecek (daha kompakt). Etkinlik konumlandırma `top` formülü zaten `SAATLER[0]*60` kullandığı için 0'dan başlayınca doğal olarak doğru çalışır.
+- İlk açılışta ızgara otomatik olarak günün saatine kaydırılacak (ör. sabah 8 yerine boş gece saatleri görünmesin): kapsayıcıya bir `ref` eklenip `useEffect` ile `scrollTop = (mevcutSaat - 1) * SAAT_PX` uygulanır. Sayfa açıkken yapılan tıklamalarda kaydırma sıfırlanmaz.
 
-```ts
-React.useEffect(() => {
-  if (!acik) return;
-  ...
-  setVade(isoGun(varsayilanVade ?? new Date()));
-  ...
-}, [acik, duzenle, varsayilanVade]);  // ← varsayilanVade dependency
-```
+### 2) "Şu an" kırmızı çizgisi
+- Hafta ve gün görünümlerinde, eğer görünen aralık bugünü içeriyorsa, mevcut zamanı gösteren ince kırmızı yatay çizgi.
+- `useEffect` ile her dakika güncellenen bir `simdi` state'i (component-local; dialog reset bug'ıyla alakası yok). 
+- Hafta görünümü: çizgi sadece bugünün sütununda; sol kenarda küçük yuvarlak nokta.
+- Gün görünümü: ankara bugünse tam genişlik kırmızı çizgi.
+- Renk: `border-destructive` / `bg-destructive` token'ları (tema ile uyumlu).
 
-`index.tsx`'te `simdi` her dakika `setInterval` ile yeni `Date()` referansına dönüyor. `varsayilanVade={simdi}` prop'u her dakika yeni referans → dialog **açıkken** bu effect tetikleniyor → kullanıcının yazdığı tüm form alanları sıfırlanıyor (vade dahil). Eğer kullanıcı dakika değişimine denk geldiyse görev yanlış güne ya da boş başlıkla kaydolmuş olabilir.
+### 3) Etkinlik sürükle-bırak (yeniden zamanlama)
+- Yalnızca kullanıcı tarafından eklenen `takvim_etkinlik` kayıtları taşınabilir; ders/sınav/proje/amel olayları (id'si `ilim:` veya `amel:` ile başlayanlar) sürüklenmez (zaten kendi sayfalarında düzenleniyor).
+- Native HTML5 drag&drop (kütüphane eklemeden):
+  - Etkinlik bloğu `draggable`; `onDragStart`'ta `id`, kaynak başlangıç dakikası ve süre `dataTransfer`'a yazılır.
+  - Saat slot butonları `onDragOver` (preventDefault) ve `onDrop` ile yeni başlangıç saatini hesaplar; aynı süreyi koruyarak yeni `baslangic`/`bitis` üretilir.
+  - Hafta görünümünde başka güne; gün görünümünde aynı güne taşıma desteklenir.
+  - 15 dakikalık snap (drop konumu saate yuvarlanır; basitlik için saat başına snap, ileride 15 dk eklenebilir).
+- Mutasyon: mevcut `useEtkinlikGuncelle()` çağrılır (`{ baslangic, bitis }`). TanStack Query refetch ile UI güncellenir.
+- Tekrar eden etkinlikler: tekrar tanımlı (`tekrar !== 'yok'`) olanlar için sürükle-bırak devre dışı (drag handle gizlenir / `draggable=false`) — tek seferlik bir tarih taşımak tekrar serisini bozar; bunu detay diyaloğundan yapmak daha güvenli. Tooltip ile "tekrar eden etkinlik — düzenlemek için tıklayın" gösterilir.
+- Görsel feedback: sürüklenirken blok yarı saydam; geçerli drop hedefi olan slot `bg-primary/10` ile vurgulanır.
 
-Ayrıca `useGorevler` query'si tarih aralığı için Date prop'larından `isoGun` türetiyor — `simdi` her dakika değişince queryKey de değişiyor, ama içerik aynı tarih → gereksiz refetch ama bug değil.
+### Değişecek dosyalar
+- `src/components/mizan/takvim/hafta-gorunumu.tsx` — SAATLER, SAAT_PX, scroll-to-now, şu-an çizgisi, drag&drop slot/blok.
+- `src/components/mizan/takvim/gun-gorunumu.tsx` — aynı üç değişiklik.
+- `src/routes/takvim.tsx` — `HaftaGorunumu` ve `GunGorunumu`'na `onOlayTasi: (id, yeniBaslangic) => void` callback'i ve `useEtkinlikGuncelle` bağlantısı.
 
-Asıl olası senaryo: dialog açıldı → kullanıcı yazıyor → dakika döndü → form sıfırlandı → kullanıcı kaydetti → görev yarına ya da varsayılan değerlere düştü. Ya da kullanıcı boşken Tab ile vade'yi default ('') haliyle gönderdi → DB'de NULL olamıyor (NOT NULL kolon) → hata. Hata durumunda görev kaydolmuyor ama kullanıcı toast'u görmemiş olabilir.
-
-### Çözüm
-
-**1) Dialog form sıfırlama bug'ını düzelt**
-- `gorev-dialog.tsx` ve `etkinlik-dialog.tsx` içindeki `useEffect` dependency'sini `[acik, duzenle?.id]` olarak değiştir. Varsayılan değerler sadece dialog **ilk açıldığında** uygulansın, sonradan prop değişiminde değil.
-- Bu, dakika dönüşünde formun sıfırlanmasını engeller.
-
-**2) `index.tsx`'teki `simdi` referansını dialog için stabilize et**
-- `varsayilanVade` ve `varsayilanBaslangic` props'larına `simdi` yerine `useMemo` ile günlük bazda stabilize edilmiş bir Date referansı geç. Yani sadece gün değiştiğinde değişsin, dakika değişiminde değişmesin.
-
-**3) `useGorevler` queryKey'i sadece tarih string'iyle bağlansın (Date değil)**
-- `aralikBas`/`aralikBitis` tarih string'i alacak şekilde refactor edilebilir, ama minimum değişiklik için sadece `BugunZamanCizelgesi` ve `BugunCetelesi` içinde `gunBas`/`gunSon` Date'lerini `useMemo` ile günlük olarak hesapla — `simdi` her dakika yenilense bile aynı referans dönsün.
-
-### Değiştirilecek dosyalar
-- `src/components/mizan/takvim/gorev-dialog.tsx` — useEffect dependency düzeltmesi
-- `src/components/mizan/takvim/etkinlik-dialog.tsx` — aynı düzeltme
-- `src/components/mizan/dashboard/bugun-zaman-cizelgesi.tsx` — `gunBas`/`gunSon` `useMemo` ile gün bazlı stabilize
-- `src/components/mizan/dashboard/bugun-cetelesi.tsx` — aynı stabilizasyon (haftaBas için)
-- `src/routes/index.tsx` — dialog'lara stabilize edilmiş Date geç
-
-### Bir önceki konu: çetele bağlam ekleme kısayolu
-Bunu da dahil etmemi ister misin yoksa önce sadece görev bug'ını mı çözeyim? Cevabına göre planı küçültebilirim — ama varsayılan olarak ikisini birden uygulayacağım (önceki mesajda da planlamıştık):
-
-- Yeni `baglam-ata-popover.tsx` → şablon satırının yanına "+ etiket" butonu
-- `bugun-cetelesi.tsx` ve `mizan.mana.tsx` içindeki şablon listelerine bu popover entegre edilecek
+### Kapsam dışı
+- Aylık görünüm (zaten saatsiz, sürüklemeye uygun değil).
+- Görev (saatsiz to-do) sürüklemesi — şimdilik yalnızca etkinlikler.
+- Etkinlik süresini değiştirmek için kenar tutamağı (resize) — ayrı bir iş.
