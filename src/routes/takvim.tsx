@@ -73,24 +73,6 @@ function TakvimSayfasi() {
   const navigate = useNavigate();
   const etkGuncelle = useEtkinlikGuncelle();
 
-  const olayTasi = React.useCallback(
-    (id: string, yeniBaslangic: Date) => {
-      const eski = (etkSorgu.data ?? []).find((e) => e.id === id);
-      if (!eski) return;
-      const sure =
-        new Date(eski.bitis).getTime() - new Date(eski.baslangic).getTime();
-      const yeniBitis = new Date(yeniBaslangic.getTime() + sure);
-      etkGuncelle.mutate({
-        id,
-        degisiklikler: {
-          baslangic: yeniBaslangic.toISOString(),
-          bitis: yeniBitis.toISOString(),
-        },
-      });
-    },
-    [etkSorgu.data, etkGuncelle],
-  );
-
   // Aralık hesabı
   const [aralikBas, aralikBitis] = React.useMemo<[Date, Date]>(() => {
     if (gorunum === "ay") {
