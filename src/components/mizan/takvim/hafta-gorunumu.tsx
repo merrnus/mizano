@@ -149,7 +149,9 @@ export function HaftaGorunumu({
           return (
             <div
               key={g.toISOString()}
-              ref={(el) => sutunRefs.current.set(g.toISOString(), el)}
+              ref={(el) => {
+                sutunRefs.current.set(g.toISOString(), el);
+              }}
               className="relative border-l border-border"
               style={{ height: SAATLER.length * SAAT_PX }}
             >
