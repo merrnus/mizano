@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import {
   useEtkinlikler,
   useGorevler,
+  useEtkinlikGuncelle,
   genisletEtkinlikleri,
   type EtkinlikOlay,
 } from "@/lib/takvim-hooks";
@@ -70,6 +71,25 @@ function TakvimSayfasi() {
   const [gorevSlot, setGorevSlot] = React.useState<Date | undefined>(undefined);
   const [gorevDuzenle, setGorevDuzenle] = React.useState<TakvimGorev | null>(null);
   const navigate = useNavigate();
+  const etkGuncelle = useEtkinlikGuncelle();
+
+  const olayTasi = React.useCallback(
+    (id: string, yeniBaslangic: Date) => {
+      const eski = (etkSorgu.data ?? []).find((e) => e.id === id);
+      if (!eski) return;
+      const sure =
+        new Date(eski.bitis).getTime() - new Date(eski.baslangic).getTime();
+      const yeniBitis = new Date(yeniBaslangic.getTime() + sure);
+      etkGuncelle.mutate({
+        id,
+        degisiklikler: {
+          baslangic: yeniBaslangic.toISOString(),
+          bitis: yeniBitis.toISOString(),
+        },
+      });
+    },
+    [etkSorgu.data, etkGuncelle],
+  );
 
   // Aralık hesabı
   const [aralikBas, aralikBitis] = React.useMemo<[Date, Date]>(() => {
@@ -275,6 +295,7 @@ function TakvimSayfasi() {
               olaylar={olaylar}
               onSlotClick={slotAc}
               onOlayClick={olayAc}
+              onOlayTasi={olayTasi}
             />
           )}
           {gorunum === "ay" && (
@@ -291,6 +312,7 @@ function TakvimSayfasi() {
               olaylar={olaylar}
               onSlotClick={slotAc}
               onOlayClick={olayAc}
+              onOlayTasi={olayTasi}
             />
           )}
         </div>
