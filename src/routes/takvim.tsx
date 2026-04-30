@@ -115,6 +115,15 @@ function TakvimSayfasi() {
     },
     [etkSorgu.data, etkGuncelle],
   );
+  const olayBoyutla = React.useCallback(
+    (id: string, yeniBitis: Date) => {
+      etkGuncelle.mutate({
+        id,
+        degisiklikler: { bitis: yeniBitis.toISOString() },
+      });
+    },
+    [etkGuncelle],
+  );
   const gorevSorgu = useGorevler(haftaBas, haftaBit);
   const derslerSorgu = useDersler();
   const saatSorgu = useDersSaatleri();
@@ -296,6 +305,7 @@ function TakvimSayfasi() {
               onSlotClick={slotAc}
               onOlayClick={olayAc}
               onOlayTasi={olayTasi}
+              onOlayBoyutla={olayBoyutla}
             />
           )}
           {gorunum === "ay" && (
@@ -313,6 +323,7 @@ function TakvimSayfasi() {
               onSlotClick={slotAc}
               onOlayClick={olayAc}
               onOlayTasi={olayTasi}
+              onOlayBoyutla={olayBoyutla}
             />
           )}
         </div>
