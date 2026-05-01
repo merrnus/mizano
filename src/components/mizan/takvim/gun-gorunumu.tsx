@@ -7,7 +7,7 @@ import { cakismayiYerlestir } from "@/lib/takvim-cakisma";
 import { useTakvimSurukle } from "@/lib/takvim-surukle";
 
 const SAATLER = Array.from({ length: 24 }, (_, i) => i);
-const SAAT_PX = 56;
+const SAAT_PX = 44;
 const SNAP_DK = 15;
 
 function dakika(d: Date): number {
@@ -44,13 +44,16 @@ export function GunGorunumu({
     saatPx: SAAT_PX,
     snapDk: SNAP_DK,
     scrollRef,
-    onTasimaBitti: ({ id, modu, dakikaDelta }) => {
+    onTasimaBitti: ({ id, modu, dakikaDelta, surukleGerceklesti }) => {
+      if (!surukleGerceklesti) return; // click ile karıştırma
       const olay = gunOlaylari.find((o) => o.id === id);
       if (!olay) return;
       if (modu === "tasi" && onOlayTasi) {
+        if (dakikaDelta === 0) return;
         const yeni = new Date(olay.olayBaslangic.getTime() + dakikaDelta * 60_000);
         onOlayTasi(id, yeni);
       } else if (modu === "boyutla" && onOlayBoyutla) {
+        if (dakikaDelta === 0) return;
         const yeni = new Date(olay.olayBitis.getTime() + dakikaDelta * 60_000);
         if (yeni.getTime() - olay.olayBaslangic.getTime() >= 15 * 60_000) {
           onOlayBoyutla(id, yeni);
@@ -86,7 +89,7 @@ export function GunGorunumu({
       </div>
       <div
         ref={scrollRef}
-        className="relative grid max-h-[70vh] grid-cols-[3.5rem_minmax(0,1fr)] overflow-y-auto"
+        className="relative grid max-h-[78vh] grid-cols-[3.5rem_minmax(0,1fr)] overflow-y-auto overscroll-contain"
         onPointerMove={surukle.tasi}
         onPointerUp={surukle.bitir}
         onPointerCancel={surukle.iptal}
@@ -131,12 +134,16 @@ export function GunGorunumu({
             const bitDk = dakika(o.olayBitis);
             const tasinabilir = !!onOlayTasi && tasinabilirMi(o);
             const aktif = surukle.durum?.id === o.id;
-            const dy = aktif ? surukle.durum!.dyPx : 0;
+            const dragGoruluyor = aktif && surukle.durum!.aktif;
+            const dy = dragGoruluyor ? surukle.durum!.dyPx : 0;
             const bMinTop = ((basDk - SAATLER[0] * 60) / 60) * SAAT_PX;
             const baseH = Math.max(((bitDk - basDk) / 60) * SAAT_PX, 24);
-            const top = aktif && surukle.durum!.modu === "tasi" ? bMinTop + dy : bMinTop;
+            const top =
+              dragGoruluyor && surukle.durum!.modu === "tasi" ? bMinTop + dy : bMinTop;
             const yukseklik =
-              aktif && surukle.durum!.modu === "boyutla" ? Math.max(baseH + dy, 24) : baseH;
+              dragGoruluyor && surukle.durum!.modu === "boyutla"
+                ? Math.max(baseH + dy, 24)
+                : baseH;
             const sutunGenislikYuzde = 100 / sutunSayisi;
             return (
               <button
@@ -149,13 +156,13 @@ export function GunGorunumu({
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (aktif) return;
+                  if (surukle.tikiBastir()) return;
                   onOlayClick(o);
                 }}
                 className={cn(
                   "absolute overflow-hidden rounded-lg border-l-4 px-2.5 py-1.5 text-left text-xs leading-tight transition-colors hover:opacity-90",
                   tasinabilir && "cursor-grab touch-none active:cursor-grabbing",
-                  aktif && "z-30 shadow-lg",
+                  dragGoruluyor && "z-30 shadow-lg ring-2 ring-primary/40",
                 )}
                 style={{
                   top,
