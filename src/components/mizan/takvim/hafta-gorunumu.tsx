@@ -128,10 +128,8 @@ export function HaftaGorunumu({
       {/* Saat ızgarası */}
       <div
         ref={scrollRef}
-        className="relative grid max-h-[78vh] grid-cols-[3rem_repeat(7,minmax(0,1fr))] overflow-y-auto overscroll-contain"
-        onPointerMove={surukle.tasi}
-        onPointerUp={surukle.bitir}
-        onPointerCancel={surukle.iptal}
+        className="relative grid min-h-0 flex-1 grid-cols-[3rem_repeat(7,minmax(0,1fr))] overflow-y-auto overscroll-contain"
+        style={{ maxHeight: "calc(100dvh - 12rem)" }}
       >
         {/* Saat etiketleri */}
         <div className="flex flex-col">
@@ -199,7 +197,7 @@ export function HaftaGorunumu({
                 const baseH = Math.max(((bitDk - basDk) / 60) * SAAT_PX, 18);
                 const top =
                   dragGoruluyor && surukle.durum?.modu === "tasi"
-                    ? bMinTop + dy
+                    ? bMinTop // canlı önizleme overlay olarak çiziliyor
                     : bMinTop;
                 const yukseklik =
                   dragGoruluyor && surukle.durum?.modu === "boyutla"
@@ -223,8 +221,8 @@ export function HaftaGorunumu({
                     className={cn(
                       "absolute overflow-hidden rounded-md border-l-2 px-1.5 py-1 text-left text-[11px] leading-tight transition-colors hover:opacity-90",
                       tasinabilir && "cursor-grab touch-none active:cursor-grabbing",
-                      dragGoruluyor && "z-30 shadow-lg ring-2 ring-primary/40",
-                      farkliSutunaSurukleniyor && "opacity-60 ring-2 ring-primary/40",
+                      dragGoruluyor && surukle.durum?.modu === "tasi" && "opacity-30",
+                      dragGoruluyor && surukle.durum?.modu === "boyutla" && "z-30 shadow-lg ring-2 ring-primary/40",
                     )}
                     style={{
                       top,
