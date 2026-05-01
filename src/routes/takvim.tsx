@@ -296,8 +296,8 @@ function TakvimSayfasi() {
         </div>
       </header>
 
-      <div className="flex flex-col gap-4 lg:flex-row">
-        <div className="min-w-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {gorunum === "hafta" && (
             <HaftaGorunumu
               ankara={ankara}
