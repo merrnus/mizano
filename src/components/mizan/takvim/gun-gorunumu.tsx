@@ -112,7 +112,6 @@ export function GunGorunumu({
       <div
         ref={scrollRef}
         className="relative grid min-h-0 flex-1 grid-cols-[3.5rem_minmax(0,1fr)] overflow-y-auto overscroll-contain"
-        style={{ maxHeight: "calc(100dvh - 12rem)" }}
       >
         <div className="flex flex-col">
           {SAATLER.map((s) => (
