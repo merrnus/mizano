@@ -10,7 +10,7 @@ import { cakismayiYerlestir } from "@/lib/takvim-cakisma";
 import { useTakvimSurukle } from "@/lib/takvim-surukle";
 
 const SAATLER = Array.from({ length: 24 }, (_, i) => i); // 00..23
-const SAAT_PX = 40; // her saat satırı yüksekliği
+const SAAT_PX = 32; // her saat satırı yüksekliği — daha kompakt
 const SNAP_DK = 15;
 
 function dakika(d: Date): number {
@@ -59,14 +59,17 @@ export function HaftaGorunumu({
     snapDk: SNAP_DK,
     scrollRef,
     sutunlar,
-    onTasimaBitti: ({ id, modu, dakikaDelta, sutunDelta }) => {
+    onTasimaBitti: ({ id, modu, dakikaDelta, sutunDelta, surukleGerceklesti }) => {
+      if (!surukleGerceklesti) return;
       const olay = olaylar.find((o) => o.id === id);
       if (!olay) return;
       if (modu === "tasi" && onOlayTasi) {
+        if (dakikaDelta === 0 && sutunDelta === 0) return;
         const yeni = new Date(olay.olayBaslangic.getTime() + dakikaDelta * 60_000);
         const yeniGun = addDays(yeni, sutunDelta);
         onOlayTasi(id, yeniGun);
       } else if (modu === "boyutla" && onOlayBoyutla) {
+        if (dakikaDelta === 0) return;
         const yeni = new Date(olay.olayBitis.getTime() + dakikaDelta * 60_000);
         if (yeni.getTime() - olay.olayBaslangic.getTime() >= 15 * 60_000) {
           onOlayBoyutla(id, yeni);
@@ -125,7 +128,7 @@ export function HaftaGorunumu({
       {/* Saat ızgarası */}
       <div
         ref={scrollRef}
-        className="relative grid max-h-[70vh] grid-cols-[3rem_repeat(7,minmax(0,1fr))] overflow-y-auto"
+        className="relative grid max-h-[78vh] grid-cols-[3rem_repeat(7,minmax(0,1fr))] overflow-y-auto overscroll-contain"
         onPointerMove={surukle.tasi}
         onPointerUp={surukle.bitir}
         onPointerCancel={surukle.iptal}
@@ -185,18 +188,21 @@ export function HaftaGorunumu({
                 const aktif =
                   surukle.durum?.id === o.id &&
                   surukle.durum.baslangicSutunKey === g.toISOString();
+                const dragGoruluyor = aktif && surukle.durum?.aktif === true;
                 const farkliSutunaSurukleniyor =
-                  aktif &&
+                  dragGoruluyor &&
                   surukle.durum?.modu === "tasi" &&
                   surukle.durum.hedefSutunKey !== g.toISOString();
                 const dy =
-                  aktif && surukle.durum ? surukle.durum.dyPx : 0;
+                  dragGoruluyor && surukle.durum ? surukle.durum.dyPx : 0;
                 const bMinTop = ((basDk - SAATLER[0] * 60) / 60) * SAAT_PX;
                 const baseH = Math.max(((bitDk - basDk) / 60) * SAAT_PX, 18);
                 const top =
-                  aktif && surukle.durum?.modu === "tasi" ? bMinTop + dy : bMinTop;
+                  dragGoruluyor && surukle.durum?.modu === "tasi"
+                    ? bMinTop + dy
+                    : bMinTop;
                 const yukseklik =
-                  aktif && surukle.durum?.modu === "boyutla"
+                  dragGoruluyor && surukle.durum?.modu === "boyutla"
                     ? Math.max(baseH + dy, 18)
                     : baseH;
                 const sutunGenislikYuzde = 100 / sutunSayisi;
@@ -211,13 +217,13 @@ export function HaftaGorunumu({
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (aktif) return;
+                      if (surukle.tikiBastir()) return;
                       onOlayClick(o);
                     }}
                     className={cn(
                       "absolute overflow-hidden rounded-md border-l-2 px-1.5 py-1 text-left text-[11px] leading-tight transition-colors hover:opacity-90",
                       tasinabilir && "cursor-grab touch-none active:cursor-grabbing",
-                      aktif && "z-30 shadow-lg",
+                      dragGoruluyor && "z-30 shadow-lg ring-2 ring-primary/40",
                       farkliSutunaSurukleniyor && "opacity-60 ring-2 ring-primary/40",
                     )}
                     style={{
