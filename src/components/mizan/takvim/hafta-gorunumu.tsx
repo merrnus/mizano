@@ -129,7 +129,6 @@ export function HaftaGorunumu({
       <div
         ref={scrollRef}
         className="relative grid min-h-0 flex-1 grid-cols-[3rem_repeat(7,minmax(0,1fr))] overflow-y-auto overscroll-contain"
-        style={{ maxHeight: "calc(100dvh - 12rem)" }}
       >
         {/* Saat etiketleri */}
         <div className="flex flex-col">
