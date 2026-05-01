@@ -257,6 +257,50 @@ export function HaftaGorunumu({
             </div>
           );
         })}
+        {(() => {
+          const d = surukle.durum;
+          if (!d || !d.aktif || d.modu !== "tasi") return null;
+          const o = olaylar.find((x) => x.id === d.id);
+          if (!o) return null;
+          const hedef = sutunRefs.current.get(d.hedefSutunKey ?? "");
+          const sc = scrollRef.current;
+          if (!hedef || !sc) return null;
+          const colRect = hedef.getBoundingClientRect();
+          const scRect = sc.getBoundingClientRect();
+          const baseH = Math.max(
+            ((dakika(o.olayBitis) - dakika(o.olayBaslangic)) / 60) * SAAT_PX,
+            18,
+          );
+          // pointer'ı kart ortasına al, snap'le
+          const yIcinde = d.clientY - colRect.top - baseH / 2;
+          const snap = (SAAT_PX * SNAP_DK) / 60;
+          const top = Math.max(0, Math.min(SAATLER.length * SAAT_PX - baseH, Math.round(yIcinde / snap) * snap));
+          // scroll container'a göre offset
+          const left = colRect.left - scRect.left + sc.scrollLeft + 2;
+          const absTop = colRect.top - scRect.top + sc.scrollTop + top;
+          const dakikaIcerisi = (top / SAAT_PX) * 60;
+          const yeniBas = new Date(0);
+          yeniBas.setHours(Math.floor(dakikaIcerisi / 60), Math.round(dakikaIcerisi % 60), 0, 0);
+          return (
+            <div
+              className="pointer-events-none absolute z-50 overflow-hidden rounded-md border-l-2 px-1.5 py-1 text-[11px] leading-tight shadow-2xl ring-2 ring-primary/60"
+              style={{
+                top: absTop,
+                left,
+                width: colRect.width - 4,
+                height: baseH,
+                backgroundColor: `color-mix(in oklab, var(--${o.alan}) 40%, transparent)`,
+                borderLeftColor: `var(--${o.alan})`,
+                color: "var(--foreground)",
+              }}
+            >
+              <div className="truncate font-medium">{o.baslik}</div>
+              <div className="truncate text-[10px] text-muted-foreground">
+                {format(yeniBas, "HH:mm")}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
