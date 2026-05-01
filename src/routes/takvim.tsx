@@ -222,7 +222,7 @@ function TakvimSayfasi() {
   };
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-3rem)] w-full max-w-7xl flex-col px-4 py-3 sm:px-6 xl:h-[calc(100dvh-3rem)]">
+    <div className="mx-auto flex h-[calc(100dvh-7rem)] w-full max-w-7xl flex-col px-4 py-3 sm:px-6 xl:h-[calc(100dvh-3rem)]">
       <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
