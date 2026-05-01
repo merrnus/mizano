@@ -186,10 +186,6 @@ export function HaftaGorunumu({
                   surukle.durum?.id === o.id &&
                   surukle.durum.baslangicSutunKey === g.toISOString();
                 const dragGoruluyor = aktif && surukle.durum?.aktif === true;
-                const farkliSutunaSurukleniyor =
-                  dragGoruluyor &&
-                  surukle.durum?.modu === "tasi" &&
-                  surukle.durum.hedefSutunKey !== g.toISOString();
                 const dy =
                   dragGoruluyor && surukle.durum ? surukle.durum.dyPx : 0;
                 const bMinTop = ((basDk - SAATLER[0] * 60) / 60) * SAAT_PX;
