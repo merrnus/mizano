@@ -100,7 +100,7 @@ export function GunGorunumu({
   }
 
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-card">
+    <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border bg-card">
       <div className="border-b border-border px-4 py-3">
         <div className="text-xs uppercase tracking-wider text-muted-foreground">
           {format(ankara, "EEEE", { locale: tr })}
