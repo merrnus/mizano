@@ -95,7 +95,7 @@ export function HaftaGorunumu({
   const simdiTop = ((simdi.getHours() * 60 + simdi.getMinutes()) / 60) * SAAT_PX;
 
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-card">
+    <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border bg-card">
       {/* Başlık satırı */}
       <div className="grid grid-cols-[3rem_repeat(7,minmax(0,1fr))] border-b border-border">
         <div />
@@ -128,10 +128,7 @@ export function HaftaGorunumu({
       {/* Saat ızgarası */}
       <div
         ref={scrollRef}
-        className="relative grid max-h-[78vh] grid-cols-[3rem_repeat(7,minmax(0,1fr))] overflow-y-auto overscroll-contain"
-        onPointerMove={surukle.tasi}
-        onPointerUp={surukle.bitir}
-        onPointerCancel={surukle.iptal}
+        className="relative grid min-h-0 flex-1 grid-cols-[3rem_repeat(7,minmax(0,1fr))] overflow-y-auto overscroll-contain"
       >
         {/* Saat etiketleri */}
         <div className="flex flex-col">
@@ -189,17 +186,13 @@ export function HaftaGorunumu({
                   surukle.durum?.id === o.id &&
                   surukle.durum.baslangicSutunKey === g.toISOString();
                 const dragGoruluyor = aktif && surukle.durum?.aktif === true;
-                const farkliSutunaSurukleniyor =
-                  dragGoruluyor &&
-                  surukle.durum?.modu === "tasi" &&
-                  surukle.durum.hedefSutunKey !== g.toISOString();
                 const dy =
                   dragGoruluyor && surukle.durum ? surukle.durum.dyPx : 0;
                 const bMinTop = ((basDk - SAATLER[0] * 60) / 60) * SAAT_PX;
                 const baseH = Math.max(((bitDk - basDk) / 60) * SAAT_PX, 18);
                 const top =
                   dragGoruluyor && surukle.durum?.modu === "tasi"
-                    ? bMinTop + dy
+                    ? bMinTop // canlı önizleme overlay olarak çiziliyor
                     : bMinTop;
                 const yukseklik =
                   dragGoruluyor && surukle.durum?.modu === "boyutla"
@@ -223,8 +216,8 @@ export function HaftaGorunumu({
                     className={cn(
                       "absolute overflow-hidden rounded-md border-l-2 px-1.5 py-1 text-left text-[11px] leading-tight transition-colors hover:opacity-90",
                       tasinabilir && "cursor-grab touch-none active:cursor-grabbing",
-                      dragGoruluyor && "z-30 shadow-lg ring-2 ring-primary/40",
-                      farkliSutunaSurukleniyor && "opacity-60 ring-2 ring-primary/40",
+                      dragGoruluyor && surukle.durum?.modu === "tasi" && "opacity-30",
+                      dragGoruluyor && surukle.durum?.modu === "boyutla" && "z-30 shadow-lg ring-2 ring-primary/40",
                     )}
                     style={{
                       top,
@@ -259,6 +252,50 @@ export function HaftaGorunumu({
             </div>
           );
         })}
+        {(() => {
+          const d = surukle.durum;
+          if (!d || !d.aktif || d.modu !== "tasi") return null;
+          const o = olaylar.find((x) => x.id === d.id);
+          if (!o) return null;
+          const hedef = sutunRefs.current.get(d.hedefSutunKey ?? "");
+          const sc = scrollRef.current;
+          if (!hedef || !sc) return null;
+          const colRect = hedef.getBoundingClientRect();
+          const scRect = sc.getBoundingClientRect();
+          const baseH = Math.max(
+            ((dakika(o.olayBitis) - dakika(o.olayBaslangic)) / 60) * SAAT_PX,
+            18,
+          );
+          // pointer'ı kart ortasına al, snap'le
+          const yIcinde = d.clientY - colRect.top - baseH / 2;
+          const snap = (SAAT_PX * SNAP_DK) / 60;
+          const top = Math.max(0, Math.min(SAATLER.length * SAAT_PX - baseH, Math.round(yIcinde / snap) * snap));
+          // scroll container'a göre offset
+          const left = colRect.left - scRect.left + sc.scrollLeft + 2;
+          const absTop = colRect.top - scRect.top + sc.scrollTop + top;
+          const dakikaIcerisi = (top / SAAT_PX) * 60;
+          const yeniBas = new Date(0);
+          yeniBas.setHours(Math.floor(dakikaIcerisi / 60), Math.round(dakikaIcerisi % 60), 0, 0);
+          return (
+            <div
+              className="pointer-events-none absolute z-50 overflow-hidden rounded-md border-l-2 px-1.5 py-1 text-[11px] leading-tight shadow-2xl ring-2 ring-primary/60"
+              style={{
+                top: absTop,
+                left,
+                width: colRect.width - 4,
+                height: baseH,
+                backgroundColor: `color-mix(in oklab, var(--${o.alan}) 40%, transparent)`,
+                borderLeftColor: `var(--${o.alan})`,
+                color: "var(--foreground)",
+              }}
+            >
+              <div className="truncate font-medium">{o.baslik}</div>
+              <div className="truncate text-[10px] text-muted-foreground">
+                {format(yeniBas, "HH:mm")}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ export type SurukleModu = "tasi" | "boyutla";
 export type SurukleDurumu = {
   id: string;
   modu: SurukleModu;
-  /** y ekseninde snap uygulanmış piksel ofseti */
+  /** y ekseninde snap uygulanmış piksel ofseti (kaynak konuma göre) */
   dyPx: number;
   /** sütun değişimi (haftalık görünümde -n .. +n) */
   sutunDelta: number;
@@ -13,14 +13,15 @@ export type SurukleDurumu = {
   hedefSutunKey?: string;
   /** Sürükleme eşiği geçildi mi? Geçmediyse henüz drag değil, sadece tık. */
   aktif: boolean;
+  /** Pointer'ın o anki client koordinatları (overlay önizleme için) */
+  clientX: number;
+  clientY: number;
 };
 
 type SurukleSecenek = {
   saatPx: number;
   snapDk?: number;
-  /** Drag eşiği (piksel). Bu mesafenin altında click sayılır. */
   surukleEsigi?: number;
-  /** Auto-scroll için kenar bölgesi (px) */
   edge?: number;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   sutunlar?: Array<{ key: string; getRect: () => DOMRect | null }>;
@@ -31,7 +32,6 @@ type SurukleSecenek = {
     sutunDelta: number;
     baslangicSutunKey?: string;
     hedefSutunKey?: string;
-    /** Eşik aşıldı mı? false ise click olarak yorumlanmalı. */
     surukleGerceklesti: boolean;
   }) => void;
 };
@@ -46,22 +46,25 @@ type DahiliDurum = {
   lastClientY: number;
   lastClientX: number;
   baslangicSutunKey?: string;
-  aktif: boolean; // eşik aşıldı mı
+  aktif: boolean;
+  pointerId: number;
 };
 
 export function useTakvimSurukle({
   saatPx,
   snapDk = 15,
   surukleEsigi = 5,
-  edge = 56,
+  edge = 48,
   onTasimaBitti,
   scrollRef,
   sutunlar,
 }: SurukleSecenek) {
   const [durum, setDurum] = React.useState<SurukleDurumu | null>(null);
   const stateRef = React.useRef<DahiliDurum | null>(null);
-  /** drag bittikten sonra kısa süre click'i bastır */
   const supressClickUntilRef = React.useRef<number>(0);
+  // optionsları stable callbacklerden okumak için
+  const optsRef = React.useRef({ onTasimaBitti, sutunlar, saatPx, snapDk, surukleEsigi, edge });
+  optsRef.current = { onTasimaBitti, sutunlar, saatPx, snapDk, surukleEsigi, edge };
 
   const snapPx = (saatPx * snapDk) / 60;
 
@@ -75,26 +78,57 @@ export function useTakvimSurukle({
       const snapped = Math.round(rawDy / snapPx) * snapPx;
 
       let sutunDelta = 0;
+      const sutunlarCur = optsRef.current.sutunlar;
       let hedefSutunKey: string | undefined = s.baslangicSutunKey;
-      if (sutunlar && sutunlar.length > 0 && s.modu === "tasi") {
-        const baslangicIdx = sutunlar.findIndex((c) => c.key === s.baslangicSutunKey);
+      if (sutunlarCur && sutunlarCur.length > 0 && s.modu === "tasi") {
+        const baslangicIdx = sutunlarCur.findIndex((c) => c.key === s.baslangicSutunKey);
         let icindeIdx = baslangicIdx;
-        for (let i = 0; i < sutunlar.length; i++) {
-          const r = sutunlar[i].getRect();
+        // pointer'a en yakın sütunu bul
+        let bestDist = Infinity;
+        for (let i = 0; i < sutunlarCur.length; i++) {
+          const r = sutunlarCur[i].getRect();
           if (!r) continue;
           if (clientX >= r.left && clientX <= r.right) {
             icindeIdx = i;
+            bestDist = 0;
             break;
+          }
+          const center = (r.left + r.right) / 2;
+          const d = Math.abs(clientX - center);
+          if (d < bestDist) {
+            bestDist = d;
+            icindeIdx = i;
           }
         }
         if (baslangicIdx >= 0 && icindeIdx >= 0) {
           sutunDelta = icindeIdx - baslangicIdx;
-          hedefSutunKey = sutunlar[icindeIdx].key;
+          hedefSutunKey = sutunlarCur[icindeIdx].key;
         }
       }
       return { dyPx: snapped, sutunDelta, hedefSutunKey };
     },
-    [scrollRef, snapPx, sutunlar],
+    [scrollRef, snapPx],
+  );
+
+  const guncelle = React.useCallback(
+    (clientX: number, clientY: number) => {
+      const s = stateRef.current;
+      if (!s) return;
+      const h = hesapla(clientY, clientX);
+      if (!h) return;
+      setDurum({
+        id: s.id,
+        modu: s.modu,
+        dyPx: h.dyPx,
+        sutunDelta: h.sutunDelta,
+        baslangicSutunKey: s.baslangicSutunKey,
+        hedefSutunKey: h.hedefSutunKey,
+        aktif: s.aktif,
+        clientX,
+        clientY,
+      });
+    },
+    [hesapla],
   );
 
   const autoScrollTick = React.useCallback(() => {
@@ -104,30 +138,89 @@ export function useTakvimSurukle({
     if (s.aktif) {
       const rect = sc.getBoundingClientRect();
       const y = s.lastClientY;
+      const eg = optsRef.current.edge;
       let dz = 0;
-      if (y < rect.top + edge) {
-        dz = -Math.max(3, (rect.top + edge - y) / 6);
-      } else if (y > rect.bottom - edge) {
-        dz = Math.max(3, (y - (rect.bottom - edge)) / 6);
+      if (y < rect.top + eg) {
+        dz = -Math.max(2, (rect.top + eg - y) / 6);
+      } else if (y > rect.bottom - eg) {
+        dz = Math.max(2, (y - (rect.bottom - eg)) / 6);
       }
       if (dz !== 0) {
+        const before = sc.scrollTop;
         sc.scrollTop += dz;
-        const h = hesapla(s.lastClientY, s.lastClientX);
-        if (h) {
-          setDurum({
-            id: s.id,
-            modu: s.modu,
-            dyPx: h.dyPx,
-            sutunDelta: h.sutunDelta,
-            baslangicSutunKey: s.baslangicSutunKey,
-            hedefSutunKey: h.hedefSutunKey,
-            aktif: true,
-          });
+        if (sc.scrollTop !== before) {
+          guncelle(s.lastClientX, s.lastClientY);
         }
       }
     }
     s.rafId = requestAnimationFrame(autoScrollTick);
-  }, [edge, hesapla, scrollRef]);
+  }, [guncelle, scrollRef]);
+
+  // Window listeners — yalnızca aktif sürükleme sırasında bağlanır
+  React.useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const s = stateRef.current;
+      if (!s) return;
+      if (s.pointerId !== e.pointerId) return;
+      s.lastClientX = e.clientX;
+      s.lastClientY = e.clientY;
+      if (!s.aktif) {
+        const dx = Math.abs(e.clientX - s.startX);
+        const dy = Math.abs(e.clientY - s.startY);
+        if (dx < optsRef.current.surukleEsigi && dy < optsRef.current.surukleEsigi) return;
+        s.aktif = true;
+        document.body.style.userSelect = "none";
+        document.body.style.cursor = s.modu === "boyutla" ? "ns-resize" : "grabbing";
+      }
+      e.preventDefault();
+      guncelle(e.clientX, e.clientY);
+    };
+    const onUp = (e: PointerEvent) => {
+      const s = stateRef.current;
+      if (!s) return;
+      if (s.pointerId !== e.pointerId) return;
+      if (s.rafId != null) cancelAnimationFrame(s.rafId);
+      const h = s.aktif ? hesapla(e.clientY, e.clientX) : null;
+      const dakikaDelta = h ? Math.round((h.dyPx / optsRef.current.saatPx) * 60) : 0;
+      const sutunDelta = h ? h.sutunDelta : 0;
+      const hedefSutunKey = h?.hedefSutunKey;
+      const surukleGerceklesti = s.aktif;
+      stateRef.current = null;
+      setDurum(null);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      if (surukleGerceklesti) {
+        supressClickUntilRef.current = Date.now() + 400;
+      }
+      optsRef.current.onTasimaBitti({
+        id: s.id,
+        modu: s.modu,
+        dakikaDelta,
+        sutunDelta,
+        baslangicSutunKey: s.baslangicSutunKey,
+        hedefSutunKey,
+        surukleGerceklesti,
+      });
+    };
+    const onCancel = (e: PointerEvent) => {
+      const s = stateRef.current;
+      if (!s) return;
+      if (s.pointerId !== e.pointerId) return;
+      if (s.rafId != null) cancelAnimationFrame(s.rafId);
+      stateRef.current = null;
+      setDurum(null);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+    };
+  }, [guncelle, hesapla]);
 
   const baslat = React.useCallback(
     (
@@ -136,7 +229,6 @@ export function useTakvimSurukle({
       modu: SurukleModu,
       baslangicSutunKey?: string,
     ) => {
-      // sadece sol tık
       if (e.button !== 0) return;
       e.stopPropagation();
       const sc = scrollRef.current;
@@ -151,14 +243,8 @@ export function useTakvimSurukle({
         lastClientX: e.clientX,
         baslangicSutunKey,
         aktif: false,
+        pointerId: e.pointerId,
       };
-      // pointer capture: pointer kart dışına çıksa bile event almaya devam et
-      try {
-        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-      } catch {
-        // ignore
-      }
-      // resize ise hemen aktif say (zaten kullanıcı handle'a bastı)
       if (modu === "boyutla") {
         stateRef.current.aktif = true;
         document.body.style.userSelect = "none";
@@ -171,6 +257,8 @@ export function useTakvimSurukle({
           baslangicSutunKey,
           hedefSutunKey: baslangicSutunKey,
           aktif: true,
+          clientX: e.clientX,
+          clientY: e.clientY,
         });
       }
       stateRef.current.rafId = requestAnimationFrame(autoScrollTick);
@@ -178,87 +266,9 @@ export function useTakvimSurukle({
     [autoScrollTick, scrollRef],
   );
 
-  const tasi = React.useCallback(
-    (e: React.PointerEvent) => {
-      const s = stateRef.current;
-      if (!s) return;
-      s.lastClientY = e.clientY;
-      s.lastClientX = e.clientX;
-      // eşik kontrolü
-      if (!s.aktif) {
-        const dx = Math.abs(e.clientX - s.startX);
-        const dy = Math.abs(e.clientY - s.startY);
-        if (dx < surukleEsigi && dy < surukleEsigi) {
-          return; // henüz drag sayılmıyor
-        }
-        s.aktif = true;
-        document.body.style.userSelect = "none";
-        document.body.style.cursor = s.modu === "boyutla" ? "ns-resize" : "grabbing";
-      }
-      // aktifken default'ları engelle (sayfa kaydırma vs.)
-      e.preventDefault();
-      const h = hesapla(e.clientY, e.clientX);
-      if (!h) return;
-      setDurum({
-        id: s.id,
-        modu: s.modu,
-        dyPx: h.dyPx,
-        sutunDelta: h.sutunDelta,
-        baslangicSutunKey: s.baslangicSutunKey,
-        hedefSutunKey: h.hedefSutunKey,
-        aktif: true,
-      });
-    },
-    [hesapla, surukleEsigi],
-  );
+  // Geriye dönük uyumluluk için no-op tasi/bitir/iptal: artık window dinliyor
+  const noop = React.useCallback(() => {}, []);
 
-  const bitir = React.useCallback(
-    (e: React.PointerEvent) => {
-      const s = stateRef.current;
-      if (!s) return;
-      try {
-        (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
-      } catch {
-        // ignore
-      }
-      if (s.rafId != null) cancelAnimationFrame(s.rafId);
-      const h = s.aktif ? hesapla(e.clientY, e.clientX) : null;
-      const dakikaDelta = h ? Math.round((h.dyPx / saatPx) * 60) : 0;
-      const sutunDelta = h ? h.sutunDelta : 0;
-      const hedefSutunKey = h?.hedefSutunKey;
-      const surukleGerceklesti = s.aktif;
-      stateRef.current = null;
-      setDurum(null);
-      document.body.style.userSelect = "";
-      document.body.style.cursor = "";
-      if (surukleGerceklesti) {
-        // 350ms boyunca click'leri yut
-        supressClickUntilRef.current = Date.now() + 350;
-      }
-      onTasimaBitti({
-        id: s.id,
-        modu: s.modu,
-        dakikaDelta,
-        sutunDelta,
-        baslangicSutunKey: s.baslangicSutunKey,
-        hedefSutunKey,
-        surukleGerceklesti,
-      });
-    },
-    [hesapla, onTasimaBitti, saatPx],
-  );
-
-  const iptal = React.useCallback(() => {
-    const s = stateRef.current;
-    if (!s) return;
-    if (s.rafId != null) cancelAnimationFrame(s.rafId);
-    stateRef.current = null;
-    setDurum(null);
-    document.body.style.userSelect = "";
-    document.body.style.cursor = "";
-  }, []);
-
-  /** Drag sonrası açılan click'i bastırmak için kullan. */
   const tikiBastir = React.useCallback(() => {
     return Date.now() < supressClickUntilRef.current;
   }, []);
@@ -272,5 +282,5 @@ export function useTakvimSurukle({
     };
   }, []);
 
-  return { durum, baslat, tasi, bitir, iptal, tikiBastir };
+  return { durum, baslat, tasi: noop, bitir: noop, iptal: noop, tikiBastir };
 }
