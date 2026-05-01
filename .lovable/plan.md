@@ -1,62 +1,116 @@
-# Planlama görünümünü Google Calendar seviyesine çıkarma
+# Plan: Takvim sürükle-bırak deneyimini düzeltme ve Google Calendar seviyesine yaklaştırma
 
-## 1. Sorunların kökleri
+Senin şikayetlerin haklı; mevcut sürükle-bırak akışı hâlâ “ham” çalışıyor. İncelemede iki ana sorun net çıktı:
 
-**a) Neden sadece bazı etkinlikler sürüklenebiliyordu?**
-Şu an `tasinabilir` koşulu, ders/amel kaynaklı olayları (`ilim:` / `amel:` ön ekli) ve tekrarlı etkinlikleri dışarıda bırakıyor. Sebep: ders/sınav/proje olayları `takvim_etkinlik` tablosundan değil, türetilmiş kaynaklardan (`useDersSaatleri`, `useSinavlar`, vb.) geliyor — `useEtkinlikGuncelle` ile güncellenemezler. Tekrarlı olaylar da tek tek değil, kuralla üretildiği için tek bir örneği taşımak veri modelinde "istisna" gerektirir.
+1. **Sürüklerken scroll alanı hareket ediyor ve kart sabit hissi vermiyor**
+   - Şu an sürükleme olayları doğrudan scroll eden grid üzerinde çalışıyor.
+   - Kart kendi doğal akışında kalırken konteyner `scrollTop` ile kaydırılıyor, bu yüzden nesne “elin altında sabit” kalmıyor.
 
-**b) Yukarı sürüklerken sayfa kayıyor (saat 9'un üstüne çıkamıyor)**
-Şu an HTML5 native drag-and-drop kullanıyoruz (`draggable`, `onDragStart/Drop`). Bu API'nin bilinen sorunu: sürükleme sırasında scroll konteynerini otomatik kaydırmaz; tarayıcı bunun yerine sayfa scroll'unu tetikler. Mobilde özellikle (touch event'lere dönüşür) yukarı sürükleme = pull-to-refresh / sayfa scroll olur. Çözüm: HTML5 drag'i tamamen bırakıp **pointer event tabanlı** (`onPointerDown/Move/Up`) bir sürükleme yapmak ve sürükleme sırasında konteyneri kendimiz kaydırmak (edge auto-scroll).
+2. **Sürükleme bitince detay paneli açılıyor**
+   - Event kartı bir `button` ve drag sonrası `click` olayı bastırılmıyor.
+   - Yani sistem bunu hem “drag” hem de “click” gibi yorumlayabiliyor.
 
-**c) Google Calendar'a göre eksikler**
-1. Etkinliğin **alt kenarından yeniden boyutlandırma** (süre değiştirme).
-2. **15 dakika hassasiyet** (şu an 1 saatlik snap; etkinlik 09:30 ise 09:00'a yapışıyor).
-3. **Çakışan etkinliklerin yan yana** dizilmesi (şu an üst üste biniyor).
-4. **Tüm gün etkinlikleri** için ayrı şerit (bizim modelde `tum_gun` alanı yok — şimdilik atlanır).
-5. **Edge auto-scroll** sürükleme sırasında.
-6. Sürükleme sırasında **görsel hayalet** (orijinali soluk, yeni konum vurgulanmış).
+Ayrıca ekran yoğunluğu tarafında da fark var:
+- Gün görünümünde saat başına **56 px**, hafta görünümünde **40 px** kullanılıyor.
+- Bu yüzden senin istediğin gibi tek bakışta daha fazla saat görünmüyor.
+- Google Calendar hissi için görünür saat yoğunluğu daha sıkı ve daha kontrollü olmalı.
 
-## 2. Yapılacaklar
+## Yapılacaklar
 
-### a) Sürüklenebilirliği genişlet
-- Tek seferlik (`tekrar = "yok"`) etkinlikler: tam taşıma (mevcut davranış, ama yeni motorla).
-- **Tekrarlı etkinlikler**: Tüm seriyi birlikte taşı (yani `baslangic` güncellenir, tüm gelecek örnekler kayar). Bu Google Calendar'ın "tüm seri" seçeneğine eşittir; sadece bu örneği değiştirmek istisna tablosu gerektirir, şimdilik kapsam dışı. Kullanıcıya tooltip ile "tüm seri taşınır" notu.
-- **Görevler** (`takvim_gorev`): Görev panelinden takvime sürükleyip belli bir saate planlama (vade gününü ayarlama). Şu an görevlerin saati yok, sadece `vade` (gün). Yani günler arası taşıma destekli, saat boyunca taşıma değil.
-- **`ilim:` / `amel:` olaylar**: Hâlâ kapalı (kaynak başka tablo) — üzerlerine gelince kürsör `not-allowed`.
+### 1) Sürükleme motorunu stabilize et
+**Hedef:** kart sürüklenirken sayfa/konteyner oynasa bile sürüklenen öğe görsel olarak sabit ve kontrollü hissettirsin.
 
-### b) HTML5 drag → Pointer tabanlı motor
-Yeni dosya: `src/lib/takvim-surukle.ts` — küçük hook `useSurukle({ onTasi, slotPx, slotDk })`:
-- `onPointerDown` → kapama, `setPointerCapture`, body'ye `user-select:none`.
-- `onPointerMove` → fare/parmak Y konumuna göre etkinliğin "hayalet" üst değerini güncelle, **15 dakikaya snap**.
-- Konteynerin üst/alt 40px'inde isek `requestAnimationFrame` ile `scrollTop` += her frame ~6px → **edge auto-scroll**.
-- `onPointerUp` → `releasePointerCapture`, yeni `baslangic` hesaplanır, `onTasi(id, yeniBaslangic)` çağrılır.
-- Touch için `touch-action: none` etkinliğin üzerine; konteynerde sayfanın asıl scroll'una müdahale etmemek için sadece sürükleme aktifken `overscroll-behavior: contain`.
+Bunun için:
+- `src/lib/takvim-surukle.ts` içinde sürükleme durumuna **başlangıç pointer konumu**, **drag başladı mı**, **drag mesafesi eşiği**, **son pointer koordinatı**, **scroll başlangıç snapshot’ı** gibi alanlar eklenecek.
+- `pointermove` / `pointerup` takibi yalnızca scroll konteynerine değil, gerekirse **window/document seviyesinde** güvenceye alınacak.
+- Görsel taşıma mantığı, kartı doğrudan scroll içeriğinde “zıplatmak” yerine **ghost/overlay preview** ile çalışacak.
+- Otomatik scroll daha yumuşak hale getirilecek; pointer kenara yaklaşınca scroll olacak ama kartın preview’su pointer’a bağlı kalacak.
 
-### c) `HaftaGorunumu` & `GunGorunumu` güncellemeleri
-- `draggable`, `onDragStart`, `onDragOver`, `onDrop` kaldırılır. `useSurukle` bağlanır.
-- Slot yüksekliği 15 dakikalık alt çizgilerle gösterilir (mevcut 40px / 56px aynı kalır; sadece visual alt çizgiler).
-- Sürükleme sırasında etkinliğin orijinali `opacity-40`, hayalet `position:absolute; pointer-events:none` ile yeni konumda render edilir.
-- **Resize handle**: etkinliğin alt 6px'inde `cursor-ns-resize`; aynı pointer motoruyla `bitis` güncellenir (minimum 15dk).
-- **Çakışan olaylar yan yana**: gün sütununda örtüşen grupları hesapla (`column`, `columnCount`), genişliği `1/columnCount` ata. Yardımcı: `src/lib/takvim-cakisma.ts`.
+**Beklenen sonuç:** yukarı/aşağı taşırken “scroll kayıyor, kart elimden kaçıyor” hissi kaybolacak.
 
-### d) `takvim.tsx`
-- `olayTasi` aynı kalır, ama `useEtkinlikGuncelle` çağrısı yapılırken: tekrarlı olaylar için artık `eski.baslangic` ile `o.olayBaslangic` arasındaki delta hesaplanıp `baslangic`+`bitis`'e uygulanır (seri toptan kayar).
-- Yeni `olayBoyutla(id, yeniBitis)` callback'i `useEtkinlikGuncelle` ile sadece `bitis` günceller.
+### 2) Drag ile click’i kesin olarak ayır
+**Hedef:** sürükledikten sonra detay paneli asla açılmasın.
 
-### e) Görev sürükleme (görev paneli → gün başlığı)
-- `GorevPaneli`'ndeki görev kartı pointer ile sürüklenebilir; `HaftaGorunumu`'nun gün başlık hücresi drop hedefi olur, `useGorevGuncelle({ vade: yeniGun })`.
+Bunun için:
+- `gun-gorunumu.tsx` ve `hafta-gorunumu.tsx` içinde kart tıklama mantığı değiştirilecek.
+- Sadece gerçekten tıklama yapıldıysa `onOlayClick` çalışacak.
+- Drag mesafesi belli bir eşiği geçtiyse:
+  - o etkileşim “click” sayılmayacak,
+  - `pointerup` sonrası kısa süreli **click suppression** uygulanacak,
+  - resize işlemi sonrası da panel açılmayacak.
 
-## 3. Dokunulacak dosyalar
+**Beklenen sonuç:** taşıma/resize sonrası yanlışlıkla dialog açılmayacak.
 
-- **Yeni**: `src/lib/takvim-surukle.ts`, `src/lib/takvim-cakisma.ts`
-- **Düzenlenecek**: `src/components/mizan/takvim/hafta-gorunumu.tsx`, `src/components/mizan/takvim/gun-gorunumu.tsx`, `src/components/mizan/takvim/gorev-paneli.tsx`, `src/routes/takvim.tsx`
+### 3) Saat yoğunluğunu Google Calendar’a yaklaştır
+**Hedef:** ekranda yaklaşık 12 saatlik blok daha rahat görülsün.
 
-## 4. Kapsam dışı (sonraki tur)
+Bunun için:
+- `SAAT_PX` değerleri yeniden ayarlanacak.
+- Özellikle hafta görünümünde daha kompakt bir yükseklik kullanılacak.
+- Gün görünümünde masaüstü ve dar ekran için farklı yoğunluk değerlendirilecek.
+- Gerekirse üst başlık ve hücre içi padding’ler de azaltılacak.
 
-- Tek tekrar örneğini istisna olarak ayırma (recurrence exceptions tablosu gerekir).
-- Tüm gün etkinlik şeridi (`tum_gun bool` kolonu eklenmeli).
-- Görevlerin saatli planlanması (görev şemasına `vade_saat` eklenmeli).
-- Çoklu seçim, kopyala-yapıştır.
-- Ders/sınav saatlerini ilim modülünden taşıma (kaynak modüller ayrı yönetildiği için orada düzenlenmeli).
+**Beklenen sonuç:** tek ekranda daha fazla saat görünür olacak; görünüm daha profesyonel ve “takvim gibi” hissedecek.
 
-Onaylarsan sürükleme motorunu, çakışma yerleşimini ve resize'ı tek seferde uygulayayım.
+### 4) Görsel sürükleme geri bildirimi ekle
+**Hedef:** kullanıcı sürüklerken nereye taşıdığını çok net görsün.
+
+Bunun için:
+- Orijinal kart hafif soluk kalacak.
+- Taşınan kart için daha belirgin bir preview/ghost gösterilecek.
+- Hedef sütun ve hedef zaman aralığı daha net vurgulanacak.
+- Resize sırasında yeni bitiş süresi daha anlaşılır hale getirilecek.
+
+**Beklenen sonuç:** sürükleme “teknik olarak çalışıyor” seviyesinden çıkıp gerçekten güven veren bir UX’e dönüşecek.
+
+### 5) Hafta ve gün görünümünü aynı etkileşim kurallarıyla hizala
+**Hedef:** iki görünümün davranışı birbirinden farklı hissettirmesin.
+
+Bunun için:
+- `src/components/mizan/takvim/gun-gorunumu.tsx`
+- `src/components/mizan/takvim/hafta-gorunumu.tsx`
+- `src/lib/takvim-surukle.ts`
+
+bu üç yerde ortak kurallar uygulanacak:
+- aynı drag eşiği,
+- aynı click suppression,
+- aynı auto-scroll mantığı,
+- aynı drag preview davranışı.
+
+### 6) Son rötuş: görev paneli ve sonraki adımlar
+İlk turda ana odak etkinlik drag/resize olacak. Ardından ikinci kalite turunda şunları netleştireceğim:
+- görevleri sağ panelden takvime sürükleme,
+- all-day satırı,
+- daha gelişmiş recurring event davranışı (tek örnek mi, tüm seri mi?),
+- mobil/touch davranışı.
+
+Bunlar ilk düzeltme paketine mecburi değil ama Google Calendar benzerliğini tamamlayan eksikler.
+
+## Teknik detaylar
+
+**Değişecek dosyalar**
+- `src/lib/takvim-surukle.ts`
+- `src/components/mizan/takvim/gun-gorunumu.tsx`
+- `src/components/mizan/takvim/hafta-gorunumu.tsx`
+- Gerekirse küçük koordinasyon için `src/routes/takvim.tsx`
+
+**Uygulama yaklaşımı**
+- native/yarım drag mantığını tamamen bırakmadan, mevcut pointer tabanlı yapıyı daha sağlam bir state machine’e çevireceğim
+- “tık mıydı, drag miydi?” ayrımı state seviyesinde yapılacak
+- scroll hareketi ile kart preview’su birbirinden ayrılacak
+- yoğunluk/pixel ayarları yeniden dengelenecek
+
+## Google Calendar ile karşılaştırınca şu an eksik olanlar
+Bu düzeltmeden sonra bile ileri seviye farklar şunlar kalabilir:
+- all-day lane
+- görevleri doğrudan grid’e bırakma
+- sürüklerken zaman etiketi balonu
+- seri etkinlikte “bu etkinlik / tüm seri” seçimi
+- sticky saat kolonu ve daha rafine responsive davranış
+
+Ama önce senin şu an en çok canını sıkan **3 temel problemi** çözeceğim:
+1. drag sabitsizliği
+2. drag sonrası yanlış click
+3. ekranda az saat görünmesi
+
+Onay verirsen bunu uygulamaya geçeyim.
