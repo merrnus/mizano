@@ -38,6 +38,7 @@ export function GunGorunumu({
   const gunOlaylari = olaylar.filter((o) => isSameDay(o.olayBaslangic, ankara));
   const yerlesim = React.useMemo(() => cakismayiYerlestir(gunOlaylari), [gunOlaylari]);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
+  const gridRef = React.useRef<HTMLDivElement | null>(null);
   const [simdi, setSimdi] = React.useState<Date>(() => new Date());
 
   const surukle = useTakvimSurukle({
@@ -77,6 +78,27 @@ export function GunGorunumu({
   const bugun = isSameDay(ankara, simdi);
   const simdiTop = ((simdi.getHours() * 60 + simdi.getMinutes()) / 60) * SAAT_PX;
 
+  // Sürüklenen etkinliğin canlı önizlemesi (Google Calendar tarzı)
+  const aktifDurum = surukle.durum;
+  let onizleme: { o: EtkinlikOlay; top: number; height: number } | null = null;
+  if (aktifDurum && aktifDurum.aktif && aktifDurum.modu === "tasi") {
+    const o = gunOlaylari.find((x) => x.id === aktifDurum.id);
+    const grid = gridRef.current;
+    if (o && grid) {
+      const rect = grid.getBoundingClientRect();
+      const baseH = Math.max(
+        ((dakika(o.olayBitis) - dakika(o.olayBaslangic)) / 60) * SAAT_PX,
+        24,
+      );
+      const yIcinde = aktifDurum.clientY - rect.top;
+      // pointer kartın ortasında dursun: yarıyı çıkar, snap'le
+      const ham = yIcinde - baseH / 2;
+      const snap = (SAAT_PX * SNAP_DK) / 60;
+      const top = Math.max(0, Math.round(ham / snap) * snap);
+      onizleme = { o, top, height: baseH };
+    }
+  }
+
   return (
     <div className="flex flex-col rounded-xl border border-border bg-card">
       <div className="border-b border-border px-4 py-3">
@@ -89,10 +111,8 @@ export function GunGorunumu({
       </div>
       <div
         ref={scrollRef}
-        className="relative grid max-h-[78vh] grid-cols-[3.5rem_minmax(0,1fr)] overflow-y-auto overscroll-contain"
-        onPointerMove={surukle.tasi}
-        onPointerUp={surukle.bitir}
-        onPointerCancel={surukle.iptal}
+        className="relative grid min-h-0 flex-1 grid-cols-[3.5rem_minmax(0,1fr)] overflow-y-auto overscroll-contain"
+        style={{ maxHeight: "calc(100dvh - 12rem)" }}
       >
         <div className="flex flex-col">
           {SAATLER.map((s) => (
@@ -105,7 +125,11 @@ export function GunGorunumu({
             </div>
           ))}
         </div>
-        <div className="relative border-l border-border" style={{ height: SAATLER.length * SAAT_PX }}>
+        <div
+          ref={gridRef}
+          className="relative border-l border-border"
+          style={{ height: SAATLER.length * SAAT_PX }}
+        >
           {SAATLER.map((s) => (
             <button
               key={s}
@@ -135,14 +159,12 @@ export function GunGorunumu({
             const tasinabilir = !!onOlayTasi && tasinabilirMi(o);
             const aktif = surukle.durum?.id === o.id;
             const dragGoruluyor = aktif && surukle.durum!.aktif;
-            const dy = dragGoruluyor ? surukle.durum!.dyPx : 0;
             const bMinTop = ((basDk - SAATLER[0] * 60) / 60) * SAAT_PX;
             const baseH = Math.max(((bitDk - basDk) / 60) * SAAT_PX, 24);
-            const top =
-              dragGoruluyor && surukle.durum!.modu === "tasi" ? bMinTop + dy : bMinTop;
+            const top = bMinTop;
             const yukseklik =
               dragGoruluyor && surukle.durum!.modu === "boyutla"
-                ? Math.max(baseH + dy, 24)
+                ? Math.max(baseH + surukle.durum!.dyPx, 24)
                 : baseH;
             const sutunGenislikYuzde = 100 / sutunSayisi;
             return (
@@ -162,7 +184,8 @@ export function GunGorunumu({
                 className={cn(
                   "absolute overflow-hidden rounded-lg border-l-4 px-2.5 py-1.5 text-left text-xs leading-tight transition-colors hover:opacity-90",
                   tasinabilir && "cursor-grab touch-none active:cursor-grabbing",
-                  dragGoruluyor && "z-30 shadow-lg ring-2 ring-primary/40",
+                  dragGoruluyor && surukle.durum!.modu === "tasi" && "opacity-30",
+                  dragGoruluyor && surukle.durum!.modu === "boyutla" && "z-30 shadow-lg ring-2 ring-primary/40",
                 )}
                 style={{
                   top,
@@ -191,6 +214,27 @@ export function GunGorunumu({
               </button>
             );
           })}
+          {onizleme && (
+            <div
+              className="pointer-events-none absolute z-40 overflow-hidden rounded-lg border-l-4 px-2.5 py-1.5 text-xs leading-tight shadow-xl ring-2 ring-primary/60"
+              style={{
+                top: onizleme.top,
+                height: onizleme.height,
+                left: "0.5rem",
+                right: "0.75rem",
+                backgroundColor: `color-mix(in oklab, var(--${onizleme.o.alan}) 35%, transparent)`,
+                borderLeftColor: `var(--${onizleme.o.alan})`,
+              }}
+            >
+              <div className="font-semibold text-foreground">{onizleme.o.baslik}</div>
+              <div className="text-[11px] text-muted-foreground">
+                {format(
+                  new Date(onizleme.o.olayBaslangic.getTime() + (onizleme.top - ((dakika(onizleme.o.olayBaslangic) - SAATLER[0] * 60) / 60) * SAAT_PX) / SAAT_PX * 60 * 60_000),
+                  "HH:mm",
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
