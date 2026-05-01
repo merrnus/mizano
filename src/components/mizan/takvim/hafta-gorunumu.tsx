@@ -95,7 +95,7 @@ export function HaftaGorunumu({
   const simdiTop = ((simdi.getHours() * 60 + simdi.getMinutes()) / 60) * SAAT_PX;
 
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-card">
+    <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-border bg-card">
       {/* Başlık satırı */}
       <div className="grid grid-cols-[3rem_repeat(7,minmax(0,1fr))] border-b border-border">
         <div />
