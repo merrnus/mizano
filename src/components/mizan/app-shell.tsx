@@ -44,10 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background xl:pl-12">
           <Topbar />
           <main
-            className="min-w-0 flex-1 overflow-x-hidden xl:pb-0"
-            style={{
-              paddingBottom: "calc(4rem + env(safe-area-inset-bottom))",
-            }}
+            className="min-w-0 flex-1 overflow-x-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] xl:pb-0"
           >
             {children}
           </main>

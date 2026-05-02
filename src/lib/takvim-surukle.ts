@@ -171,6 +171,11 @@ export function useTakvimSurukle({
         s.aktif = true;
         document.body.style.userSelect = "none";
         document.body.style.cursor = s.modu === "boyutla" ? "ns-resize" : "grabbing";
+        // Sayfanın kendi kendine kaymasını engelle (mobil + masaüstü)
+        document.documentElement.style.overflow = "hidden";
+        document.documentElement.style.touchAction = "none";
+        document.body.style.overflow = "hidden";
+        document.body.style.touchAction = "none";
       }
       e.preventDefault();
       guncelle(e.clientX, e.clientY);
@@ -189,6 +194,10 @@ export function useTakvimSurukle({
       setDurum(null);
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.touchAction = "";
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
       if (surukleGerceklesti) {
         supressClickUntilRef.current = Date.now() + 400;
       }
@@ -211,6 +220,10 @@ export function useTakvimSurukle({
       setDurum(null);
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.touchAction = "";
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
     };
     window.addEventListener("pointermove", onMove, { passive: false });
     window.addEventListener("pointerup", onUp);
@@ -279,6 +292,10 @@ export function useTakvimSurukle({
       if (s?.rafId != null) cancelAnimationFrame(s.rafId);
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.touchAction = "";
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
     };
   }, []);
 
