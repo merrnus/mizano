@@ -222,8 +222,8 @@ function TakvimSayfasi() {
   };
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-7rem)] w-full max-w-7xl flex-col px-4 py-3 sm:px-6 xl:h-[calc(100dvh-3rem)]">
-      <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex h-[calc(100dvh-7rem)] w-full flex-col px-3 py-3 sm:px-4 xl:h-[calc(100dvh-3rem)] xl:px-6">
+      <header className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Planlama
@@ -296,7 +296,7 @@ function TakvimSayfasi() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 xl:flex-row xl:gap-4">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {gorunum === "hafta" && (
             <HaftaGorunumu
