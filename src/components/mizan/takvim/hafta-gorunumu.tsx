@@ -257,7 +257,7 @@ export function HaftaGorunumu({
           if (!d || !d.aktif || d.modu !== "tasi") return null;
           const o = olaylar.find((x) => x.id === d.id);
           if (!o) return null;
-          const hedef = sutunRefs.current.get(d.hedefSutunKey ?? "");
+          const hedef = sutunRefs.current.get(d.hedefSutunKey ?? d.baslangicSutunKey ?? "");
           const sc = scrollRef.current;
           if (!hedef || !sc) return null;
           const colRect = hedef.getBoundingClientRect();
@@ -266,13 +266,16 @@ export function HaftaGorunumu({
             ((dakika(o.olayBitis) - dakika(o.olayBaslangic)) / 60) * SAAT_PX,
             18,
           );
-          // pointer kartın üst kenarında olsun (Google Calendar gibi grab noktası neredeyse oraya gider)
-          const yIcinde = d.clientY - colRect.top;
-          const snap = (SAAT_PX * SNAP_DK) / 60;
-          const top = Math.max(0, Math.min(SAATLER.length * SAAT_PX - baseH, Math.round(yIcinde / snap) * snap));
+          // Etkinliğin orijinal başlangıç saati + dy delta = yeni saat
+          const basDk = dakika(o.olayBaslangic);
+          const orjTop = ((basDk - SAATLER[0] * 60) / 60) * SAAT_PX;
+          const top = Math.max(
+            0,
+            Math.min(SAATLER.length * SAAT_PX - baseH, orjTop + d.dyPx),
+          );
           const left = colRect.left - scRect.left + sc.scrollLeft + 2;
           const absTop = colRect.top - scRect.top + sc.scrollTop + top;
-          const dakikaIcerisi = (top / SAAT_PX) * 60;
+          const dakikaIcerisi = (top / SAAT_PX) * 60 + SAATLER[0] * 60;
           const yeniBas = new Date(0);
           yeniBas.setHours(Math.floor(dakikaIcerisi / 60), Math.round(dakikaIcerisi % 60), 0, 0);
           return (
