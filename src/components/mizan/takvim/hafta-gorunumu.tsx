@@ -266,11 +266,10 @@ export function HaftaGorunumu({
             ((dakika(o.olayBitis) - dakika(o.olayBaslangic)) / 60) * SAAT_PX,
             18,
           );
-          // pointer'ı kart ortasına al, snap'le
-          const yIcinde = d.clientY - colRect.top - baseH / 2;
+          // pointer kartın üst kenarında olsun (Google Calendar gibi grab noktası neredeyse oraya gider)
+          const yIcinde = d.clientY - colRect.top;
           const snap = (SAAT_PX * SNAP_DK) / 60;
           const top = Math.max(0, Math.min(SAATLER.length * SAAT_PX - baseH, Math.round(yIcinde / snap) * snap));
-          // scroll container'a göre offset
           const left = colRect.left - scRect.left + sc.scrollLeft + 2;
           const absTop = colRect.top - scRect.top + sc.scrollTop + top;
           const dakikaIcerisi = (top / SAAT_PX) * 60;
