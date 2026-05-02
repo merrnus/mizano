@@ -292,6 +292,10 @@ export function useTakvimSurukle({
       if (s?.rafId != null) cancelAnimationFrame(s.rafId);
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.touchAction = "";
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
     };
   }, []);
 
