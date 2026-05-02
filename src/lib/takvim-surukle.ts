@@ -245,6 +245,10 @@ export function useTakvimSurukle({
       if (e.button !== 0) return;
       e.stopPropagation();
       const sc = scrollRef.current;
+      // Pointerdown anında touch scroll'u kilitle — kullanıcı kart üzerinde
+      // parmağını hareket ettirmeye başladığı an sayfa kaymasın
+      document.documentElement.style.touchAction = "none";
+      document.body.style.touchAction = "none";
       stateRef.current = {
         id,
         modu,

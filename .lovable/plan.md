@@ -1,198 +1,112 @@
-# Takvim için düzeltme planı
+## Hedef
+Takvimi mevcut dar, panel-sıkışık ve kısmi yapıdan çıkarıp; tam ekran hissi veren, merkezi state kullanan, Google Calendar benzeri tam özellikli bir planlama modülüne dönüştürmek.
 
-Takvimi gerçekten Google Calendar hissine yaklaştırmak için bunu küçük yamalarla değil, yerleşim ve sürükle motorunu birlikte toparlayarak düzelteceğim.
+## Ne değişecek
 
-## Ne düzelecek
+### 1. Takvim kabuğunu yeniden kuracağım
+- `/takvim` ekranını mevcut sıkışık layout mantığından çıkaracağım.
+- Takvim alanı masaüstünde gerçek anlamda ana yüzey olacak; yan panel ikincil hale gelecek.
+- İç scroll sadece gerekli bölgelerde olacak; ilk açılışta kullanıcı gün/hafta görünümünde ana içeriği daha fazla görecek.
+- Mobil ve masaüstü için ayrı yerleşim davranışı tanımlayacağım.
 
-1. Takvim artık dar bir kutuya sıkışmayacak; mevcut alanı tam kullanacak.
-2. Günlük/haftalık görünüm 24 saat eksenini daha doğru ve erişilebilir gösterecek.
-3. Akşam saatleri görünür olacak; alt saatler panel tarafından kesilmeyecek.
-4. Sürükle-bırak sırasında sayfanın kendi kendine yukarı kayması engellenecek.
-5. Etkinlik sürüklenirken, bırakmadan önce hedef sütun ve hedef saatte canlı olarak “havada” görünecek.
-6. Yapı daha merkezi olacak: tarih, görünüm ve grid hesapları aynı takvim mantığı etrafında toparlanacak.
+### 2. Merkezi takvim state’i kuracağım
+- `currentDate`, `view`, seçili etkinlik, drag durumu, filtreler, arama, görünür takvimler ve mini takvim seçimi tek merkezde tutulacak.
+- Bu yapı takvimin her görünümde aynı referans tarihi kullanmasını sağlayacak.
+- State yerel kalıcı saklamaya bağlanacak; görünüm ve kullanıcı takvim tercihleri kaybolmayacak.
+
+### 3. Görünümleri tam özellikli hale getireceğim
+- Ay görünümü: etkinlikleri daha doğru gösteren, çok günlük olayları destekleyen yeni grid.
+- Hafta görünümü: 00:00–23:00 tam eksen, all-day alanı, çalışma saatleri vurgusu, bugünkü kırmızı çizgi, çakışan etkinlik yerleşimi.
+- Gün görünümü: hafta görünümünün tek güne odaklı ayrıntılı sürümü.
+- Yıl görünümü: 12 aylık grid, hızlı gezinme ve tarih seçimi.
+- Görünümler arası geçişler daha akıcı olacak.
+
+### 4. Sürükle-bırak ve yeniden boyutlandırmayı baştan ele alacağım
+- Drag işlemi sırasında etkinlik gerçekten imleci takip edecek.
+- Ghost preview hedef sütun ve saate canlı taşınacak.
+- Sayfanın kendiliğinden zıplaması yerine yalnızca takvim grid’i kontrollü davranacak.
+- Etkinlik taşıma sonrası yanlışlıkla detay paneli açılmayacak.
+- Gün/hafta görünümünde resize davranışı Google Calendar mantığına yaklaştırılacak.
+- Boş zaman aralığını sürükleyerek yeni etkinlik oluşturma eklenecek.
+
+### 5. Kenar çubuğunu Google Calendar mantığına yaklaştıracağım
+- Mini takvim date picker eklenecek.
+- Takvim listesi ve görünürlük checkbox’ları eklenecek.
+- “Yeni takvim oluştur” akışı eklenecek.
+- Yaklaşan etkinlikler listesi eklenecek.
+- Arama alanı ve hızlı sonuç listesi eklenecek.
+
+### 6. Etkinlik modelini genişleteceğim
+- Başlık, açıklama, başlangıç, bitiş, tüm gün, konum, renk etiketi, hatırlatıcı, tekrar, takvim ilişkisi desteklenecek.
+- Tekrar seçenekleri: yok, günlük, haftalık, iki haftada bir, aylık, yıllık, özel.
+- Çoğaltma, silme onayı ve sağ tık menüsü eklenecek.
+- Renk sistemi 8 sabit takvim/etiket rengiyle netleştirilecek.
+
+### 7. Veri katmanını promptuna uyacak şekilde düzenleyeceğim
+- Takvimin kullanıcı etkinlikleri ve takvimleri merkezi client store + localStorage ile kalıcı hale getirilecek.
+- Auto-save her değişiklikte çalışacak.
+- `.ics` import/export desteği eklenecek.
+- Mevcut uygulamadan gelen bağlı olaylar varsa bunları ayrı overlay takvim mantığıyla uyumlu hale getireceğim; kullanıcı takvimiyle karışmaları engellenecek.
+
+### 8. Erişilebilirlik ve kullanım detayları eklenecek
+- Klavye kısayolları: T, M, W, D, ok tuşları.
+- Aria label’lar ve klavye gezinmesi iyileştirilecek.
+- Hover tooltip, loading/empty state ve hatalı durum ekranları eklenecek.
+- Mobilde swipe navigasyon ve alt gezinme ile uyum korunacak.
 
 ## Uygulama adımları
 
-### 1) Takvim sayfasının yerleşimini tam ekran kullanacak şekilde düzenle
+### Aşama 1 — Temel mimari ve tam ekran yerleşim
+- `src/routes/takvim.tsx` sadeleştirilecek ve yeni takvim shell’ine dönüştürülecek.
+- Daraltan sabit yükseklik/genişlik kararları kaldırılacak.
+- Takvim yüzeyi + sidebar + header görevleri ayrıştırılacak.
 
-`src/routes/takvim.tsx`
+### Aşama 2 — Merkezi store ve veri modeli
+- Yeni takvim store’u oluşturulacak.
+- Mevcut görünüm tarih mantığı bu store’a taşınacak.
+- Genişletilmiş event/calendar tipleri tanımlanacak.
+- localStorage persist ve hydrasyon eklenecek.
 
-- Mevcut `max-w-7xl` sınırını kaldıracağım; bu sınır takvimi gereksiz şekilde daraltıyor.
-- Ana düzeni “takvim alanı + görev paneli” olarak yeniden kuracağım.
-- Masaüstünde takvim ana alanı ekran genişliğinin çoğunu alacak, görev paneli sabit/genişliği kontrollü bir yan panel olacak.
-- Dar ekranlarda görev panelini alta itmek yerine opsiyonel daraltılmış/drawer mantığına yaklaştıracağım; böylece takvim yüksekliğini yemeyecek.
-- Yükseklik hesabını topbar ve alt bar ile uyumlu hale getirip iç scroll’u sadece takvim gövdesine vereceğim.
+### Aşama 3 — Görünümler
+- Ay, hafta, gün görünümü yeniden yapılandırılacak.
+- Yeni yıl görünümü eklenecek.
+- Çakışma yerleşimi ve çok günlük olay mantığı iyileştirilecek.
 
-### 2) Gün ve hafta görünümünü ortak bir 24 saat grid mantığına oturt
+### Aşama 4 — Etkileşimler
+- Drag/drop ve resize motoru yeniden düzenlenecek.
+- Slot seçerek etkinlik ekleme ve canlı preview eklenecek.
+- Tıklama/sürükleme ayrımı kesinleştirilecek.
 
-`src/components/mizan/takvim/gun-gorunumu.tsx`
-`src/components/mizan/takvim/hafta-gorunumu.tsx`
+### Aşama 5 — Sidebar ve arama
+- Mini takvim, takvim listesi, yaklaşan etkinlikler, arama sonuçları eklenecek.
+- Bugün butonu, prev/next, görünüm geçişleri ve başlık senkronize edilecek.
 
-- 24 saatlik zaman ekseni tek mantıkla çalışacak.
-- Etkinlik konumu ve yüksekliği tamamen dakika tabanlı hesaplanacak.
-- Grid yüksekliği, saat satırları ve overlay hesapları ortak kurala bağlanacak.
-- “Saat 20’den sonrası görünmüyor” hissini yaratan sıkışık container/scroll ilişkisini kaldıracağım.
-- Hafta görünümünde sütun başlıkları sabit, zaman alanı kaydırılabilir olacak; böylece kullanım daha tanıdık hale gelecek.
+### Aşama 6 — Dialoglar, hatırlatıcı, import/export
+- Etkinlik dialog’u prompttaki alanlara genişletilecek.
+- Hatırlatıcı ayarları ve tarayıcı bildirim akışı eklenecek.
+- `.ics` import/export tamamlanacak.
 
-### 3) Sürükleme motorunu Google Calendar mantığına yaklaştır
+### Aşama 7 — Son uyum ve kalite
+- Mobil ekranlarda layout taşmaları giderilecek.
+- Klavye kısayolları ve erişilebilirlik tamamlanacak.
+- Görünüm geçiş animasyonları, tooltip ve boş durumlar polish edilecek.
 
-`src/lib/takvim-surukle.ts`
-
-- Sürükleme sırasında dış sayfa scroll’unu kilitleyeceğim.
-- Sadece takvim içindeki scroll yönetilecek; pointer ile kartın ilişkisi scroll sırasında bozulmayacak.
-- Başlangıç referansı, container rect’i ve scroll offset’i tek bir koordinat sistemine bağlanacak.
-- Auto-scroll mantığını üst/alt kenar yakınlığında daha kontrollü hale getireceğim; şu anki zıplama hissini bu düzeltecek.
-- Drag state içine canlı hedef zaman ve hedef sütun bilgisini açıkça ekleyeceğim; bırakınca yeniden hesap yapmak yerine sürükleme boyunca aynı hedef kullanılacak.
-
-### 4) Canlı sürükleme önizlemesini gerçek hedefe taşı
-
-`src/components/mizan/takvim/gun-gorunumu.tsx`
-`src/components/mizan/takvim/hafta-gorunumu.tsx`
-
-- Şu an etkinlik çoğunlukla kendi sütununda kalıyor; bunu değiştireceğim.
-- Sürükleme sırasında orijinal kart soluk kalacak.
-- Ayrı bir preview/ghost kart, pointer’ın bulunduğu sütun ve saate anlık taşınacak.
-- Bu preview bırakınca gideceği yeri önceden gösterecek.
-- Haftalık görünümde sütun değişimi pointer’ın yatay konumuna göre canlı güncellenecek.
-
-### 5) Görünüm modları ve tarih yönetimini biraz daha merkezi hale getir
-
-`src/routes/takvim.tsx`
-
-- `currentDate` ve `view` zaten burada tutuluyor; bunu daha net “takvim kontrol merkezi” haline getireceğim.
-- Gün/hafta/ay hesapları aynı referans tarihten üretilecek.
-- Header, grid ve olay filtreleme aynı tarih aralığı mantığını paylaşacak.
-- Böylece ileride Google Calendar’daki gibi daha gelişmiş navigation davranışları eklemek kolaylaşacak.
-
-### 6) Çakışan etkinlik yerleşimini bozmadan iyileştir
-
-`src/lib/takvim-cakisma.ts`
-
-- Mevcut çakışma yerleşimi temel olarak doğru; onu koruyacağım.
-- Ancak drag preview sırasında hedef sütunda yeni konumu hesaplarken görsel çakışma davranışını daha tutarlı hale getireceğim.
-- Böylece hem normal çizim hem sürükleme esnasındaki görünüm aynı mantığı izleyecek.
-
-## Teknik notlar
-
-- Genişlik sorununun ana sebeplerinden biri: `src/routes/takvim.tsx` içindeki `max-w-7xl` sınırı.
-- Kullanılabilir yükseklik kaybının ana sebepleri:
-  - route seviyesinde sabit `100dvh - ...` hesapları,
-  - app shell içindeki alt bar padding’i,
-  - görev panelinin aynı dikey alanı paylaşması.
-- Hafta görünümünde 24 saat zaten var, fakat görünür alan ve scroll davranışı yüzünden alt saatler pratikte erişilemez hissediliyor.
-- Canlı preview şu an ayrı overlay ile var, ama hedef sütun/saat ile tam senkron değil; bunu state tarafında netleştireceğim.
-
-## Değişecek dosyalar
-
+## Etkilenecek ana dosyalar
 - `src/routes/takvim.tsx`
 - `src/components/mizan/takvim/hafta-gorunumu.tsx`
 - `src/components/mizan/takvim/gun-gorunumu.tsx`
-- `src/components/mizan/takvim/gorev-paneli.tsx`
+- `src/components/mizan/takvim/ay-gorunumu.tsx`
+- `src/components/mizan/takvim/etkinlik-dialog.tsx`
+- `src/components/mizan/takvim/gorev-paneli.tsx` veya bunun yerine yeni sidebar bileşenleri
 - `src/lib/takvim-surukle.ts`
-- Gerekirse küçük destek düzenlemesi için: `src/components/mizan/app-shell.tsx`
+- `src/lib/takvim-hooks.ts`
+- `src/lib/takvim-tipleri.ts`
+- Yeni store / yardımcı dosyalar
 
-## Beklenen sonuç
+## Teknik notlar
+- Mevcut sorun yalnızca birkaç CSS düzeltmesiyle çözülecek seviyede değil; takvimin layout ve state mimarisinin yeniden kurgulanması gerekiyor.
+- Şu anki yapı yalnızca ay/hafta/gün ve kısmi CRUD sağlıyor; senin gönderdiğin prompt ise tam ürün seviyesi bir calendar modülü istiyor.
+- Bu yüzden küçük yama yerine modüler ama kapsamlı bir yeniden inşa yapacağım.
+- Uygulama mevcut tasarım dilini koruyacak ama davranış olarak Google Calendar’a çok daha yakın olacak.
 
-Bu plan sonunda takvim:
-
-- daha geniş,
-- daha uzun,
-- akşam saatleri erişilebilir,
-- sürüklerken sabit,
-- canlı hedef preview’li,
-- ve Google Calendar’a çok daha yakın davranan bir yapıya geçecek.  
-  
-Create a full-featured Google Calendar clone with the following complete specifications:
-  ## CORE FEATURES
-  1. **Calendar Views:**
-     - Month view (default) showing all days in a grid with events visible
-     - Week view with hourly time slots from 00:00 to 23:00
-     - Day view with detailed hourly breakdown
-     - Year view showing all 12 months in a grid
-     - Smooth transitions between views with animations
-  2. **Navigation:**
-     - Today button to jump back to current date
-     - Previous/Next buttons for navigating months/weeks/days
-     - Date picker mini calendar in sidebar
-     - Keyboard shortcuts: 'T' for today, 'M' for month, 'W' for week, 'D' for day, arrow keys for navigation
-  3. **Event Management:**
-     - Click on any day/time to create new event with modal form
-     - Event fields: title (required), description, start date/time, end date/time, all-day toggle, location, color label (8 colors), reminders (None, 5min, 15min, 30min, 1hour, 1day before)
-     - Edit existing events by clicking on them
-     - Delete events with confirmation dialog
-     - Drag and drop events to reschedule
-     - Resize events vertically to change duration (week/day view)
-     - Duplicate events
-     - Recurring events: does not repeat, daily, weekly, bi-weekly, monthly, yearly, custom
-  4. **Multiple Calendars:**
-     - Create multiple calendars (Personal, Work, Family, etc.)
-     - Each calendar has its own color
-     - Toggle calendar visibility with checkboxes in sidebar
-     - Default calendar selection when creating events
-  5. **Event Display:**
-     - Events shown as colored blocks with title and time
-     - Multi-day events span across days in month/week view
-     - All-day events shown at top in week/day view
-     - Time indicator (red line) showing current time in week/day views
-     - Overlapping events displayed side by side
-     - Tooltip on hover showing full event details
-  6. **Sidebar:**
-     - Mini calendar for quick date selection
-     - List of user's calendars with color indicators and toggles
-     - "Create new calendar" button
-     - Upcoming events list (next 7 days)
-     - Search events input
-  7. **Search & Filter:**
-     - Search bar to find events by title/description
-     - Filter events by calendar
-     - Search results displayed in a dropdown/list
-     - Click result to navigate to that event's date
-  8. **UI/UX Requirements:**
-     - Clean, modern Google-like design with proper spacing and typography
-     - Responsive design (works on mobile and desktop)
-     - Mobile: swipe to change months, bottom navigation
-     - Dark header bar like Google Calendar
-     - Smooth animations and transitions
-     - Loading states and empty states
-     - Tooltips and proper hover effects
-     - Show current date highlighted
-     - Show today's date distinctly with blue circle
-     - Current month/year displayed prominently in header
-  9. **Data Persistence:**
-     - Store all events and calendars in localStorage
-     - Load saved state on app initialization
-     - Export calendar as .ics file
-     - Import .ics file functionality
-     - Auto-save on any change
-  10. **Technical Requirements:**
-      - Use React with TypeScript
-      - Use date-fns for date manipulation
-      - Use shadcn/ui components where applicable
-      - Use Tailwind CSS for styling
-      - Implement proper state management (React Context or Zustand)
-      - Handle timezone awareness
-      - Proper error handling
-      - Type safety throughout
-  11. **Event Reminders:**
-      - Browser notification API for reminders
-      - Visual notification popup in app for upcoming events
-      - Badge showing number of events today
-  12. **Additional Features:**
-      - Right-click context menu on events (edit, delete, duplicate, change color)
-      - Drag to select multiple time slots in week/day view
-      - Event color customization (8 preset colors)
-      - Week numbers displayed in month view
-      - "Working hours" highlight (9-17) in week/day view
-      - Weekend days visually distinguished (lighter color)
-      - Quick add event: type "Lunch tomorrow 12pm-1pm" with natural language
-  ## IMPORTANT IMPLEMENTATION NOTES:
-  - Make sure month view grid correctly shows events spanning multiple days
-  - Ensure the current date is always clearly visible and highlighted
-  - All buttons and interactions must be fully functional
-  - The calendar must correctly calculate and display dates for any month/year
-  - Events must be properly sorted and displayed without overlapping text
-  - Mobile responsiveness is critical - test all views on mobile screens
-  - Use proper TypeScript types for all data structures
-  - Include proper error boundaries and fallback UI
-  - Add aria labels and keyboard navigation for accessibility
-  Start by creating the complete project structure and implement all features. Do not leave any placeholder or TODO comments - implement everything fully.
+Onay verirsen bunu parça parça yamalamadan, doğrudan promptundaki hedefe göre takvimi yeniden kuracağım.

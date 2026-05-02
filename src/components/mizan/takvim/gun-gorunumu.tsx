@@ -83,18 +83,17 @@ export function GunGorunumu({
   let onizleme: { o: EtkinlikOlay; top: number; height: number } | null = null;
   if (aktifDurum && aktifDurum.aktif && aktifDurum.modu === "tasi") {
     const o = gunOlaylari.find((x) => x.id === aktifDurum.id);
-    const grid = gridRef.current;
-    if (o && grid) {
-      const rect = grid.getBoundingClientRect();
+    if (o) {
       const baseH = Math.max(
         ((dakika(o.olayBitis) - dakika(o.olayBaslangic)) / 60) * SAAT_PX,
         24,
       );
-      const yIcinde = aktifDurum.clientY - rect.top;
-      // pointer kartın ortasında dursun: yarıyı çıkar, snap'le
-      const ham = yIcinde - baseH / 2;
-      const snap = (SAAT_PX * SNAP_DK) / 60;
-      const top = Math.max(0, Math.round(ham / snap) * snap);
+      const basDk = dakika(o.olayBaslangic);
+      const orjTop = ((basDk - SAATLER[0] * 60) / 60) * SAAT_PX;
+      const top = Math.max(
+        0,
+        Math.min(SAATLER.length * SAAT_PX - baseH, orjTop + aktifDurum.dyPx),
+      );
       onizleme = { o, top, height: baseH };
     }
   }

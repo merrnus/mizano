@@ -43,14 +43,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <IconRail />
         <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background xl:pl-12">
           <Topbar />
-          <main
-            className="min-w-0 flex-1 overflow-x-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] xl:pb-0"
-          >
-            {children}
-          </main>
+          <Main>{children}</Main>
           <AltTabBar />
         </SidebarInset>
       </SidebarProvider>
     </ThemeProvider>
+  );
+}
+
+function Main({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  const isTakvim = pathname.startsWith("/takvim");
+  return (
+    <main
+      className={
+        isTakvim
+          ? "min-w-0 min-h-0 flex-1 overflow-hidden"
+          : "min-w-0 flex-1 overflow-x-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] xl:pb-0"
+      }
+    >
+      {children}
+    </main>
   );
 }

@@ -11,7 +11,7 @@ import {
   subMonths,
 } from "date-fns";
 import { tr } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, PanelRightClose, PanelRightOpen, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -70,6 +70,14 @@ function TakvimSayfasi() {
   const [gorevAcik, setGorevAcik] = React.useState(false);
   const [gorevSlot, setGorevSlot] = React.useState<Date | undefined>(undefined);
   const [gorevDuzenle, setGorevDuzenle] = React.useState<TakvimGorev | null>(null);
+  const [panelAcik, setPanelAcik] = React.useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("takvim-panel") !== "kapali";
+  });
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("takvim-panel", panelAcik ? "acik" : "kapali");
+  }, [panelAcik]);
   const navigate = useNavigate();
   const etkGuncelle = useEtkinlikGuncelle();
 
@@ -222,13 +230,13 @@ function TakvimSayfasi() {
   };
 
   return (
-    <div className="flex h-[calc(100dvh-7rem)] w-full flex-col px-3 py-3 sm:px-4 xl:h-[calc(100dvh-3rem)] xl:px-6">
-      <header className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex h-[calc(100dvh-3rem-4rem-env(safe-area-inset-bottom))] w-full flex-col px-2 py-2 sm:px-3 xl:h-[calc(100dvh-3rem)] xl:px-3 xl:py-2">
+      <header className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Planlama
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
             {baslikMetni}
           </h1>
         </div>
@@ -265,6 +273,16 @@ function TakvimSayfasi() {
               </button>
             ))}
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden h-8 w-8 xl:inline-flex"
+            onClick={() => setPanelAcik((v) => !v)}
+            aria-label={panelAcik ? "Görev panelini gizle" : "Görev panelini göster"}
+            title={panelAcik ? "Paneli gizle" : "Paneli göster"}
+          >
+            {panelAcik ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" className="gap-1.5">
@@ -296,7 +314,7 @@ function TakvimSayfasi() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 xl:flex-row xl:gap-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 xl:flex-row xl:gap-3">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {gorunum === "hafta" && (
             <HaftaGorunumu
@@ -327,19 +345,21 @@ function TakvimSayfasi() {
             />
           )}
         </div>
-        <GorevPaneli
-          ankara={ankara}
-          gorevler={gorevSorgu.data ?? []}
-          onYeni={() => {
-            setGorevDuzenle(null);
-            setGorevSlot(ankara);
-            setGorevAcik(true);
-          }}
-          onDuzenle={(g) => {
-            setGorevDuzenle(g);
-            setGorevAcik(true);
-          }}
-        />
+        {panelAcik && (
+          <GorevPaneli
+            ankara={ankara}
+            gorevler={gorevSorgu.data ?? []}
+            onYeni={() => {
+              setGorevDuzenle(null);
+              setGorevSlot(ankara);
+              setGorevAcik(true);
+            }}
+            onDuzenle={(g) => {
+              setGorevDuzenle(g);
+              setGorevAcik(true);
+            }}
+          />
+        )}
       </div>
 
       <EtkinlikDialog
