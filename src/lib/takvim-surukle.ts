@@ -54,7 +54,7 @@ export function useTakvimSurukle({
   saatPx,
   snapDk = 15,
   surukleEsigi = 5,
-  edge = 48,
+  edge = 96,
   onTasimaBitti,
   scrollRef,
   sutunlar,
@@ -140,10 +140,14 @@ export function useTakvimSurukle({
       const y = s.lastClientY;
       const eg = optsRef.current.edge;
       let dz = 0;
+      // Pointer kenar bölgesinde veya container dışında ise otomatik kaydır.
+      // Dışarı taştıkça hız artar; kenarda sabit dursa bile sürekli kayar.
       if (y < rect.top + eg) {
-        dz = -Math.max(2, (rect.top + eg - y) / 6);
+        const mesafe = rect.top + eg - y; // 0..(eg+∞)
+        dz = -Math.max(4, Math.min(40, mesafe / 3));
       } else if (y > rect.bottom - eg) {
-        dz = Math.max(2, (y - (rect.bottom - eg)) / 6);
+        const mesafe = y - (rect.bottom - eg);
+        dz = Math.max(4, Math.min(40, mesafe / 3));
       }
       if (dz !== 0) {
         const before = sc.scrollTop;
