@@ -1,112 +1,59 @@
+# /takvim — Tam Ekran Canvas Düzeni
+
+## Sorun
+Şu an /takvim, AppShell'in içinde render ediliyor: üstte 3rem `Topbar`, altta 4rem `AltTabBar` (mobil), solda IconRail/Sidebar var. Bu yüzden 724×615 viewport'ta takvime kalan alan ~615 − 48 (topbar) − 64 (alt tab) − header (≈64) − padding ≈ **400 px**. Google Calendar'da ise toolbar dışında neredeyse tüm yükseklik gride ayrılır.
+
 ## Hedef
-Takvimi mevcut dar, panel-sıkışık ve kısmi yapıdan çıkarıp; tam ekran hissi veren, merkezi state kullanan, Google Calendar benzeri tam özellikli bir planlama modülüne dönüştürmek.
+`/takvim` rotasında global topbar ve alt tab barını **devre dışı bırakıp**, takvimin kendi kompakt başlığını ekranın tepesine sabitlemek; grid'in viewport yüksekliğinin **%90+'ını** kaplamasını sağlamak.
 
-## Ne değişecek
+## Değişiklikler
 
-### 1. Takvim kabuğunu yeniden kuracağım
-- `/takvim` ekranını mevcut sıkışık layout mantığından çıkaracağım.
-- Takvim alanı masaüstünde gerçek anlamda ana yüzey olacak; yan panel ikincil hale gelecek.
-- İç scroll sadece gerekli bölgelerde olacak; ilk açılışta kullanıcı gün/hafta görünümünde ana içeriği daha fazla görecek.
-- Mobil ve masaüstü için ayrı yerleşim davranışı tanımlayacağım.
+### 1) `src/components/mizan/app-shell.tsx`
+- `isTakvim` zaten hesaplanıyor; bu bayrağı yukarı taşıyıp **`Topbar` ve `AltTabBar`'ı /takvim'de render etmeyeceğiz**.
+- IconRail mobilde gizli olduğu için sorun yok; desktop'ta dar şerit kalmaya devam eder (kullanıcı isterse onu da kapatırız).
+- `SidebarInset` /takvim'de `xl:pl-12` kalsın (rail için); diğer rotalarda topbar+alt tab eskisi gibi görünür.
 
-### 2. Merkezi takvim state’i kuracağım
-- `currentDate`, `view`, seçili etkinlik, drag durumu, filtreler, arama, görünür takvimler ve mini takvim seçimi tek merkezde tutulacak.
-- Bu yapı takvimin her görünümde aynı referans tarihi kullanmasını sağlayacak.
-- State yerel kalıcı saklamaya bağlanacak; görünüm ve kullanıcı takvim tercihleri kaybolmayacak.
+```tsx
+{!isTakvim && <Topbar />}
+<Main isTakvim={isTakvim}>{children}</Main>
+{!isTakvim && <AltTabBar />}
+```
 
-### 3. Görünümleri tam özellikli hale getireceğim
-- Ay görünümü: etkinlikleri daha doğru gösteren, çok günlük olayları destekleyen yeni grid.
-- Hafta görünümü: 00:00–23:00 tam eksen, all-day alanı, çalışma saatleri vurgusu, bugünkü kırmızı çizgi, çakışan etkinlik yerleşimi.
-- Gün görünümü: hafta görünümünün tek güne odaklı ayrıntılı sürümü.
-- Yıl görünümü: 12 aylık grid, hızlı gezinme ve tarih seçimi.
-- Görünümler arası geçişler daha akıcı olacak.
+`Main`: /takvim için `h-svh overflow-hidden` (header yok, alt bar yok → tüm ekran takvimin).
 
-### 4. Sürükle-bırak ve yeniden boyutlandırmayı baştan ele alacağım
-- Drag işlemi sırasında etkinlik gerçekten imleci takip edecek.
-- Ghost preview hedef sütun ve saate canlı taşınacak.
-- Sayfanın kendiliğinden zıplaması yerine yalnızca takvim grid’i kontrollü davranacak.
-- Etkinlik taşıma sonrası yanlışlıkla detay paneli açılmayacak.
-- Gün/hafta görünümünde resize davranışı Google Calendar mantığına yaklaştırılacak.
-- Boş zaman aralığını sürükleyerek yeni etkinlik oluşturma eklenecek.
+### 2) `src/routes/takvim.tsx`
+- Dış kapsayıcının yüksekliği: `h-[100dvh]` (artık 3rem topbar + 4rem alt bar düşülmesine gerek yok).
+- Header'ı **tek satıra** sıkıştır (mobilde de): başlık küçük, sağda nav + view + Yeni; "Planlama" overline'ı kaldır → dikeyde ~24 px kazanım.
+- Header `h-12 shrink-0`, grid `flex-1 min-h-0`.
+- Mobil için sol-üstte küçük bir "geri" butonu (← Mizan'a) ekle ki kullanıcı global navigasyona dönebilsin (alt tab bar yok artık).
 
-### 5. Kenar çubuğunu Google Calendar mantığına yaklaştıracağım
-- Mini takvim date picker eklenecek.
-- Takvim listesi ve görünürlük checkbox’ları eklenecek.
-- “Yeni takvim oluştur” akışı eklenecek.
-- Yaklaşan etkinlikler listesi eklenecek.
-- Arama alanı ve hızlı sonuç listesi eklenecek.
+### 3) `src/components/mizan/takvim/hafta-gorunumu.tsx` & `gun-gorunumu.tsx`
+- Saat satırı yüksekliğini viewport'a uyacak şekilde **dinamik** yap: `--saat-h: max(36px, calc((100% - 32px) / 14))` gibi — böylece 615 px ekranda 14 saat scrollsuz, 1080 px ekranda 24 saat scrollsuz görünür.
+- Default scroll konumu: 08:00.
 
-### 6. Etkinlik modelini genişleteceğim
-- Başlık, açıklama, başlangıç, bitiş, tüm gün, konum, renk etiketi, hatırlatıcı, tekrar, takvim ilişkisi desteklenecek.
-- Tekrar seçenekleri: yok, günlük, haftalık, iki haftada bir, aylık, yıllık, özel.
-- Çoğaltma, silme onayı ve sağ tık menüsü eklenecek.
-- Renk sistemi 8 sabit takvim/etiket rengiyle netleştirilecek.
+### 4) `src/components/mizan/takvim/gorev-paneli.tsx`
+- `xl` (1280) yerine `lg` (1024) breakpoint'inde yan panel; altında **drawer** (Sheet) olarak aç. 724 px viewport'ta yatayda yer kaplamayacak.
 
-### 7. Veri katmanını promptuna uyacak şekilde düzenleyeceğim
-- Takvimin kullanıcı etkinlikleri ve takvimleri merkezi client store + localStorage ile kalıcı hale getirilecek.
-- Auto-save her değişiklikte çalışacak.
-- `.ics` import/export desteği eklenecek.
-- Mevcut uygulamadan gelen bağlı olaylar varsa bunları ayrı overlay takvim mantığıyla uyumlu hale getireceğim; kullanıcı takvimiyle karışmaları engellenecek.
+## ASCII
 
-### 8. Erişilebilirlik ve kullanım detayları eklenecek
-- Klavye kısayolları: T, M, W, D, ok tuşları.
-- Aria label’lar ve klavye gezinmesi iyileştirilecek.
-- Hover tooltip, loading/empty state ve hatalı durum ekranları eklenecek.
-- Mobilde swipe navigasyon ve alt gezinme ile uyum korunacak.
+```text
+Önce (724×615):                Sonra:
+┌─────────────────────────┐   ┌─────────────────────────┐
+│ Topbar (48)             │   │ Takvim header (48)      │
+├─────────────────────────┤   ├─────────────────────────┤
+│ Takvim header (~64)     │   │                         │
+├─────────────────────────┤   │   GRID (567 px)         │
+│ Grid (~400, scroll)     │   │   tüm saatler          │
+├─────────────────────────┤   │                         │
+│ AltTabBar (64)          │   │                         │
+└─────────────────────────┘   └─────────────────────────┘
+```
 
-## Uygulama adımları
-
-### Aşama 1 — Temel mimari ve tam ekran yerleşim
-- `src/routes/takvim.tsx` sadeleştirilecek ve yeni takvim shell’ine dönüştürülecek.
-- Daraltan sabit yükseklik/genişlik kararları kaldırılacak.
-- Takvim yüzeyi + sidebar + header görevleri ayrıştırılacak.
-
-### Aşama 2 — Merkezi store ve veri modeli
-- Yeni takvim store’u oluşturulacak.
-- Mevcut görünüm tarih mantığı bu store’a taşınacak.
-- Genişletilmiş event/calendar tipleri tanımlanacak.
-- localStorage persist ve hydrasyon eklenecek.
-
-### Aşama 3 — Görünümler
-- Ay, hafta, gün görünümü yeniden yapılandırılacak.
-- Yeni yıl görünümü eklenecek.
-- Çakışma yerleşimi ve çok günlük olay mantığı iyileştirilecek.
-
-### Aşama 4 — Etkileşimler
-- Drag/drop ve resize motoru yeniden düzenlenecek.
-- Slot seçerek etkinlik ekleme ve canlı preview eklenecek.
-- Tıklama/sürükleme ayrımı kesinleştirilecek.
-
-### Aşama 5 — Sidebar ve arama
-- Mini takvim, takvim listesi, yaklaşan etkinlikler, arama sonuçları eklenecek.
-- Bugün butonu, prev/next, görünüm geçişleri ve başlık senkronize edilecek.
-
-### Aşama 6 — Dialoglar, hatırlatıcı, import/export
-- Etkinlik dialog’u prompttaki alanlara genişletilecek.
-- Hatırlatıcı ayarları ve tarayıcı bildirim akışı eklenecek.
-- `.ics` import/export tamamlanacak.
-
-### Aşama 7 — Son uyum ve kalite
-- Mobil ekranlarda layout taşmaları giderilecek.
-- Klavye kısayolları ve erişilebilirlik tamamlanacak.
-- Görünüm geçiş animasyonları, tooltip ve boş durumlar polish edilecek.
-
-## Etkilenecek ana dosyalar
+## Etkilenen dosyalar
+- `src/components/mizan/app-shell.tsx`
 - `src/routes/takvim.tsx`
 - `src/components/mizan/takvim/hafta-gorunumu.tsx`
 - `src/components/mizan/takvim/gun-gorunumu.tsx`
-- `src/components/mizan/takvim/ay-gorunumu.tsx`
-- `src/components/mizan/takvim/etkinlik-dialog.tsx`
-- `src/components/mizan/takvim/gorev-paneli.tsx` veya bunun yerine yeni sidebar bileşenleri
-- `src/lib/takvim-surukle.ts`
-- `src/lib/takvim-hooks.ts`
-- `src/lib/takvim-tipleri.ts`
-- Yeni store / yardımcı dosyalar
+- `src/components/mizan/takvim/gorev-paneli.tsx`
 
-## Teknik notlar
-- Mevcut sorun yalnızca birkaç CSS düzeltmesiyle çözülecek seviyede değil; takvimin layout ve state mimarisinin yeniden kurgulanması gerekiyor.
-- Şu anki yapı yalnızca ay/hafta/gün ve kısmi CRUD sağlıyor; senin gönderdiğin prompt ise tam ürün seviyesi bir calendar modülü istiyor.
-- Bu yüzden küçük yama yerine modüler ama kapsamlı bir yeniden inşa yapacağım.
-- Uygulama mevcut tasarım dilini koruyacak ama davranış olarak Google Calendar’a çok daha yakın olacak.
-
-Onay verirsen bunu parça parça yamalamadan, doğrudan promptundaki hedefe göre takvimi yeniden kuracağım.
+Onayla, uygulayayım.
