@@ -54,7 +54,7 @@ export function useTakvimSurukle({
   saatPx,
   snapDk = 15,
   surukleEsigi = 5,
-  edge = 48,
+  edge = 96,
   onTasimaBitti,
   scrollRef,
   sutunlar,
