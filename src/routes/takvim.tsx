@@ -281,7 +281,7 @@ function TakvimSayfasi() {
           <Button
             variant="ghost"
             size="icon"
-            className="hidden h-8 w-8 xl:inline-flex"
+            className="hidden h-8 w-8 lg:inline-flex"
             onClick={() => setPanelAcik((v) => !v)}
             aria-label={panelAcik ? "Görev panelini gizle" : "Görev panelini göster"}
             title={panelAcik ? "Paneli gizle" : "Paneli göster"}
