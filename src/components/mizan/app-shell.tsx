@@ -42,9 +42,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SolSidebar />
         <IconRail />
         <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background xl:pl-12">
-          <Topbar />
+          {!pathname.startsWith("/takvim") && <Topbar />}
           <Main>{children}</Main>
-          <AltTabBar />
+          {!pathname.startsWith("/takvim") && <AltTabBar />}
         </SidebarInset>
       </SidebarProvider>
     </ThemeProvider>
@@ -58,7 +58,7 @@ function Main({ children }: { children: React.ReactNode }) {
     <main
       className={
         isTakvim
-          ? "min-w-0 min-h-0 flex-1 overflow-hidden"
+          ? "min-w-0 min-h-0 h-svh flex-1 overflow-hidden"
           : "min-w-0 flex-1 overflow-x-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] xl:pb-0"
       }
     >

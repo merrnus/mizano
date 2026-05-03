@@ -7,7 +7,7 @@ import { cakismayiYerlestir } from "@/lib/takvim-cakisma";
 import { useTakvimSurukle } from "@/lib/takvim-surukle";
 
 const SAATLER = Array.from({ length: 24 }, (_, i) => i);
-const SAAT_PX = 44;
+const SAAT_PX_MIN = 44;
 const SNAP_DK = 15;
 
 function dakika(d: Date): number {
@@ -40,6 +40,21 @@ export function GunGorunumu({
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const gridRef = React.useRef<HTMLDivElement | null>(null);
   const [simdi, setSimdi] = React.useState<Date>(() => new Date());
+  const [SAAT_PX, setSaatPx] = React.useState<number>(SAAT_PX_MIN);
+
+  React.useEffect(() => {
+    const calc = () => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const h = el.clientHeight;
+      const px = Math.max(SAAT_PX_MIN, Math.floor(h / 14));
+      setSaatPx(px);
+    };
+    calc();
+    const ro = new ResizeObserver(calc);
+    if (scrollRef.current) ro.observe(scrollRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   const surukle = useTakvimSurukle({
     saatPx: SAAT_PX,

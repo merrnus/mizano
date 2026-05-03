@@ -31,7 +31,7 @@ export function GorevPaneli({ ankara, gorevler, onYeni, onDuzenle }: Props) {
   const tamamSayisi = gorevler.filter((g) => g.tamamlandi).length;
 
   return (
-    <aside className="flex w-full shrink-0 flex-col rounded-xl border border-border bg-card xl:w-72 xl:max-h-full xl:overflow-y-auto">
+    <aside className="hidden shrink-0 flex-col rounded-xl border border-border bg-card lg:flex lg:w-72 lg:max-h-full lg:overflow-y-auto">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
           <h3 className="text-sm font-semibold text-foreground">Görevler</h3>
