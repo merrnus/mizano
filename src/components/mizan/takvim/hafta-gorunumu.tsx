@@ -10,7 +10,7 @@ import { cakismayiYerlestir } from "@/lib/takvim-cakisma";
 import { useTakvimSurukle } from "@/lib/takvim-surukle";
 
 const SAATLER = Array.from({ length: 24 }, (_, i) => i); // 00..23
-const SAAT_PX = 32; // her saat satırı yüksekliği — daha kompakt
+const SAAT_PX_MIN = 32; // her saat satırı min yüksekliği
 const SNAP_DK = 15;
 
 function dakika(d: Date): number {
@@ -44,6 +44,22 @@ export function HaftaGorunumu({
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const [simdi, setSimdi] = React.useState<Date>(() => new Date());
   const sutunRefs = React.useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const [SAAT_PX, setSaatPx] = React.useState<number>(SAAT_PX_MIN);
+
+  React.useEffect(() => {
+    const calc = () => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const h = el.clientHeight;
+      // 14 saat (07-21) baz alınır, alttaki saatler için scroll kalır
+      const px = Math.max(SAAT_PX_MIN, Math.floor(h / 14));
+      setSaatPx(px);
+    };
+    calc();
+    const ro = new ResizeObserver(calc);
+    if (scrollRef.current) ro.observe(scrollRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   const sutunlar = React.useMemo(
     () =>
