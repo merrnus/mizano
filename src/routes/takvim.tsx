@@ -11,7 +11,7 @@ import {
   subMonths,
 } from "date-fns";
 import { tr } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, PanelRightClose, PanelRightOpen, Plus } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, PanelRightClose, PanelRightOpen, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -230,17 +230,22 @@ function TakvimSayfasi() {
   };
 
   return (
-    <div className="flex h-[calc(100dvh-3rem-4rem-env(safe-area-inset-bottom))] w-full flex-col px-2 py-2 sm:px-3 xl:h-[calc(100dvh-3rem)] xl:px-3 xl:py-2">
-      <header className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            Planlama
-          </p>
-          <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-            {baslikMetni}
-          </h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="flex h-svh w-full flex-col">
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-2 sm:px-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={() => navigate({ to: "/" })}
+          aria-label="Ana sayfaya dön"
+          title="Ana sayfa"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight text-foreground sm:text-base">
+          {baslikMetni}
+        </h1>
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <div className="flex items-center rounded-md border border-border">
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-r-none" onClick={geri}>
               <ChevronLeft className="h-4 w-4" />
@@ -314,7 +319,7 @@ function TakvimSayfasi() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2 xl:flex-row xl:gap-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 p-2 sm:p-3 lg:flex-row lg:gap-3">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {gorunum === "hafta" && (
             <HaftaGorunumu
