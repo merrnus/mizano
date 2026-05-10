@@ -1389,6 +1389,42 @@ export type Database = {
         }
         Relationships: []
       }
+      takvim: {
+        Row: {
+          ad: string
+          created_at: string
+          gorunur: boolean
+          id: string
+          is_default: boolean
+          renk: string
+          siralama: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          gorunur?: boolean
+          id?: string
+          is_default?: boolean
+          renk?: string
+          siralama?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          gorunur?: boolean
+          id?: string
+          is_default?: boolean
+          renk?: string
+          siralama?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       takvim_etkinlik: {
         Row: {
           aciklama: string | null
@@ -1397,11 +1433,16 @@ export type Database = {
           baslik: string
           bitis: string | null
           created_at: string
+          hatirlatici_dk: number | null
           id: string
           konum: string | null
+          renk: string | null
+          takvim_id: string | null
           tekrar: Database["public"]["Enums"]["takvim_tekrar"]
           tekrar_bitis: string | null
+          tekrar_kural: string | null
           tum_gun: boolean
+          tum_gun_bitis: string | null
           updated_at: string
           user_id: string
         }
@@ -1412,11 +1453,16 @@ export type Database = {
           baslik: string
           bitis?: string | null
           created_at?: string
+          hatirlatici_dk?: number | null
           id?: string
           konum?: string | null
+          renk?: string | null
+          takvim_id?: string | null
           tekrar?: Database["public"]["Enums"]["takvim_tekrar"]
           tekrar_bitis?: string | null
+          tekrar_kural?: string | null
           tum_gun?: boolean
+          tum_gun_bitis?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1427,11 +1473,16 @@ export type Database = {
           baslik?: string
           bitis?: string | null
           created_at?: string
+          hatirlatici_dk?: number | null
           id?: string
           konum?: string | null
+          renk?: string | null
+          takvim_id?: string | null
           tekrar?: Database["public"]["Enums"]["takvim_tekrar"]
           tekrar_bitis?: string | null
+          tekrar_kural?: string | null
           tum_gun?: boolean
+          tum_gun_bitis?: string | null
           updated_at?: string
           user_id?: string
         }
