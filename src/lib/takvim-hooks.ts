@@ -1,81 +1,97 @@
+/**
+ * Geri-uyum shim: dashboard widget'ları bu API'yi kullanıyor. Yeni /takvim
+ * sayfası için src/lib/takvim/* modüllerine bakın.
+ */
+import * as React from "react";
+import { addDays, addMonths, isAfter, isBefore } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "./auth-context";
-import {
-  type TakvimEtkinlik,
-  type TakvimEtkinlikEkle,
-  type TakvimEtkinlikGuncelle,
-  type TakvimGorev,
-  type TakvimGorevEkle,
-  type TakvimGorevGuncelle,
-} from "./takvim-tipleri";
+import { useAuth } from "@/lib/auth-context";
+import { etkinlikBitisi, type TakvimEtkinlik, type TakvimEtkinlikEkle, type TakvimEtkinlikGuncelle, type TakvimGorev, type TakvimGorevEkle, type TakvimGorevGuncelle } from "./takvim-tipleri";
 
-function isoGun(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const g = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${g}`;
-}
+export type EtkinlikOlay = TakvimEtkinlik & {
+  olayBaslangic: Date;
+  olayBitis: Date;
+};
 
-/* ---------------- Etkinlikler ---------------- */
-
-export function useEtkinlikler(aralikBas: Date, aralikBitis: Date) {
+export function useEtkinlikler() {
   const { user } = useAuth();
-  const basIso = aralikBas.toISOString();
-  const bitIso = aralikBitis.toISOString();
-  return useQuery({
-    queryKey: ["takvim_etkinlik", user?.id, basIso, bitIso],
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["etkinlikler", user?.id],
     enabled: !!user,
-    queryFn: async (): Promise<TakvimEtkinlik[]> => {
-      // Tek seferlik etkinlikler: aralıkla kesişenler
-      // Tekrarlananlar: render tarafında genişletilecek; bu yüzden tekrarı 'yok' olmayan
-      // tüm satırları da çekiyoruz (başlangıcı aralık bitiminden sonraysa bile,
-      // tekrar_bitis aralık başlangıcından önce değilse).
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("takvim_etkinlik")
         .select("*")
-        .or(
-          `and(baslangic.lte.${bitIso},baslangic.gte.${basIso}),tekrar.neq.yok`,
-        )
         .order("baslangic", { ascending: true });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as TakvimEtkinlik[];
     },
   });
+  React.useEffect(() => {
+    if (!user) return;
+    const k = supabase
+      .channel("etkinlikler-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "takvim_etkinlik" }, () =>
+        qc.invalidateQueries({ queryKey: ["etkinlikler"] }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(k); };
+  }, [user, qc]);
+  return q;
+}
+
+export function useGorevler() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["gorevler", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("takvim_gorev")
+        .select("*")
+        .order("vade", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as TakvimGorev[];
+    },
+  });
+  React.useEffect(() => {
+    if (!user) return;
+    const k = supabase
+      .channel("gorevler-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "takvim_gorev" }, () =>
+        qc.invalidateQueries({ queryKey: ["gorevler"] }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(k); };
+  }, [user, qc]);
+  return q;
 }
 
 export function useEtkinlikEkle() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (yeni: Omit<TakvimEtkinlikEkle, "user_id">) => {
-      if (!user) throw new Error("Giriş gerekli");
-      const { data, error } = await supabase
+    mutationFn: async (input: Omit<TakvimEtkinlikEkle, "user_id">) => {
+      const { error } = await supabase
         .from("takvim_etkinlik")
-        .insert({ ...yeni, user_id: user.id })
-        .select()
-        .single();
+        .insert({ ...input, user_id: user!.id });
       if (error) throw error;
-      return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["takvim_etkinlik"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etkinlikler"] }),
   });
 }
 
 export function useEtkinlikGuncelle() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (g: { id: string; degisiklikler: TakvimEtkinlikGuncelle }) => {
-      const { data, error } = await supabase
-        .from("takvim_etkinlik")
-        .update(g.degisiklikler)
-        .eq("id", g.id)
-        .select()
-        .single();
+    mutationFn: async ({ id, ...patch }: TakvimEtkinlikGuncelle & { id: string }) => {
+      const { error } = await supabase.from("takvim_etkinlik").update(patch).eq("id", id);
       if (error) throw error;
-      return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["takvim_etkinlik"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etkinlikler"] }),
   });
 }
 
@@ -85,31 +101,8 @@ export function useEtkinlikSil() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("takvim_etkinlik").delete().eq("id", id);
       if (error) throw error;
-      return id;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["takvim_etkinlik"] }),
-  });
-}
-
-/* ---------------- Görevler ---------------- */
-
-export function useGorevler(aralikBas: Date, aralikBitis: Date) {
-  const { user } = useAuth();
-  const basIso = isoGun(aralikBas);
-  const bitIso = isoGun(aralikBitis);
-  return useQuery({
-    queryKey: ["takvim_gorev", user?.id, basIso, bitIso],
-    enabled: !!user,
-    queryFn: async (): Promise<TakvimGorev[]> => {
-      const { data, error } = await supabase
-        .from("takvim_gorev")
-        .select("*")
-        .gte("vade", basIso)
-        .lte("vade", bitIso)
-        .order("vade", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etkinlikler"] }),
   });
 }
 
@@ -117,34 +110,24 @@ export function useGorevEkle() {
   const qc = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async (yeni: Omit<TakvimGorevEkle, "user_id">) => {
-      if (!user) throw new Error("Giriş gerekli");
-      const { data, error } = await supabase
+    mutationFn: async (input: Omit<TakvimGorevEkle, "user_id">) => {
+      const { error } = await supabase
         .from("takvim_gorev")
-        .insert({ ...yeni, user_id: user.id })
-        .select()
-        .single();
+        .insert({ ...input, user_id: user!.id });
       if (error) throw error;
-      return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["takvim_gorev"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["gorevler"] }),
   });
 }
 
 export function useGorevGuncelle() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (g: { id: string; degisiklikler: TakvimGorevGuncelle }) => {
-      const { data, error } = await supabase
-        .from("takvim_gorev")
-        .update(g.degisiklikler)
-        .eq("id", g.id)
-        .select()
-        .single();
+    mutationFn: async ({ id, ...patch }: TakvimGorevGuncelle & { id: string }) => {
+      const { error } = await supabase.from("takvim_gorev").update(patch).eq("id", id);
       if (error) throw error;
-      return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["takvim_gorev"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["gorevler"] }),
   });
 }
 
@@ -154,58 +137,42 @@ export function useGorevSil() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("takvim_gorev").delete().eq("id", id);
       if (error) throw error;
-      return id;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["takvim_gorev"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["gorevler"] }),
   });
 }
 
-/* ---------------- Tekrar genişletme ---------------- */
-
-export type EtkinlikOlay = TakvimEtkinlik & {
-  /** Tekrarlardan üretilen örneğin başlangıcı (override). */
-  olayBaslangic: Date;
-  olayBitis: Date;
-};
-
-/** Aralık içinde, tekrarları genişleterek olayları üretir. */
+/** Eski API ile uyumlu: tekrar (haftalik/aylik) genişletme. */
 export function genisletEtkinlikleri(
   etkinlikler: TakvimEtkinlik[],
-  aralikBas: Date,
-  aralikBitis: Date,
+  pencereBas: Date,
+  pencereBit: Date,
 ): EtkinlikOlay[] {
   const sonuc: EtkinlikOlay[] = [];
   for (const e of etkinlikler) {
-    const bas = new Date(e.baslangic);
-    const bit = e.bitis ? new Date(e.bitis) : new Date(bas.getTime() + 60 * 60 * 1000);
-    const sureMs = bit.getTime() - bas.getTime();
+    const bas0 = new Date(e.baslangic);
+    const bit0 = etkinlikBitisi(e);
+    const sure = bit0.getTime() - bas0.getTime();
+    const tekrarBitis = e.tekrar_bitis ? new Date(e.tekrar_bitis) : null;
 
-    if (e.tekrar === "yok") {
-      if (bit >= aralikBas && bas <= aralikBitis) {
-        sonuc.push({ ...e, olayBaslangic: bas, olayBitis: bit });
-      }
-      continue;
-    }
+    const ilerlet = (d: Date): Date => {
+      if (e.tekrar === "haftalik") return addDays(d, 7);
+      if (e.tekrar === "aylik") return addMonths(d, 1);
+      return new Date(d.getTime() + 365 * 24 * 3600_000);
+    };
 
-    const sonTekrar = e.tekrar_bitis ? new Date(e.tekrar_bitis) : aralikBitis;
-    let imleç = new Date(bas);
-    // İmleci aralık başlangıcına yaklaştır
-    while (imleç < aralikBas && imleç <= sonTekrar) {
-      if (e.tekrar === "haftalik") {
-        imleç.setDate(imleç.getDate() + 7);
-      } else {
-        imleç.setMonth(imleç.getMonth() + 1);
+    let cur = bas0;
+    let safety = 0;
+    while (safety++ < 500) {
+      if (isAfter(cur, pencereBit)) break;
+      if (tekrarBitis && isAfter(cur, tekrarBitis)) break;
+      const olayBit = new Date(cur.getTime() + sure);
+      if (!isBefore(olayBit, pencereBas)) {
+        sonuc.push({ ...e, olayBaslangic: cur, olayBitis: olayBit });
       }
-    }
-    while (imleç <= aralikBitis && imleç <= sonTekrar) {
-      const olayBit = new Date(imleç.getTime() + sureMs);
-      sonuc.push({ ...e, olayBaslangic: new Date(imleç), olayBitis: olayBit });
-      if (e.tekrar === "haftalik") {
-        imleç.setDate(imleç.getDate() + 7);
-      } else {
-        imleç.setMonth(imleç.getMonth() + 1);
-      }
+      if (e.tekrar === "yok") break;
+      cur = ilerlet(cur);
     }
   }
-  return sonuc.sort((a, b) => a.olayBaslangic.getTime() - b.olayBaslangic.getTime());
+  return sonuc;
 }
