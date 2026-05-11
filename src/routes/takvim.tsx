@@ -3,16 +3,24 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   addDays, addMonths, addYears, endOfMonth, endOfWeek, format, isSameDay,
   isSameMonth, startOfDay, startOfMonth, startOfWeek, subMonths, subWeeks,
-  differenceInMinutes, getISOWeek,
+  getISOWeek, max as dMax, min as dMin,
 } from "date-fns";
 import { tr } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Search, Settings, Calendar as CalIcon, Download, Upload, ArrowLeft } from "lucide-react";
+import {
+  ChevronLeft, ChevronRight, Plus, Search, Settings, Calendar as CalIcon,
+  Download, Upload, ArrowLeft, Menu, Edit, Copy, Trash2, Palette,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem,
+  ContextMenuSeparator, ContextMenuSub, ContextMenuSubTrigger, ContextMenuSubContent,
+} from "@/components/ui/context-menu";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useTakvimler, useTakvimMutasyonlari, useEtkinlikler, useEtkinlikMutasyonlari } from "@/lib/takvim/hooks";
@@ -29,32 +37,47 @@ export const Route = createFileRoute("/takvim")({ component: TakvimSayfa });
 
 const SAAT_PX = 48;
 
+function useMedya(q: string) {
+  const [m, setM] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia(q);
+    const h = () => setM(mq.matches);
+    h();
+    mq.addEventListener("change", h);
+    return () => mq.removeEventListener("change", h);
+  }, [q]);
+  return m;
+}
+
 function TakvimSayfa() {
   const { user } = useAuth();
   const { data: takvimler = [] } = useTakvimler();
   const { data: etkinlikler = [] } = useEtkinlikler();
   const m = useEtkinlikMutasyonlari();
+  const mobil = useMedya("(max-width: 767px)");
 
   const [gorunum, setGorunum] = React.useState<Gorunum>("ay");
   const [ankara, setAnkara] = React.useState(new Date());
   const [arama, setArama] = React.useState("");
-  const [yanAcik, setYanAcik] = React.useState(true);
+  const [yanSheet, setYanSheet] = React.useState(false);
   const [diyAcik, setDiyAcik] = React.useState(false);
   const [duzenle, setDuzenle] = React.useState<Etkinlik | null>(null);
   const [diyBas, setDiyBas] = React.useState<Date | undefined>();
   const [diyBit, setDiyBit] = React.useState<Date | undefined>();
   const [diyTumGun, setDiyTumGun] = React.useState(false);
 
-  // Görünür takvimler (lokal cache)
+  React.useEffect(() => {
+    if (mobil && gorunum === "hafta") setGorunum("gun");
+  }, [mobil]); // eslint-disable-line
+
   const gorunurMap = React.useMemo(() => {
-    const m: Record<string, boolean> = {};
-    for (const t of takvimler) m[t.id] = t.gorunur;
-    return m;
+    const x: Record<string, boolean> = {};
+    for (const t of takvimler) x[t.id] = t.gorunur;
+    return x;
   }, [takvimler]);
 
   const tmu = useTakvimMutasyonlari();
 
-  // Pencere hesabı
   const [pencereBas, pencereBit] = React.useMemo<[Date, Date]>(() => {
     if (gorunum === "ay") {
       const ab = startOfMonth(ankara), ae = endOfMonth(ankara);
@@ -83,14 +106,14 @@ function TakvimSayfa() {
 
   const baslikYazi = React.useMemo(() => {
     if (gorunum === "yil") return format(ankara, "yyyy");
-    if (gorunum === "gun") return format(ankara, "d MMMM yyyy", { locale: tr });
+    if (gorunum === "gun") return format(ankara, mobil ? "d MMM yyyy" : "d MMMM yyyy", { locale: tr });
     if (gorunum === "hafta") {
       const b = startOfWeek(ankara, { weekStartsOn: 1 });
       const s = endOfWeek(ankara, { weekStartsOn: 1 });
       return `${format(b, "d MMM", { locale: tr })} – ${format(s, "d MMM yyyy", { locale: tr })}`;
     }
-    return format(ankara, "MMMM yyyy", { locale: tr });
-  }, [gorunum, ankara]);
+    return format(ankara, mobil ? "MMM yyyy" : "MMMM yyyy", { locale: tr });
+  }, [gorunum, ankara, mobil]);
 
   const ileri = () => setAnkara((d) => gorunum === "ay" ? addMonths(d, 1) : gorunum === "hafta" ? addDays(d, 7) : gorunum === "gun" ? addDays(d, 1) : addYears(d, 1));
   const geri = () => setAnkara((d) => gorunum === "ay" ? subMonths(d, 1) : gorunum === "hafta" ? subWeeks(d, 1) : gorunum === "gun" ? addDays(d, -1) : addYears(d, -1));
@@ -110,7 +133,23 @@ function TakvimSayfa() {
     setDiyAcik(true);
   };
 
-  // Klavye kısayolları
+  const olayCogalt = async (e: Etkinlik) => {
+    await m.ekle.mutateAsync({
+      baslik: e.baslik + " (kopya)", aciklama: e.aciklama, konum: e.konum,
+      baslangic: e.baslangic, bitis: e.bitis, tum_gun: e.tum_gun,
+      tum_gun_bitis: e.tum_gun_bitis, takvim_id: e.takvim_id, renk: e.renk,
+      tekrar: e.tekrar, tekrar_kural: e.tekrar_kural, hatirlatici_dk: e.hatirlatici_dk,
+    });
+    toast.success("Çoğaltıldı");
+  };
+  const olaySil = async (e: Etkinlik) => {
+    await m.sil.mutateAsync(e.id);
+    toast.success("Silindi");
+  };
+  const olayRenkDegistir = async (e: Etkinlik, renk: string | null) => {
+    await m.guncelle.mutateAsync({ id: e.id, renk });
+  };
+
   React.useEffect(() => {
     const f = (e: KeyboardEvent) => {
       if (diyAcik) return;
@@ -129,7 +168,6 @@ function TakvimSayfa() {
     return () => window.removeEventListener("keydown", f);
   }, [diyAcik, gorunum, ankara]);
 
-  // Bildirim izni & hatırlatıcı zamanlaması
   React.useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission().catch(() => {});
@@ -152,17 +190,31 @@ function TakvimSayfa() {
     return () => { timers.forEach(clearTimeout); };
   }, [etkinlikler]);
 
-  const bugunSayisi = etkinlikler.filter((e) => isSameDay(new Date(e.baslangic), new Date())).length;
-
-  const ics = () => {
-    indir(disaAktar(etkinlikler), "takvim.ics");
+  // Swipe gezinti (mobilde ana grid)
+  const swipeRef = React.useRef<{ x: number; y: number; t: number } | null>(null);
+  const swipeBaslat = (e: React.TouchEvent) => {
+    if (!mobil) return;
+    const t = e.touches[0];
+    swipeRef.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+  };
+  const swipeBitir = (e: React.TouchEvent) => {
+    if (!mobil || !swipeRef.current) return;
+    const s = swipeRef.current;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - s.x, dy = t.clientY - s.y, dt = Date.now() - s.t;
+    swipeRef.current = null;
+    if (dt > 600 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0) ileri(); else geri();
   };
 
+  const bugunSayisi = etkinlikler.filter((e) => isSameDay(new Date(e.baslangic), new Date())).length;
+
+  const ics = () => { indir(disaAktar(etkinlikler), "takvim.ics"); };
   const icsYukle = async (file: File) => {
     if (!takvimler[0]) return;
     const t = await file.text();
     const liste = iceAktar(t, takvimler[0].id, user!.id);
-    for (const e of liste) await m.ekle.mutateAsync({ ...e, user_id: undefined as any });
+    for (const e of liste) await m.ekle.mutateAsync({ ...e, user_id: undefined as never });
     toast.success(`${liste.length} etkinlik içe aktarıldı`);
   };
 
@@ -173,26 +225,34 @@ function TakvimSayfa() {
       .slice(0, 5);
   }, [etkinlikler]);
 
+  const yanIcerik = (
+    <div className="flex flex-col gap-4">
+      <Button size="sm" className="self-start" onClick={() => { yeniEtkinlik(ankara); setYanSheet(false); }}><Plus className="mr-1 h-4 w-4" />Oluştur</Button>
+      <MiniTakvim ankara={ankara} setAnkara={(d) => { setAnkara(d); if (mobil) setYanSheet(false); }} olaylar={olaylar} />
+      <TakvimListesi takvimler={takvimler} onToggle={(t) => tmu.guncelle.mutate({ id: t.id, gorunur: !t.gorunur })} onYeni={(ad, renk) => tmu.ekle.mutate({ ad, renk })} onSil={(id) => tmu.sil.mutate(id)} />
+      <YaklaşanListesi olaylar={yaklaşan} takvimler={takvimler} onClick={(o) => { olayDuzenle(o); setYanSheet(false); }} />
+    </div>
+  );
+
   return (
     <div className="flex h-svh flex-col bg-background">
-      {/* Üst bar */}
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-3">
+      <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-border bg-card px-2 md:gap-2 md:px-3">
         <Link to="/" className="text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /></Link>
-        <CalIcon className="h-5 w-5 text-primary" />
-        <Button variant="outline" size="sm" onClick={bugun} className="ml-1">Bugün</Button>
+        {mobil ? (
+          <Button variant="ghost" size="icon" onClick={() => setYanSheet(true)} aria-label="Menü"><Menu className="h-5 w-5" /></Button>
+        ) : (
+          <CalIcon className="h-5 w-5 text-primary" />
+        )}
+        <Button variant="outline" size="sm" onClick={bugun} className="ml-0.5 px-2 text-xs md:px-3 md:text-sm">Bugün</Button>
         <Button variant="ghost" size="icon" onClick={geri}><ChevronLeft className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" onClick={ileri}><ChevronRight className="h-4 w-4" /></Button>
-        <h1 className="ml-1 text-lg font-medium tabular-nums">{baslikYazi}</h1>
-        {bugunSayisi > 0 && (
-          <span className="ml-2 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary">
-            {bugunSayisi} bugün
-          </span>
+        <h1 className="ml-0.5 min-w-0 truncate text-sm font-medium tabular-nums md:text-lg">{baslikYazi}</h1>
+        {bugunSayisi > 0 && !mobil && (
+          <span className="ml-2 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary">{bugunSayisi} bugün</span>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1 md:gap-2">
           <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon"><Search className="h-4 w-4" /></Button>
-            </PopoverTrigger>
+            <PopoverTrigger asChild><Button variant="ghost" size="icon"><Search className="h-4 w-4" /></Button></PopoverTrigger>
             <PopoverContent className="w-80 p-2" align="end">
               <Input placeholder="Etkinlik ara..." value={arama} onChange={(e) => setArama(e.target.value)} autoFocus />
               {aramaSonuc.length > 0 && (
@@ -208,16 +268,18 @@ function TakvimSayfa() {
               )}
             </PopoverContent>
           </Popover>
-          <Select value={gorunum} onValueChange={(v) => setGorunum(v as Gorunum)}>
-            <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="gun">Gün</SelectItem>
-              <SelectItem value="hafta">Hafta</SelectItem>
-              <SelectItem value="ay">Ay</SelectItem>
-              <SelectItem value="yil">Yıl</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button size="sm" onClick={() => yeniEtkinlik(ankara)}><Plus className="mr-1 h-4 w-4" />Oluştur</Button>
+          {!mobil && (
+            <Select value={gorunum} onValueChange={(v) => setGorunum(v as Gorunum)}>
+              <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gun">Gün</SelectItem>
+                <SelectItem value="hafta">Hafta</SelectItem>
+                <SelectItem value="ay">Ay</SelectItem>
+                <SelectItem value="yil">Yıl</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          {!mobil && <Button size="sm" onClick={() => yeniEtkinlik(ankara)}><Plus className="mr-1 h-4 w-4" />Oluştur</Button>}
           <Popover>
             <PopoverTrigger asChild><Button variant="ghost" size="icon"><Settings className="h-4 w-4" /></Button></PopoverTrigger>
             <PopoverContent align="end" className="w-52 p-2">
@@ -234,26 +296,51 @@ function TakvimSayfa() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        {/* Yan panel */}
-        {yanAcik && (
-          <aside className="hidden w-64 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border p-3 md:flex">
-            <Button size="sm" className="self-start" onClick={() => yeniEtkinlik(ankara)}><Plus className="mr-1 h-4 w-4" />Oluştur</Button>
-            <MiniTakvim ankara={ankara} setAnkara={setAnkara} olaylar={olaylar} />
-            <TakvimListesi takvimler={takvimler} onToggle={(t) => tmu.guncelle.mutate({ id: t.id, gorunur: !t.gorunur })} onYeni={(ad, renk) => tmu.ekle.mutate({ ad, renk })} onSil={(id) => tmu.sil.mutate(id)} />
-            <YaklaşanListesi olaylar={yaklaşan} takvimler={takvimler} onClick={olayDuzenle} />
-          </aside>
-        )}
+        <aside className="hidden w-64 shrink-0 flex-col gap-4 overflow-y-auto border-r border-border p-3 md:flex">
+          {yanIcerik}
+        </aside>
+        <Sheet open={yanSheet} onOpenChange={setYanSheet}>
+          <SheetContent side="left" className="w-72 overflow-y-auto p-4">
+            {yanIcerik}
+          </SheetContent>
+        </Sheet>
 
-        {/* Ana grid */}
-        <main className="min-w-0 flex-1 overflow-hidden">
-          {gorunum === "ay" && <AyGorunumu ankara={ankara} olaylar={olaylar} takvimler={takvimler} onGunClick={(g) => yeniEtkinlik(new Date(g.getFullYear(), g.getMonth(), g.getDate(), 9, 0), undefined, false)} onOlayClick={olayDuzenle} />}
-          {(gorunum === "hafta" || gorunum === "gun") && <HaftaGorunumu gunler={gorunum === "gun" ? [ankara] : Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(ankara, { weekStartsOn: 1 }), i))} olaylar={olaylar} takvimler={takvimler} onSlotClick={(d) => yeniEtkinlik(d, addDays(d, 0))} onOlayClick={olayDuzenle} onMove={(o, yeniBas) => {
-            const sure = o.olayBitis.getTime() - o.olayBaslangic.getTime();
-            m.guncelle.mutate({ id: o.id, baslangic: yeniBas.toISOString(), bitis: new Date(yeniBas.getTime() + sure).toISOString() });
-          }} />}
+        <main className="min-w-0 flex-1 overflow-hidden" onTouchStart={swipeBaslat} onTouchEnd={swipeBitir}>
+          {gorunum === "ay" && <AyGorunumu ankara={ankara} olaylar={olaylar} takvimler={takvimler} onGunClick={(g) => yeniEtkinlik(new Date(g.getFullYear(), g.getMonth(), g.getDate(), 9, 0), undefined, false)} onOlayClick={olayDuzenle} onOlayCogalt={olayCogalt} onOlaySil={olaySil} onOlayRenk={olayRenkDegistir} />}
+          {(gorunum === "hafta" || gorunum === "gun") && (
+            <HaftaGorunumu
+              gunler={gorunum === "gun" ? [ankara] : Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(ankara, { weekStartsOn: 1 }), i))}
+              olaylar={olaylar}
+              takvimler={takvimler}
+              onAralikSec={(b, bi) => yeniEtkinlik(b, bi, false)}
+              onOlayClick={olayDuzenle}
+              onOlayCogalt={olayCogalt}
+              onOlaySil={olaySil}
+              onOlayRenk={olayRenkDegistir}
+              onMove={(o, yeniBas) => {
+                const sure = o.olayBitis.getTime() - o.olayBaslangic.getTime();
+                m.guncelle.mutate({ id: o.id, baslangic: yeniBas.toISOString(), bitis: new Date(yeniBas.getTime() + sure).toISOString() });
+              }}
+              onResize={(o, yeniBitis) => {
+                m.guncelle.mutate({ id: o.id, bitis: yeniBitis.toISOString() });
+              }}
+            />
+          )}
           {gorunum === "yil" && <YilGorunumu yil={ankara.getFullYear()} olaylar={genisletListe(etkinlikler.filter((e) => e.takvim_id && gorunurMap[e.takvim_id]), startOfMonth(new Date(ankara.getFullYear(), 0, 1)), endOfMonth(new Date(ankara.getFullYear(), 11, 1)))} onAyClick={(d) => { setAnkara(d); setGorunum("ay"); }} />}
         </main>
       </div>
+
+      {mobil && (
+        <nav className="grid shrink-0 grid-cols-5 border-t border-border bg-card">
+          {([
+            ["gun", "Gün"], ["ay", "Ay"], ["yil", "Yıl"],
+          ] as Array<[Gorunum, string]>).map(([v, e]) => (
+            <button key={v} onClick={() => setGorunum(v)} className={cn("py-2 text-xs font-medium", gorunum === v ? "text-primary" : "text-muted-foreground")}>{e}</button>
+          ))}
+          <button onClick={bugun} className="py-2 text-xs font-medium text-muted-foreground">Bugün</button>
+          <button onClick={() => yeniEtkinlik(ankara)} className="flex items-center justify-center bg-primary text-primary-foreground"><Plus className="h-5 w-5" /></button>
+        </nav>
+      )}
 
       <EtkinlikDialog acik={diyAcik} onOpenChange={setDiyAcik} duzenle={duzenle} baslangic={diyBas} bitis={diyBit} tumGun={diyTumGun} takvimler={takvimler} />
     </div>
@@ -360,7 +447,55 @@ function YaklaşanListesi({ olaylar, takvimler, onClick }: { olaylar: EtkinlikOl
   );
 }
 
-function AyGorunumu({ ankara, olaylar, takvimler, onGunClick, onOlayClick }: { ankara: Date; olaylar: EtkinlikOlay[]; takvimler: Takvim[]; onGunClick: (d: Date) => void; onOlayClick: (e: Etkinlik) => void }) {
+/** Etkinlik üzerinde ortak sağ-tık (mobilde uzun-basma) menüsü. */
+function OlayMenu({ olay, onDuzenle, onCogalt, onSil, onRenk, children }: {
+  olay: EtkinlikOlay;
+  onDuzenle: (e: Etkinlik) => void;
+  onCogalt: (e: Etkinlik) => void;
+  onSil: (e: Etkinlik) => void;
+  onRenk: (e: Etkinlik, r: string | null) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+      <ContextMenuContent className="w-48">
+        <ContextMenuItem onClick={() => onDuzenle(olay)}><Edit className="mr-2 h-4 w-4" />Düzenle</ContextMenuItem>
+        <ContextMenuItem onClick={() => onCogalt(olay)}><Copy className="mr-2 h-4 w-4" />Çoğalt</ContextMenuItem>
+        <ContextMenuSub>
+          <ContextMenuSubTrigger><Palette className="mr-2 h-4 w-4" />Renk</ContextMenuSubTrigger>
+          <ContextMenuSubContent>
+            <ContextMenuItem onClick={() => onRenk(olay, null)}>
+              <span className="mr-2 h-3 w-3 rounded-full border border-border" />
+              Varsayılan
+            </ContextMenuItem>
+            {TAKVIM_RENKLERI.map((r) => (
+              <ContextMenuItem key={r.id} onClick={() => onRenk(olay, r.id)}>
+                <span className="mr-2 h-3 w-3 rounded-full" style={{ background: r.oklch }} />
+                {r.ad}
+              </ContextMenuItem>
+            ))}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => onSil(olay)} className="text-destructive focus:text-destructive">
+          <Trash2 className="mr-2 h-4 w-4" />Sil
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+}
+
+type AyProps = {
+  ankara: Date; olaylar: EtkinlikOlay[]; takvimler: Takvim[];
+  onGunClick: (d: Date) => void;
+  onOlayClick: (e: Etkinlik) => void;
+  onOlayCogalt: (e: Etkinlik) => void;
+  onOlaySil: (e: Etkinlik) => void;
+  onOlayRenk: (e: Etkinlik, r: string | null) => void;
+};
+
+function AyGorunumu({ ankara, olaylar, takvimler, onGunClick, onOlayClick, onOlayCogalt, onOlaySil, onOlayRenk }: AyProps) {
   const ab = startOfMonth(ankara), ae = endOfMonth(ankara);
   const gb = startOfWeek(ab, { weekStartsOn: 1 });
   const ge = endOfWeek(ae, { weekStartsOn: 1 });
@@ -369,6 +504,50 @@ function AyGorunumu({ ankara, olaylar, takvimler, onGunClick, onOlayClick }: { a
   const haftalar: Date[][] = [];
   for (let i = 0; i < gunler.length; i += 7) haftalar.push(gunler.slice(i, i + 7));
   const today = new Date();
+  const MAX_SATIR = 3; // her gün hücresinde gösterilecek max etkinlik
+
+  // Her hafta için: bu haftayla kesişen olayları çıkar ve satır ataması yap
+  function haftaSegmentleri(haftaBas: Date): Array<{ olay: EtkinlikOlay; baslaCol: number; bitCol: number; satir: number; soldevam: boolean; sagdevam: boolean }> {
+    const haftaBit = addDays(haftaBas, 7);
+    const ilgili = olaylar
+      .filter((o) => o.olayBaslangic < haftaBit && o.olayBitis >= haftaBas)
+      .map((o) => {
+        const b = dMax([o.olayBaslangic, haftaBas]);
+        const s = dMin([o.olayBitis, addDays(haftaBit, -1)]);
+        const baslaCol = Math.floor((startOfDay(b).getTime() - haftaBas.getTime()) / 86400_000);
+        const bitCol = Math.floor((startOfDay(s).getTime() - haftaBas.getTime()) / 86400_000);
+        return {
+          olay: o,
+          baslaCol: Math.max(0, baslaCol),
+          bitCol: Math.min(6, bitCol),
+          soldevam: o.olayBaslangic < haftaBas,
+          sagdevam: o.olayBitis >= haftaBit,
+        };
+      })
+      .sort((a, b) =>
+        (b.bitCol - b.baslaCol) - (a.bitCol - a.baslaCol) ||
+        a.olay.olayBaslangic.getTime() - b.olay.olayBaslangic.getTime(),
+      );
+
+    // satır ataması (greedy)
+    const satirKullanim: boolean[][] = []; // [satir][col]
+    const res: Array<{ olay: EtkinlikOlay; baslaCol: number; bitCol: number; satir: number; soldevam: boolean; sagdevam: boolean }> = [];
+    for (const it of ilgili) {
+      let satir = 0;
+      while (true) {
+        if (!satirKullanim[satir]) satirKullanim[satir] = Array(7).fill(false);
+        let ok = true;
+        for (let c = it.baslaCol; c <= it.bitCol; c++) if (satirKullanim[satir][c]) { ok = false; break; }
+        if (ok) {
+          for (let c = it.baslaCol; c <= it.bitCol; c++) satirKullanim[satir][c] = true;
+          res.push({ ...it, satir });
+          break;
+        }
+        satir++;
+      }
+    }
+    return res;
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -377,40 +556,70 @@ function AyGorunumu({ ankara, olaylar, takvimler, onGunClick, onOlayClick }: { a
         {["Pzt","Sal","Çar","Per","Cum","Cmt","Paz"].map((g) => <div key={g} className="py-1.5 text-center">{g}</div>)}
       </div>
       <div className="grid flex-1 grid-rows-6">
-        {haftalar.map((hafta, hi) => (
-          <div key={hi} className="grid grid-cols-[2rem_repeat(7,1fr)] border-b border-border last:border-b-0">
-            <div className="flex items-start justify-center pt-1 text-[10px] text-muted-foreground">H{getISOWeek(hafta[0])}</div>
-            {hafta.map((g) => {
-              const buAy = isSameMonth(g, ankara);
-              const isToday = isSameDay(g, today);
-              const haftaSonu = g.getDay() === 0 || g.getDay() === 6;
-              const gunOlaylari = olaylar.filter((o) => isSameDay(o.olayBaslangic, g)).slice(0, 4);
-              return (
-                <button key={g.toISOString()} onClick={() => onGunClick(g)} className={cn("flex flex-col gap-0.5 border-l border-border p-1 text-left transition-colors hover:bg-accent/30", !buAy && "bg-muted/20 text-muted-foreground", haftaSonu && buAy && "bg-muted/10")}>
-                  <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px]", isToday && "bg-primary text-primary-foreground font-medium")}>{format(g, "d")}</span>
-                  <div className="flex min-h-0 flex-col gap-0.5 overflow-hidden">
-                    {gunOlaylari.map((o, i) => (
-                      <span key={o.id + i} role="button" onClick={(e) => { e.stopPropagation(); onOlayClick(o); }} className="truncate rounded px-1 py-0.5 text-[10px] text-white" style={{ background: rengiBul(o.renk ?? takvimler.find((t) => t.id === o.takvim_id)?.renk) }}>
-                        {!o.tum_gun && <span className="mr-1 opacity-80">{format(o.olayBaslangic, "HH:mm")}</span>}
-                        {o.baslik}
-                      </span>
-                    ))}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        ))}
+        {haftalar.map((hafta, hi) => {
+          const segs = haftaSegmentleri(hafta[0]);
+          const fazla: Record<number, number> = {}; // col -> kaç tane MAX_SATIR üstünde
+          for (const s of segs) if (s.satir >= MAX_SATIR) for (let c = s.baslaCol; c <= s.bitCol; c++) fazla[c] = (fazla[c] ?? 0) + 1;
+          return (
+            <div key={hi} className="relative grid grid-cols-[2rem_repeat(7,1fr)] border-b border-border last:border-b-0">
+              <div className="flex items-start justify-center pt-1 text-[10px] text-muted-foreground">H{getISOWeek(hafta[0])}</div>
+              {hafta.map((g) => {
+                const buAy = isSameMonth(g, ankara);
+                const isToday = isSameDay(g, today);
+                const haftaSonu = g.getDay() === 0 || g.getDay() === 6;
+                const f = fazla[Math.floor((startOfDay(g).getTime() - hafta[0].getTime()) / 86400_000)] ?? 0;
+                return (
+                  <button key={g.toISOString()} onClick={() => onGunClick(g)} className={cn("flex flex-col gap-0.5 border-l border-border p-1 pt-1 text-left transition-colors hover:bg-accent/30", !buAy && "bg-muted/20 text-muted-foreground", haftaSonu && buAy && "bg-muted/10")}>
+                    <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px]", isToday && "bg-primary text-primary-foreground font-medium")}>{format(g, "d")}</span>
+                    <div style={{ height: `${MAX_SATIR * 18 + (f > 0 ? 14 : 0)}px` }} />
+                    {f > 0 && <span className="absolute bottom-0.5 text-[10px] text-muted-foreground">+{f} daha</span>}
+                  </button>
+                );
+              })}
+              {/* Bantlar */}
+              <div className="pointer-events-none absolute inset-x-0 top-6" style={{ left: "2rem" }}>
+                {segs.filter((s) => s.satir < MAX_SATIR).map((s, i) => {
+                  const renk = rengiBul(s.olay.renk ?? takvimler.find((t) => t.id === s.olay.takvim_id)?.renk);
+                  const w = (s.bitCol - s.baslaCol + 1) / 7;
+                  const left = (s.baslaCol / 7) * 100;
+                  return (
+                    <OlayMenu key={i} olay={s.olay} onDuzenle={onOlayClick} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onOlayClick(s.olay); }}
+                        className={cn(
+                          "pointer-events-auto absolute mx-0.5 truncate px-1.5 py-0.5 text-left text-[10px] text-white",
+                          s.soldevam ? "rounded-l-none" : "rounded-l",
+                          s.sagdevam ? "rounded-r-none" : "rounded-r",
+                        )}
+                        style={{ left: `${left}%`, width: `calc(${w * 100}% - 4px)`, top: s.satir * 18, height: 16, background: renk }}
+                      >
+                        {!s.olay.tum_gun && !s.soldevam && <span className="mr-1 opacity-80">{format(s.olay.olayBaslangic, "HH:mm")}</span>}
+                        {s.olay.baslik}
+                      </button>
+                    </OlayMenu>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function HaftaGorunumu({ gunler, olaylar, takvimler, onSlotClick, onOlayClick, onMove }: {
+type HaftaProps = {
   gunler: Date[]; olaylar: EtkinlikOlay[]; takvimler: Takvim[];
-  onSlotClick: (d: Date) => void; onOlayClick: (e: Etkinlik) => void;
+  onAralikSec: (b: Date, bi: Date) => void;
+  onOlayClick: (e: Etkinlik) => void;
+  onOlayCogalt: (e: Etkinlik) => void;
+  onOlaySil: (e: Etkinlik) => void;
+  onOlayRenk: (e: Etkinlik, r: string | null) => void;
   onMove: (o: EtkinlikOlay, yeniBas: Date) => void;
-}) {
+  onResize: (o: EtkinlikOlay, yeniBitis: Date) => void;
+};
+
+function HaftaGorunumu({ gunler, olaylar, takvimler, onAralikSec, onOlayClick, onOlayCogalt, onOlaySil, onOlayRenk, onMove, onResize }: HaftaProps) {
   const today = new Date();
   const [now, setNow] = React.useState(new Date());
   React.useEffect(() => {
@@ -420,11 +629,20 @@ function HaftaGorunumu({ gunler, olaylar, takvimler, onSlotClick, onOlayClick, o
   const tumGunler = olaylar.filter((o) => o.tum_gun);
   const saatLi = olaylar.filter((o) => !o.tum_gun);
 
+  // Şu anki saate scroll
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (scrollRef.current) {
+      const top = Math.max(0, ((now.getHours() - 1) * SAAT_PX));
+      scrollRef.current.scrollTop = top;
+    }
+    // eslint-disable-next-line
+  }, []);
+
   return (
     <div className="flex h-full flex-col">
-      {/* Üst: gün başlıkları + all-day band */}
       <div className="border-b border-border">
-        <div className="grid" style={{ gridTemplateColumns: `4rem repeat(${gunler.length}, 1fr)` }}>
+        <div className="grid" style={{ gridTemplateColumns: `3rem repeat(${gunler.length}, 1fr)` }}>
           <div />
           {gunler.map((g) => {
             const isToday = isSameDay(g, today);
@@ -436,27 +654,29 @@ function HaftaGorunumu({ gunler, olaylar, takvimler, onSlotClick, onOlayClick, o
             );
           })}
         </div>
-        <div className="grid border-t border-border" style={{ gridTemplateColumns: `4rem repeat(${gunler.length}, 1fr)`, minHeight: "2rem" }}>
-          <div className="border-r border-border py-1 pr-1 text-right text-[10px] text-muted-foreground">tüm gün</div>
-          {gunler.map((g) => {
-            const ogun = tumGunler.filter((o) => isSameDay(o.olayBaslangic, g));
-            return (
-              <div key={g.toISOString()} className="border-l border-border p-0.5">
-                {ogun.map((o, i) => (
-                  <button key={o.id + i} onClick={() => onOlayClick(o)} className="mb-0.5 block w-full truncate rounded px-1 py-0.5 text-left text-[10px] text-white" style={{ background: rengiBul(o.renk ?? takvimler.find((t) => t.id === o.takvim_id)?.renk) }}>
-                    {o.baslik}
-                  </button>
-                ))}
-              </div>
-            );
-          })}
-        </div>
+        {tumGunler.length > 0 && (
+          <div className="grid border-t border-border" style={{ gridTemplateColumns: `3rem repeat(${gunler.length}, 1fr)`, minHeight: "2rem" }}>
+            <div className="border-r border-border py-1 pr-1 text-right text-[10px] text-muted-foreground">tüm gün</div>
+            {gunler.map((g) => {
+              const ogun = tumGunler.filter((o) => isSameDay(o.olayBaslangic, g));
+              return (
+                <div key={g.toISOString()} className="border-l border-border p-0.5">
+                  {ogun.map((o, i) => (
+                    <OlayMenu key={o.id + i} olay={o} onDuzenle={onOlayClick} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
+                      <button onClick={() => onOlayClick(o)} className="mb-0.5 block w-full truncate rounded px-1 py-0.5 text-left text-[10px] text-white" style={{ background: rengiBul(o.renk ?? takvimler.find((t) => t.id === o.takvim_id)?.renk) }}>
+                        {o.baslik}
+                      </button>
+                    </OlayMenu>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Saat grid */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="relative grid" style={{ gridTemplateColumns: `4rem repeat(${gunler.length}, 1fr)` }}>
-          {/* saat sütunu */}
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
+        <div className="relative grid" style={{ gridTemplateColumns: `3rem repeat(${gunler.length}, 1fr)` }}>
           <div>
             {Array.from({ length: 24 }, (_, h) => (
               <div key={h} style={{ height: SAAT_PX }} className="border-b border-border pr-1 text-right text-[10px] text-muted-foreground">
@@ -465,7 +685,19 @@ function HaftaGorunumu({ gunler, olaylar, takvimler, onSlotClick, onOlayClick, o
             ))}
           </div>
           {gunler.map((g) => (
-            <GunSutun key={g.toISOString()} gun={g} olaylar={saatLi.filter((o) => isSameDay(o.olayBaslangic, g))} takvimler={takvimler} now={now} isToday={isSameDay(g, today)} onSlotClick={onSlotClick} onOlayClick={onOlayClick} onMove={onMove} />
+            <GunSutun
+              key={g.toISOString()} gun={g}
+              olaylar={saatLi.filter((o) => isSameDay(o.olayBaslangic, g))}
+              takvimler={takvimler} now={now}
+              isToday={isSameDay(g, today)}
+              onAralikSec={onAralikSec}
+              onOlayClick={onOlayClick}
+              onOlayCogalt={onOlayCogalt}
+              onOlaySil={onOlaySil}
+              onOlayRenk={onOlayRenk}
+              onMove={onMove}
+              onResize={onResize}
+            />
           ))}
         </div>
       </div>
@@ -473,21 +705,58 @@ function HaftaGorunumu({ gunler, olaylar, takvimler, onSlotClick, onOlayClick, o
   );
 }
 
-function GunSutun({ gun, olaylar, takvimler, now, isToday, onSlotClick, onOlayClick, onMove }: {
+function pxToDk(y: number) {
+  return Math.max(0, Math.min(24 * 60 - 15, Math.floor(y / SAAT_PX * 60 / 15) * 15));
+}
+
+function GunSutun({ gun, olaylar, takvimler, now, isToday, onAralikSec, onOlayClick, onOlayCogalt, onOlaySil, onOlayRenk, onMove, onResize }: {
   gun: Date; olaylar: EtkinlikOlay[]; takvimler: Takvim[]; now: Date; isToday: boolean;
-  onSlotClick: (d: Date) => void; onOlayClick: (e: Etkinlik) => void;
+  onAralikSec: (b: Date, bi: Date) => void;
+  onOlayClick: (e: Etkinlik) => void;
+  onOlayCogalt: (e: Etkinlik) => void;
+  onOlaySil: (e: Etkinlik) => void;
+  onOlayRenk: (e: Etkinlik, r: string | null) => void;
   onMove: (o: EtkinlikOlay, yeniBas: Date) => void;
+  onResize: (o: EtkinlikOlay, yeniBitis: Date) => void;
 }) {
   const yerlesimler = yerlestir(olaylar);
   const ref = React.useRef<HTMLDivElement>(null);
-  const slotTikla = (e: React.MouseEvent) => {
-    if (!ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    const y = e.clientY - r.top;
-    const dk = Math.floor(y / SAAT_PX * 60 / 15) * 15;
-    const d = new Date(gun); d.setHours(0, 0, 0, 0);
-    d.setMinutes(dk);
-    onSlotClick(d);
+  const [secim, setSecim] = React.useState<{ basDk: number; bitDk: number } | null>(null);
+  const secimRef = React.useRef<{ basDk: number; startY: number } | null>(null);
+
+  const localY = (clientY: number) => {
+    if (!ref.current) return 0;
+    return clientY - ref.current.getBoundingClientRect().top;
+  };
+
+  const slotBasla = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("[data-olay]")) return;
+    e.preventDefault();
+    const y = localY(e.clientY);
+    const basDk = pxToDk(y);
+    secimRef.current = { basDk, startY: y };
+    setSecim({ basDk, bitDk: basDk + 60 });
+    const hareket = (ev: MouseEvent) => {
+      if (!secimRef.current) return;
+      const ny = localY(ev.clientY);
+      const dk = pxToDk(ny);
+      const a = Math.min(secimRef.current.basDk, dk);
+      const b = Math.max(secimRef.current.basDk, dk) + 15;
+      setSecim({ basDk: a, bitDk: b });
+    };
+    const bitir = () => {
+      window.removeEventListener("mousemove", hareket);
+      window.removeEventListener("mouseup", bitir);
+      const s = secim ?? (secimRef.current ? { basDk: secimRef.current.basDk, bitDk: secimRef.current.basDk + 60 } : null);
+      secimRef.current = null;
+      setSecim(null);
+      if (!s) return;
+      const b = new Date(gun); b.setHours(0, 0, 0, 0); b.setMinutes(s.basDk);
+      const bi = new Date(gun); bi.setHours(0, 0, 0, 0); bi.setMinutes(s.bitDk);
+      onAralikSec(b, bi);
+    };
+    window.addEventListener("mousemove", hareket);
+    window.addEventListener("mouseup", bitir);
   };
 
   const dragHandle = (o: EtkinlikOlay) => (e: React.DragEvent) => {
@@ -499,26 +768,52 @@ function GunSutun({ gun, olaylar, takvimler, now, isToday, onSlotClick, onOlayCl
     const id = e.dataTransfer.getData("text/plain");
     const o = olaylar.find((x) => x.id === id);
     if (!o || !ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    const y = e.clientY - r.top;
-    const dk = Math.max(0, Math.floor(y / SAAT_PX * 60 / 15) * 15);
+    const dk = pxToDk(localY(e.clientY));
     const d = new Date(gun); d.setHours(0, 0, 0, 0); d.setMinutes(dk);
     onMove(o, d);
   };
 
+  // resize
+  const resizeBasla = (o: EtkinlikOlay) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const hareket = (ev: MouseEvent) => {
+      if (!ref.current) return;
+      const y = localY(ev.clientY);
+      const dk = pxToDk(y);
+      const yeniBitis = new Date(gun); yeniBitis.setHours(0, 0, 0, 0); yeniBitis.setMinutes(dk + 15);
+      if (yeniBitis.getTime() <= o.olayBaslangic.getTime() + 15 * 60_000) return;
+      // canlı önizleme: width=fixed; sadece yükseklik değişimi DOM'a yansıtılır via key
+      (ev.target as HTMLElement).dispatchEvent(new Event("noop"));
+    };
+    const bitir = (ev: MouseEvent) => {
+      window.removeEventListener("mousemove", hareket);
+      window.removeEventListener("mouseup", bitir);
+      if (!ref.current) return;
+      const y = localY(ev.clientY);
+      const dk = pxToDk(y);
+      const yeniBitis = new Date(gun); yeniBitis.setHours(0, 0, 0, 0); yeniBitis.setMinutes(dk + 15);
+      if (yeniBitis.getTime() > o.olayBaslangic.getTime() + 15 * 60_000) onResize(o, yeniBitis);
+    };
+    window.addEventListener("mousemove", hareket);
+    window.addEventListener("mouseup", bitir);
+  };
+
   return (
-    <div ref={ref} className={cn("relative border-l border-border", isToday && "bg-primary/[0.02]")} onClick={slotTikla} onDragOver={(e) => e.preventDefault()} onDrop={drop} style={{ height: 24 * SAAT_PX }}>
-      {/* saat çizgileri + çalışma saatleri */}
+    <div ref={ref} className={cn("relative border-l border-border", isToday && "bg-primary/[0.02]")} onMouseDown={slotBasla} onDragOver={(e) => e.preventDefault()} onDrop={drop} style={{ height: 24 * SAAT_PX }}>
       {Array.from({ length: 24 }, (_, h) => (
         <div key={h} className={cn("border-b border-border", h >= 9 && h < 17 && "bg-accent/10")} style={{ height: SAAT_PX }} />
       ))}
-      {/* now-line */}
       {isToday && (
         <div className="pointer-events-none absolute left-0 right-0 z-10 border-t-2 border-destructive" style={{ top: ((now.getHours() * 60 + now.getMinutes()) / (24 * 60)) * (24 * SAAT_PX) }}>
           <div className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-destructive" />
         </div>
       )}
-      {/* etkinlikler */}
+      {secim && (
+        <div className="pointer-events-none absolute left-0 right-0 z-20 rounded bg-primary/20 ring-1 ring-primary" style={{ top: (secim.basDk / 60) * SAAT_PX, height: ((secim.bitDk - secim.basDk) / 60) * SAAT_PX }}>
+          <div className="px-1 text-[10px] font-medium text-primary">{String(Math.floor(secim.basDk / 60)).padStart(2,"0")}:{String(secim.basDk % 60).padStart(2,"0")} – {String(Math.floor(secim.bitDk / 60)).padStart(2,"0")}:{String(secim.bitDk % 60).padStart(2,"0")}</div>
+        </div>
+      )}
       {yerlesimler.map(({ olay, sutun, toplam }) => {
         const dakBas = olay.olayBaslangic.getHours() * 60 + olay.olayBaslangic.getMinutes();
         const dakBit = olay.olayBitis.getHours() * 60 + olay.olayBitis.getMinutes() || dakBas + 60;
@@ -526,10 +821,15 @@ function GunSutun({ gun, olaylar, takvimler, now, isToday, onSlotClick, onOlayCl
         const yuks = Math.max(20, ((dakBit - dakBas) / 60) * SAAT_PX);
         const w = 100 / toplam;
         return (
-          <button key={olay.id} draggable onDragStart={dragHandle(olay)} onClick={(e) => { e.stopPropagation(); onOlayClick(olay); }} className="absolute overflow-hidden rounded px-1 py-0.5 text-left text-[10px] text-white shadow-sm" style={{ top, height: yuks, left: `${sutun * w}%`, width: `calc(${w}% - 2px)`, background: rengiBul(olay.renk ?? takvimler.find((t) => t.id === olay.takvim_id)?.renk) }}>
-            <div className="truncate font-medium">{olay.baslik}</div>
-            <div className="truncate opacity-80">{format(olay.olayBaslangic, "HH:mm")} – {format(olay.olayBitis, "HH:mm")}</div>
-          </button>
+          <OlayMenu key={olay.id} olay={olay} onDuzenle={onOlayClick} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
+            <div data-olay draggable onDragStart={dragHandle(olay)} onClick={(e) => { e.stopPropagation(); onOlayClick(olay); }} onMouseDown={(e) => e.stopPropagation()} className="absolute overflow-hidden rounded text-left text-[10px] text-white shadow-sm cursor-pointer" style={{ top, height: yuks, left: `${sutun * w}%`, width: `calc(${w}% - 2px)`, background: rengiBul(olay.renk ?? takvimler.find((t) => t.id === olay.takvim_id)?.renk) }}>
+              <div className="px-1 py-0.5">
+                <div className="truncate font-medium">{olay.baslik}</div>
+                <div className="truncate opacity-80">{format(olay.olayBaslangic, "HH:mm")} – {format(olay.olayBitis, "HH:mm")}</div>
+              </div>
+              <div onMouseDown={resizeBasla(olay)} className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize bg-white/20 hover:bg-white/40" />
+            </div>
+          </OlayMenu>
         );
       })}
     </div>
