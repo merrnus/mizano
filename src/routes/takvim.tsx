@@ -214,7 +214,10 @@ function TakvimSayfa() {
     if (!takvimler[0]) return;
     const t = await file.text();
     const liste = iceAktar(t, takvimler[0].id, user!.id);
-    for (const e of liste) await m.ekle.mutateAsync({ ...e, user_id: undefined as never });
+    for (const e of liste) {
+      const { user_id: _u, ...rest } = e;
+      await m.ekle.mutateAsync(rest);
+    }
     toast.success(`${liste.length} etkinlik içe aktarıldı`);
   };
 
