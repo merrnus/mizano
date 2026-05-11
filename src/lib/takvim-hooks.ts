@@ -14,7 +14,7 @@ export type EtkinlikOlay = TakvimEtkinlik & {
   olayBitis: Date;
 };
 
-export function useEtkinlikler() {
+export function useEtkinlikler(_from?: Date, _to?: Date) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const q = useQuery({
@@ -42,7 +42,7 @@ export function useEtkinlikler() {
   return q;
 }
 
-export function useGorevler() {
+export function useGorevler(_from?: Date, _to?: Date) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const q = useQuery({
@@ -87,7 +87,11 @@ export function useEtkinlikEkle() {
 export function useEtkinlikGuncelle() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...patch }: TakvimEtkinlikGuncelle & { id: string }) => {
+    mutationFn: async (
+      args: (TakvimEtkinlikGuncelle & { id: string }) | { id: string; degisiklikler: TakvimEtkinlikGuncelle },
+    ) => {
+      const id = args.id;
+      const patch = "degisiklikler" in args ? args.degisiklikler : (() => { const { id: _i, ...r } = args; return r; })();
       const { error } = await supabase.from("takvim_etkinlik").update(patch).eq("id", id);
       if (error) throw error;
     },
@@ -123,7 +127,11 @@ export function useGorevEkle() {
 export function useGorevGuncelle() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...patch }: TakvimGorevGuncelle & { id: string }) => {
+    mutationFn: async (
+      args: (TakvimGorevGuncelle & { id: string }) | { id: string; degisiklikler: TakvimGorevGuncelle },
+    ) => {
+      const id = args.id;
+      const patch = "degisiklikler" in args ? args.degisiklikler : (() => { const { id: _i, ...r } = args; return r; })();
       const { error } = await supabase.from("takvim_gorev").update(patch).eq("id", id);
       if (error) throw error;
     },
