@@ -398,155 +398,128 @@ function IstisareDetay() {
 
 function GundemSatir({ g, onAc }: { g: GundemDetay; onAc: () => void }) {
   const guncelle = useGundemGuncelle();
-  const kisilerQ = useKisiler();
-  const kisiler = kisilerQ.data ?? [];
-  const sorumluAyarlaM = useGundemSorumluAyarla();
 
-  const durum = GUNDEM_DURUMLAR.find((d) => d.id === g.durum)!;
+  const [icerik, setIcerik] = React.useState(g.icerik);
+  const [karar, setKarar] = React.useState(g.karar ?? "");
+  const [sonuc, setSonuc] = React.useState(g.sonuc ?? "");
+
+  React.useEffect(() => {
+    setIcerik(g.icerik);
+    setKarar(g.karar ?? "");
+    setSonuc(g.sonuc ?? "");
+  }, [g.id, g.icerik, g.karar, g.sonuc]);
+
   const geciken =
     g.deadline && g.durum !== "yapildi" && new Date(g.deadline) < new Date();
 
   return (
-    <div
-      className={cn(
-        "group/g grid grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-2 border-b border-border/50 px-2 py-2 transition-colors last:border-b-0 hover:bg-accent/30",
-        geciken && "bg-destructive/5",
-      )}
-    >
-      <button
-        type="button"
-        onClick={() =>
-          guncelle.mutate({
-            id: g.id,
-            durum: g.durum === "yapildi" ? "bekliyor" : "yapildi",
-          })
-        }
-        className={cn(
-          "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors",
-          g.durum === "yapildi"
-            ? "border-[var(--maneviyat)] bg-[var(--maneviyat)] text-white"
-            : "border-border hover:border-primary",
-        )}
-      >
-        {g.durum === "yapildi" && <Check className="h-3 w-3" />}
-      </button>
-
-      <button
-        type="button"
-        onClick={onAc}
-        className="min-w-0 text-left"
-      >
-        <div
+    <TableRow className={cn(geciken && "bg-destructive/5")}>
+      <TableCell className="align-top">
+        <button
+          type="button"
+          onClick={() =>
+            guncelle.mutate({
+              id: g.id,
+              durum: g.durum === "yapildi" ? "bekliyor" : "yapildi",
+            })
+          }
           className={cn(
-            "truncate text-sm",
+            "mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors",
+            g.durum === "yapildi"
+              ? "border-[var(--maneviyat)] bg-[var(--maneviyat)] text-white"
+              : "border-border hover:border-primary",
+          )}
+        >
+          {g.durum === "yapildi" && <Check className="h-3 w-3" />}
+        </button>
+      </TableCell>
+
+      <TableCell className="align-top">
+        <Textarea
+          value={icerik}
+          onChange={(e) => setIcerik(e.target.value)}
+          onBlur={() => {
+            const v = icerik.trim();
+            if (v && v !== g.icerik) guncelle.mutate({ id: g.id, icerik: v });
+            else if (!v) setIcerik(g.icerik);
+          }}
+          rows={1}
+          className={cn(
+            "min-h-[32px] resize-none border-0 bg-transparent px-1.5 py-1 text-sm shadow-none focus-visible:ring-1",
             g.durum === "yapildi" && "text-muted-foreground line-through",
             g.oncelik === "ana" && "font-medium",
           )}
-        >
-          {g.icerik}
-        </div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
-          {g.etiketler.map((e) => (
-            <Badge key={e} variant="secondary" className="px-1 py-0 text-[9px]">
-              {e}
-            </Badge>
-          ))}
-          {g.yorum_sayisi > 0 && (
-            <span className="flex items-center gap-0.5">
-              <MessageSquare className="h-3 w-3" /> {g.yorum_sayisi}
-            </span>
-          )}
-          {g.karar && <span className="italic">"karar var"</span>}
-        </div>
-      </button>
-
-      {/* Öncelik toggle */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          guncelle.mutate({
-            id: g.id,
-            oncelik: g.oncelik === "ana" ? "yan" : "ana",
-          });
-        }}
-        title={g.oncelik === "ana" ? "Ana gündem" : "Yan gündem"}
-        className={cn(
-          "rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors",
-          g.oncelik === "ana"
-            ? "bg-primary/15 text-primary hover:bg-primary/25"
-            : "bg-muted text-muted-foreground hover:bg-muted/70",
-        )}
-      >
-        {g.oncelik === "ana" ? "Ana" : "Yan"}
-      </button>
-
-      {/* Sorumlular */}
-      <SorumluSecici
-        secili={g.sorumlu_ids}
-        onChange={(ids) => sorumluAyarlaM.mutate({ gundem_id: g.id, sorumlu_ids: ids })}
-        align="end"
-        trigger={
-          <button
-            type="button"
-            className="flex items-center -space-x-1.5 rounded px-1 py-0.5 hover:bg-accent"
-          >
-            {g.sorumlu_ids.length === 0 ? (
-              <span className="text-[10px] text-muted-foreground">+ Ata</span>
-            ) : (
-              g.sorumlu_ids.slice(0, 3).map((id) => {
-                const k = kisiler.find((x) => x.id === id);
-                if (!k) return null;
-                return (
-                  <Avatar key={id} className="h-5 w-5 border border-card">
-                    <AvatarFallback className="bg-muted text-[8px]">
-                      {k.ad.split(" ").map((p) => p[0]).join("").slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-                );
-              })
-            )}
-            {g.sorumlu_ids.length > 3 && (
-              <span className="ml-1 text-[10px] text-muted-foreground">
-                +{g.sorumlu_ids.length - 3}
+        />
+        {(g.etiketler.length > 0 || g.yorum_sayisi > 0) && (
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 px-1.5 text-[10px] text-muted-foreground">
+            {g.etiketler.map((e) => (
+              <Badge key={e} variant="secondary" className="px-1 py-0 text-[9px]">
+                {e}
+              </Badge>
+            ))}
+            {g.yorum_sayisi > 0 && (
+              <span className="flex items-center gap-0.5">
+                <MessageSquare className="h-3 w-3" /> {g.yorum_sayisi}
               </span>
             )}
-          </button>
-        }
-      />
-
-      {/* Deadline */}
-      <input
-        type="date"
-        value={g.deadline ?? ""}
-        onChange={(e) =>
-          guncelle.mutate({ id: g.id, deadline: e.target.value || null })
-        }
-        className={cn(
-          "h-7 rounded border border-border bg-transparent px-1.5 text-[11px] tabular-nums",
-          geciken && "border-destructive text-destructive",
+          </div>
         )}
-      />
+      </TableCell>
 
-      {/* Durum */}
-      <Select
-        value={g.durum}
-        onValueChange={(v) => guncelle.mutate({ id: g.id, durum: v as GundemDurum })}
-      >
-        <SelectTrigger className="h-7 w-28 px-2 text-[11px]">
-          <span className="flex items-center gap-1.5">
-            <span className={cn("h-1.5 w-1.5 rounded-full", durum.renk)} />
-            {durum.ad}
-          </span>
-        </SelectTrigger>
-        <SelectContent>
-          {GUNDEM_DURUMLAR.map((d) => (
-            <SelectItem key={d.id} value={d.id}>
-              {d.ad}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+      <TableCell className="align-top">
+        <Textarea
+          value={karar}
+          onChange={(e) => setKarar(e.target.value)}
+          onBlur={() => {
+            const v = karar.trim();
+            const cur = g.karar ?? "";
+            if (v !== cur) guncelle.mutate({ id: g.id, karar: v || null });
+          }}
+          rows={1}
+          placeholder="—"
+          className="min-h-[32px] resize-none border-0 bg-transparent px-1.5 py-1 text-sm shadow-none focus-visible:ring-1"
+        />
+      </TableCell>
+
+      <TableCell className="align-top">
+        <input
+          type="date"
+          value={g.deadline ?? ""}
+          onChange={(e) =>
+            guncelle.mutate({ id: g.id, deadline: e.target.value || null })
+          }
+          className={cn(
+            "h-8 w-full rounded border border-transparent bg-transparent px-1.5 text-[12px] tabular-nums hover:border-border focus:border-primary focus:outline-none",
+            geciken && "text-destructive",
+          )}
+        />
+      </TableCell>
+
+      <TableCell className="align-top">
+        <Textarea
+          value={sonuc}
+          onChange={(e) => setSonuc(e.target.value)}
+          onBlur={() => {
+            const v = sonuc.trim();
+            const cur = g.sonuc ?? "";
+            if (v !== cur) guncelle.mutate({ id: g.id, sonuc: v || null });
+          }}
+          rows={1}
+          placeholder="—"
+          className="min-h-[32px] resize-none border-0 bg-transparent px-1.5 py-1 text-sm shadow-none focus-visible:ring-1"
+        />
+      </TableCell>
+
+      <TableCell className="align-top">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-[10px] text-muted-foreground"
+          onClick={onAc}
+        >
+          Detay
+        </Button>
+      </TableCell>
+    </TableRow>
   );
 }
