@@ -72,6 +72,7 @@ export type Gundem = {
   icerik: string;
   karar: string | null;
   deadline: string | null;
+  sonuc: string | null;
   durum: GundemDurum;
   oncelik: GundemOncelik;
   etiketler: string[];
