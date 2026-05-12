@@ -19,6 +19,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -296,21 +304,33 @@ function IstisareDetay() {
       </div>
 
       {/* Gündem tablosu */}
-      <div className="rounded-xl border border-border bg-card/50 p-2">
+      <div className="rounded-xl border border-border bg-card/50 overflow-hidden">
         {gundemler.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
             Henüz gündem yok. Yukarıdaki kutudan toplu olarak ekle.
           </div>
         ) : (
-          <div className="flex flex-col">
-            {gundemler.map((g) => (
-              <GundemSatir
-                key={g.id}
-                g={g}
-                onAc={() => setSeciliGundem(g)}
-              />
-            ))}
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10"></TableHead>
+                <TableHead className="min-w-[200px]">Gündem</TableHead>
+                <TableHead className="min-w-[180px]">Karar</TableHead>
+                <TableHead className="w-[140px]">Deadline</TableHead>
+                <TableHead className="min-w-[180px]">Sonuç</TableHead>
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {gundemler.map((g) => (
+                <GundemSatir
+                  key={g.id}
+                  g={g}
+                  onAc={() => setSeciliGundem(g)}
+                />
+              ))}
+            </TableBody>
+          </Table>
         )}
       </div>
 
