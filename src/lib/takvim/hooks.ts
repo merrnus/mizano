@@ -47,8 +47,9 @@ export function useTakvimler() {
 
   React.useEffect(() => {
     if (!user) return;
+    const isim = `takvim-rt-${user.id}-${Math.random().toString(36).slice(2)}`;
     const kanal = supabase
-      .channel("takvim-rt")
+      .channel(isim)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "takvim" },
@@ -123,8 +124,9 @@ export function useEtkinlikler() {
 
   React.useEffect(() => {
     if (!user) return;
+    const isim = `etkinlik-rt-${user.id}-${Math.random().toString(36).slice(2)}`;
     const kanal = supabase
-      .channel("etkinlik-rt")
+      .channel(isim)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "takvim_etkinlik" },
