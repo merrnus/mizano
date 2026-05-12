@@ -31,8 +31,9 @@ export function useEtkinlikler(_from?: Date, _to?: Date) {
   });
   React.useEffect(() => {
     if (!user) return;
+    const isim = `etkinlikler-rt-${user.id}-${Math.random().toString(36).slice(2)}`;
     const k = supabase
-      .channel("etkinlikler-rt")
+      .channel(isim)
       .on("postgres_changes", { event: "*", schema: "public", table: "takvim_etkinlik" }, () =>
         qc.invalidateQueries({ queryKey: ["etkinlikler"] }),
       )
@@ -59,8 +60,9 @@ export function useGorevler(_from?: Date, _to?: Date) {
   });
   React.useEffect(() => {
     if (!user) return;
+    const isim = `gorevler-rt-${user.id}-${Math.random().toString(36).slice(2)}`;
     const k = supabase
-      .channel("gorevler-rt")
+      .channel(isim)
       .on("postgres_changes", { event: "*", schema: "public", table: "takvim_gorev" }, () =>
         qc.invalidateQueries({ queryKey: ["gorevler"] }),
       )
