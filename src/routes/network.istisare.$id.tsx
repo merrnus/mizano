@@ -16,7 +16,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -60,13 +59,9 @@ import {
   useGundemTopluEkle,
   useGundemGuncelle,
   useGundemTasi,
-  useKisiler,
-  useGundemSorumluAyarla,
 } from "@/lib/network-hooks";
-import { GUNDEM_DURUMLAR } from "@/lib/network-tipleri";
-import type { GundemDetay, GundemDurum, GundemOncelik } from "@/lib/network-tipleri";
+import type { GundemDetay } from "@/lib/network-tipleri";
 import { GundemDetaySheet } from "@/components/mizan/network/gundem-detay-sheet";
-import { SorumluSecici } from "@/components/mizan/network/sorumlu-secici";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
