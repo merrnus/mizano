@@ -1,0 +1,1 @@
+ALTER TABLE public.gundem ADD COLUMN IF NOT EXISTS sonuc text;
