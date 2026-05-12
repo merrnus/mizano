@@ -9,11 +9,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
-import { GundemlerTab } from "@/components/mizan/network/gundemler-tab";
 import { KisilerTab } from "@/components/mizan/network/kisiler-tab";
 import { IstisarelerTab } from "@/components/mizan/network/istisareler-tab";
 
-type TabKey = "kisiler" | "istisareler" | "gundemler";
+type TabKey = "kisiler" | "istisareler";
 type NetworkSearch = { tab?: TabKey };
 
 export const Route = createFileRoute("/network")({
@@ -28,14 +27,10 @@ export const Route = createFileRoute("/network")({
   }),
   validateSearch: (s: Record<string, unknown>): NetworkSearch => {
     const t = s.tab;
-    if (
-      t === "gundemler" ||
-      t === "istisareler" ||
-      t === "kisiler"
-    ) {
+    if (t === "istisareler" || t === "kisiler") {
       return { tab: t };
     }
-    return { tab: "gundemler" };
+    return { tab: "istisareler" };
   },
   component: Network,
 });
@@ -52,7 +47,7 @@ function Network() {
     return <Outlet />;
   }
 
-  const tab: TabKey = search.tab ?? "gundemler";
+  const tab: TabKey = search.tab ?? "istisareler";
   const setTab = (v: TabKey) => {
     navigate({ to: "/network", search: { tab: v }, replace: true });
   };
@@ -89,7 +84,6 @@ function Network() {
         <TabsList className="mb-4">
           <TabsTrigger value="kisiler">Kişiler</TabsTrigger>
           <TabsTrigger value="istisareler">İstişareler</TabsTrigger>
-          <TabsTrigger value="gundemler">Gündemler</TabsTrigger>
         </TabsList>
 
         <TabsContent value="kisiler">
@@ -97,9 +91,6 @@ function Network() {
         </TabsContent>
         <TabsContent value="istisareler">
           <IstisarelerTab />
-        </TabsContent>
-        <TabsContent value="gundemler">
-          <GundemlerTab />
         </TabsContent>
       </Tabs>
     </div>

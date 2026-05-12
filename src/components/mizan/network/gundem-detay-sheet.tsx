@@ -57,6 +57,7 @@ export function GundemDetaySheet({
   const [silAcik, setSilAcik] = React.useState(false);
   const [icerik, setIcerik] = React.useState("");
   const [karar, setKarar] = React.useState("");
+  const [sonuc, setSonuc] = React.useState("");
   const [deadline, setDeadline] = React.useState("");
   const [etiketGiris, setEtiketGiris] = React.useState("");
   const [etiketler, setEtiketler] = React.useState<string[]>([]);
@@ -72,6 +73,7 @@ export function GundemDetaySheet({
     if (gundem) {
       setIcerik(gundem.icerik);
       setKarar(gundem.karar ?? "");
+      setSonuc(gundem.sonuc ?? "");
       setDeadline(gundem.deadline ?? "");
       setEtiketler(gundem.etiketler);
       setSorumluIds(gundem.sorumlu_ids);
@@ -86,6 +88,7 @@ export function GundemDetaySheet({
         id: gundem.id,
         icerik: icerik.trim() || gundem.icerik,
         karar: karar || null,
+        sonuc: sonuc || null,
         deadline: deadline || null,
         etiketler,
       }),
@@ -130,7 +133,16 @@ export function GundemDetaySheet({
                   value={karar}
                   onChange={(e) => setKarar(e.target.value)}
                   rows={2}
-                  placeholder="Alınan karar / sonuç…"
+                  placeholder="Alınan karar…"
+                />
+              </Field>
+
+              <Field label="Sonuç">
+                <Textarea
+                  value={sonuc}
+                  onChange={(e) => setSonuc(e.target.value)}
+                  rows={2}
+                  placeholder="Uygulama sonucu / çıktı…"
                 />
               </Field>
 

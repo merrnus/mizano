@@ -728,6 +728,7 @@ export type Database = {
           karar: string | null
           oncelik: Database["public"]["Enums"]["gundem_oncelik"]
           siralama: number
+          sonuc: string | null
           tamamlanma: string | null
           updated_at: string
           user_id: string
@@ -743,6 +744,7 @@ export type Database = {
           karar?: string | null
           oncelik?: Database["public"]["Enums"]["gundem_oncelik"]
           siralama?: number
+          sonuc?: string | null
           tamamlanma?: string | null
           updated_at?: string
           user_id: string
@@ -758,6 +760,7 @@ export type Database = {
           karar?: string | null
           oncelik?: Database["public"]["Enums"]["gundem_oncelik"]
           siralama?: number
+          sonuc?: string | null
           tamamlanma?: string | null
           updated_at?: string
           user_id?: string
