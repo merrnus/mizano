@@ -66,9 +66,7 @@ function TakvimSayfa() {
   const [diyBit, setDiyBit] = React.useState<Date | undefined>();
   const [diyTumGun, setDiyTumGun] = React.useState(false);
 
-  React.useEffect(() => {
-    if (mobil && gorunum === "hafta") setGorunum("gun");
-  }, [mobil]); // eslint-disable-line
+  // Mobilde haftalık görünümü zorla güne düşürme — kullanıcı isterse görsün.
 
   const gorunurMap = React.useMemo(() => {
     const x: Record<string, boolean> = {};
@@ -241,11 +239,9 @@ function TakvimSayfa() {
     <div className="flex h-svh flex-col bg-background">
       <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-border bg-card px-2 md:gap-2 md:px-3">
         <Link to="/" className="text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /></Link>
-        {mobil ? (
-          <Button variant="ghost" size="icon" onClick={() => setYanSheet(true)} aria-label="Menü"><Menu className="h-5 w-5" /></Button>
-        ) : (
-          <CalIcon className="h-5 w-5 text-primary" />
-        )}
+        {/* Hamburger menü düğmesi sadece sidebar gizliyken (mobile + tablet) görünür */}
+        <Button variant="ghost" size="icon" onClick={() => setYanSheet(true)} aria-label="Menü" className="md:hidden"><Menu className="h-5 w-5" /></Button>
+        <CalIcon className="hidden h-5 w-5 text-primary md:block" />
         <Button variant="outline" size="sm" onClick={bugun} className="ml-0.5 px-2 text-xs md:px-3 md:text-sm">Bugün</Button>
         <Button variant="ghost" size="icon" onClick={geri}><ChevronLeft className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" onClick={ileri}><ChevronRight className="h-4 w-4" /></Button>
@@ -271,17 +267,15 @@ function TakvimSayfa() {
               )}
             </PopoverContent>
           </Popover>
-          {!mobil && (
-            <Select value={gorunum} onValueChange={(v) => setGorunum(v as Gorunum)}>
-              <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gun">Gün</SelectItem>
-                <SelectItem value="hafta">Hafta</SelectItem>
-                <SelectItem value="ay">Ay</SelectItem>
-                <SelectItem value="yil">Yıl</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
+          <Select value={gorunum} onValueChange={(v) => setGorunum(v as Gorunum)}>
+            <SelectTrigger className="h-8 w-20 md:w-24"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gun">Gün</SelectItem>
+              <SelectItem value="hafta">Hafta</SelectItem>
+              <SelectItem value="ay">Ay</SelectItem>
+              <SelectItem value="yil">Yıl</SelectItem>
+            </SelectContent>
+          </Select>
           {!mobil && <Button size="sm" onClick={() => yeniEtkinlik(ankara)}><Plus className="mr-1 h-4 w-4" />Oluştur</Button>}
           <Popover>
             <PopoverTrigger asChild><Button variant="ghost" size="icon"><Settings className="h-4 w-4" /></Button></PopoverTrigger>
@@ -334,9 +328,9 @@ function TakvimSayfa() {
       </div>
 
       {mobil && (
-        <nav className="grid shrink-0 grid-cols-5 border-t border-border bg-card">
+        <nav className="grid shrink-0 grid-cols-6 border-t border-border bg-card">
           {([
-            ["gun", "Gün"], ["ay", "Ay"], ["yil", "Yıl"],
+            ["gun", "Gün"], ["hafta", "Hafta"], ["ay", "Ay"], ["yil", "Yıl"],
           ] as Array<[Gorunum, string]>).map(([v, e]) => (
             <button key={v} onClick={() => setGorunum(v)} className={cn("py-2 text-xs font-medium", gorunum === v ? "text-primary" : "text-muted-foreground")}>{e}</button>
           ))}
