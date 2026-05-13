@@ -30,6 +30,7 @@ import { TAKVIM_RENKLERI, rengiBul } from "@/lib/takvim/renkler";
 import { disaAktar, indir, iceAktar } from "@/lib/takvim/ics";
 import { useAuth } from "@/lib/auth-context";
 import { EtkinlikDialog } from "@/components/takvim/etkinlik-dialog";
+import { EtkinlikHizliPopover } from "@/components/mizan/takvim/etkinlik-hizli-popover";
 import type { Etkinlik, EtkinlikOlay, Gorunum, Takvim } from "@/lib/takvim/tipler";
 import { toast } from "sonner";
 
@@ -56,7 +57,7 @@ function TakvimSayfa() {
   const m = useEtkinlikMutasyonlari();
   const mobil = useMedya("(max-width: 767px)");
 
-  const [gorunum, setGorunum] = React.useState<Gorunum>("ay");
+  const [gorunum, setGorunum] = React.useState<Gorunum>("hafta");
   const [ankara, setAnkara] = React.useState(new Date());
   const [arama, setArama] = React.useState("");
   const [yanSheet, setYanSheet] = React.useState(false);
@@ -65,6 +66,7 @@ function TakvimSayfa() {
   const [diyBas, setDiyBas] = React.useState<Date | undefined>();
   const [diyBit, setDiyBit] = React.useState<Date | undefined>();
   const [diyTumGun, setDiyTumGun] = React.useState(false);
+  const [hizli, setHizli] = React.useState<{ olay: EtkinlikOlay; rect: { x: number; y: number; width: number; height: number } } | null>(null);
 
   // Mobilde haftalık görünümü zorla güne düşürme — kullanıcı isterse görsün.
 
@@ -130,6 +132,15 @@ function TakvimSayfa() {
     setDiyBas(undefined); setDiyBit(undefined); setDiyTumGun(false);
     setDiyAcik(true);
   };
+
+  const olayHizli = (o: EtkinlikOlay, ev: React.MouseEvent) => {
+    const el = ev.currentTarget as HTMLElement;
+    const r = el.getBoundingClientRect();
+    setHizli({ olay: o, rect: { x: r.left, y: r.top, width: r.width, height: r.height } });
+  };
+  const hizliKapatVeDuzenle = (e: Etkinlik) => { setHizli(null); olayDuzenle(e); };
+  const hizliKapatVeCogalt = async (e: Etkinlik) => { setHizli(null); await olayCogalt(e); };
+  const hizliKapatVeSil = async (e: Etkinlik) => { setHizli(null); await olaySil(e); };
 
   const olayCogalt = async (e: Etkinlik) => {
     await m.ekle.mutateAsync({
@@ -303,14 +314,15 @@ function TakvimSayfa() {
         </Sheet>
 
         <main className="min-w-0 flex-1 overflow-hidden" onTouchStart={swipeBaslat} onTouchEnd={swipeBitir}>
-          {gorunum === "ay" && <AyGorunumu ankara={ankara} olaylar={olaylar} takvimler={takvimler} onGunClick={(g) => yeniEtkinlik(new Date(g.getFullYear(), g.getMonth(), g.getDate(), 9, 0), undefined, false)} onOlayClick={olayDuzenle} onOlayCogalt={olayCogalt} onOlaySil={olaySil} onOlayRenk={olayRenkDegistir} />}
+          {gorunum === "ay" && <AyGorunumu ankara={ankara} olaylar={olaylar} takvimler={takvimler} onGunClick={(g) => yeniEtkinlik(new Date(g.getFullYear(), g.getMonth(), g.getDate(), 9, 0), undefined, false)} onOlayClick={olayHizli} onOlayDuzenle={olayDuzenle} onOlayCogalt={olayCogalt} onOlaySil={olaySil} onOlayRenk={olayRenkDegistir} />}
           {(gorunum === "hafta" || gorunum === "gun") && (
             <HaftaGorunumu
               gunler={gorunum === "gun" ? [ankara] : Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(ankara, { weekStartsOn: 1 }), i))}
               olaylar={olaylar}
               takvimler={takvimler}
               onAralikSec={(b, bi) => yeniEtkinlik(b, bi, false)}
-              onOlayClick={olayDuzenle}
+              onOlayClick={olayHizli}
+              onOlayDuzenle={olayDuzenle}
               onOlayCogalt={olayCogalt}
               onOlaySil={olaySil}
               onOlayRenk={olayRenkDegistir}
@@ -340,6 +352,14 @@ function TakvimSayfa() {
       )}
 
       <EtkinlikDialog acik={diyAcik} onOpenChange={setDiyAcik} duzenle={duzenle} baslangic={diyBas} bitis={diyBit} tumGun={diyTumGun} takvimler={takvimler} />
+      <EtkinlikHizliPopover
+        hizli={hizli}
+        onOpenChange={(o) => { if (!o) setHizli(null); }}
+        takvimler={takvimler}
+        onDuzenle={hizliKapatVeDuzenle}
+        onCogalt={hizliKapatVeCogalt}
+        onSil={hizliKapatVeSil}
+      />
     </div>
   );
 }
