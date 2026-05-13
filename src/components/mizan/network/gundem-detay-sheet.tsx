@@ -1,16 +1,13 @@
 import * as React from "react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
-import { Calendar as CalIcon, MessageSquare, Trash2, X, Send } from "lucide-react";
+import { Calendar as CalIcon, MessageSquare, Trash2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -35,15 +32,12 @@ import {
 import {
   useGundemGuncelle,
   useGundemSil,
-  useGundemSorumluAyarla,
   useGundemYorumlar,
   useGundemYorumEkle,
   useGundemYorumSil,
-  useKisiler,
 } from "@/lib/network-hooks";
 import { GUNDEM_DURUMLAR } from "@/lib/network-tipleri";
 import type { GundemDetay } from "@/lib/network-tipleri";
-import { SorumluSecici } from "./sorumlu-secici";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -59,15 +53,9 @@ export function GundemDetaySheet({
   const [karar, setKarar] = React.useState("");
   const [sonuc, setSonuc] = React.useState("");
   const [deadline, setDeadline] = React.useState("");
-  const [etiketGiris, setEtiketGiris] = React.useState("");
-  const [etiketler, setEtiketler] = React.useState<string[]>([]);
-  const [sorumlu_ids, setSorumluIds] = React.useState<string[]>([]);
 
   const guncelle = useGundemGuncelle();
-  const sorumluAyarla = useGundemSorumluAyarla();
   const sil = useGundemSil();
-  const kisilerQ = useKisiler();
-  const kisiler = kisilerQ.data ?? [];
 
   React.useEffect(() => {
     if (gundem) {
@@ -75,33 +63,21 @@ export function GundemDetaySheet({
       setKarar(gundem.karar ?? "");
       setSonuc(gundem.sonuc ?? "");
       setDeadline(gundem.deadline ?? "");
-      setEtiketler(gundem.etiketler);
-      setSorumluIds(gundem.sorumlu_ids);
     }
   }, [gundem?.id]);
 
   if (!gundem) return null;
 
   const kaydet = async () => {
-    await Promise.all([
-      guncelle.mutateAsync({
-        id: gundem.id,
-        icerik: icerik.trim() || gundem.icerik,
-        karar: karar || null,
-        sonuc: sonuc || null,
-        deadline: deadline || null,
-        etiketler,
-      }),
-      sorumluAyarla.mutateAsync({ gundem_id: gundem.id, sorumlu_ids }),
-    ]);
+    await guncelle.mutateAsync({
+      id: gundem.id,
+      icerik: icerik.trim() || gundem.icerik,
+      karar: karar || null,
+      sonuc: sonuc || null,
+      deadline: deadline || null,
+    });
     toast.success("Kaydedildi");
     onClose();
-  };
-
-  const etiketEkle = () => {
-    const t = etiketGiris.trim();
-    if (t && !etiketler.includes(t)) setEtiketler([...etiketler, t]);
-    setEtiketGiris("");
   };
 
   return (
@@ -110,7 +86,6 @@ export function GundemDetaySheet({
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>Gündem</SheetTitle>
-            <SheetDescription className="line-clamp-2">{gundem.icerik}</SheetDescription>
           </SheetHeader>
 
           <Tabs defaultValue="detay" className="mt-4">
@@ -174,92 +149,6 @@ export function GundemDetaySheet({
                   </Select>
                 </Field>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Öncelik">
-                  <Select
-                    value={gundem.oncelik}
-                    onValueChange={(v) =>
-                      guncelle.mutate({ id: gundem.id, oncelik: v as "ana" | "yan" })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ana">Ana gündem</SelectItem>
-                      <SelectItem value="yan">Yan gündem</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-
-              <Field label="Sorumlular">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {sorumlu_ids.map((id) => {
-                    const k = kisiler.find((x) => x.id === id);
-                    if (!k) return null;
-                    return (
-                      <span
-                        key={id}
-                        className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs"
-                      >
-                        <Avatar className="h-4 w-4">
-                          <AvatarFallback className="bg-muted text-[8px]">
-                            {k.ad.split(" ").map((p) => p[0]).join("").slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        {k.ad}
-                        <button
-                          type="button"
-                          onClick={() => setSorumluIds(sorumlu_ids.filter((s) => s !== id))}
-                          className="ml-0.5 text-muted-foreground hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    );
-                  })}
-                  <SorumluSecici
-                    secili={sorumlu_ids}
-                    onChange={setSorumluIds}
-                    trigger={
-                      <Button size="sm" variant="outline" className="h-7 gap-1 text-xs">
-                        + Sorumlu
-                      </Button>
-                    }
-                  />
-                </div>
-              </Field>
-
-              <Field label="Etiketler">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {etiketler.map((e) => (
-                    <Badge key={e} variant="secondary" className="gap-1">
-                      {e}
-                      <button
-                        type="button"
-                        onClick={() => setEtiketler(etiketler.filter((x) => x !== e))}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                  <Input
-                    value={etiketGiris}
-                    onChange={(e) => setEtiketGiris(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        etiketEkle();
-                      }
-                    }}
-                    placeholder="Etiket + Enter"
-                    className="h-7 w-32 text-xs"
-                  />
-                </div>
-              </Field>
 
               <div className="flex items-center gap-1.5 rounded-md bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                 <CalIcon className="h-3.5 w-3.5" />
