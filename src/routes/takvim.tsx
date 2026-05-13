@@ -629,7 +629,8 @@ function AyGorunumu({ ankara, olaylar, takvimler, onGunClick, onOlayClick, onOla
 type HaftaProps = {
   gunler: Date[]; olaylar: EtkinlikOlay[]; takvimler: Takvim[];
   onAralikSec: (b: Date, bi: Date) => void;
-  onOlayClick: (e: Etkinlik) => void;
+  onOlayClick: (o: EtkinlikOlay, ev: React.MouseEvent) => void;
+  onOlayDuzenle: (e: Etkinlik) => void;
   onOlayCogalt: (e: Etkinlik) => void;
   onOlaySil: (e: Etkinlik) => void;
   onOlayRenk: (e: Etkinlik, r: string | null) => void;
@@ -637,7 +638,7 @@ type HaftaProps = {
   onResize: (o: EtkinlikOlay, yeniBitis: Date) => void;
 };
 
-function HaftaGorunumu({ gunler, olaylar, takvimler, onAralikSec, onOlayClick, onOlayCogalt, onOlaySil, onOlayRenk, onMove, onResize }: HaftaProps) {
+function HaftaGorunumu({ gunler, olaylar, takvimler, onAralikSec, onOlayClick, onOlayDuzenle, onOlayCogalt, onOlaySil, onOlayRenk, onMove, onResize }: HaftaProps) {
   const today = new Date();
   const [now, setNow] = React.useState(new Date());
   React.useEffect(() => {
@@ -680,8 +681,8 @@ function HaftaGorunumu({ gunler, olaylar, takvimler, onAralikSec, onOlayClick, o
               return (
                 <div key={g.toISOString()} className="border-l border-border p-0.5">
                   {ogun.map((o, i) => (
-                    <OlayMenu key={o.id + i} olay={o} onDuzenle={onOlayClick} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
-                      <button onClick={() => onOlayClick(o)} className="mb-0.5 block w-full truncate rounded px-1 py-0.5 text-left text-[10px] text-white" style={{ background: rengiBul(o.renk ?? takvimler.find((t) => t.id === o.takvim_id)?.renk) }}>
+                    <OlayMenu key={o.id + i} olay={o} onDuzenle={onOlayDuzenle} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
+                      <button onClick={(e) => onOlayClick(o, e)} className="mb-0.5 block w-full truncate rounded px-1 py-0.5 text-left text-[10px] text-white" style={{ background: rengiBul(o.renk ?? takvimler.find((t) => t.id === o.takvim_id)?.renk) }}>
                         {o.baslik}
                       </button>
                     </OlayMenu>
@@ -722,6 +723,7 @@ function HaftaGorunumu({ gunler, olaylar, takvimler, onAralikSec, onOlayClick, o
               isToday={isSameDay(g, today)}
               onAralikSec={onAralikSec}
               onOlayClick={onOlayClick}
+              onOlayDuzenle={onOlayDuzenle}
               onOlayCogalt={onOlayCogalt}
               onOlaySil={onOlaySil}
               onOlayRenk={onOlayRenk}
