@@ -30,6 +30,7 @@ import { TAKVIM_RENKLERI, rengiBul } from "@/lib/takvim/renkler";
 import { disaAktar, indir, iceAktar } from "@/lib/takvim/ics";
 import { useAuth } from "@/lib/auth-context";
 import { EtkinlikDialog } from "@/components/takvim/etkinlik-dialog";
+import { EtkinlikHizliPopover } from "@/components/mizan/takvim/etkinlik-hizli-popover";
 import type { Etkinlik, EtkinlikOlay, Gorunum, Takvim } from "@/lib/takvim/tipler";
 import { toast } from "sonner";
 
@@ -56,7 +57,7 @@ function TakvimSayfa() {
   const m = useEtkinlikMutasyonlari();
   const mobil = useMedya("(max-width: 767px)");
 
-  const [gorunum, setGorunum] = React.useState<Gorunum>("ay");
+  const [gorunum, setGorunum] = React.useState<Gorunum>("hafta");
   const [ankara, setAnkara] = React.useState(new Date());
   const [arama, setArama] = React.useState("");
   const [yanSheet, setYanSheet] = React.useState(false);
@@ -65,6 +66,7 @@ function TakvimSayfa() {
   const [diyBas, setDiyBas] = React.useState<Date | undefined>();
   const [diyBit, setDiyBit] = React.useState<Date | undefined>();
   const [diyTumGun, setDiyTumGun] = React.useState(false);
+  const [hizli, setHizli] = React.useState<{ olay: EtkinlikOlay; rect: { x: number; y: number; width: number; height: number } } | null>(null);
 
   // Mobilde haftalık görünümü zorla güne düşürme — kullanıcı isterse görsün.
 
@@ -130,6 +132,15 @@ function TakvimSayfa() {
     setDiyBas(undefined); setDiyBit(undefined); setDiyTumGun(false);
     setDiyAcik(true);
   };
+
+  const olayHizli = (o: EtkinlikOlay, ev: React.MouseEvent) => {
+    const el = ev.currentTarget as HTMLElement;
+    const r = el.getBoundingClientRect();
+    setHizli({ olay: o, rect: { x: r.left, y: r.top, width: r.width, height: r.height } });
+  };
+  const hizliKapatVeDuzenle = (e: Etkinlik) => { setHizli(null); olayDuzenle(e); };
+  const hizliKapatVeCogalt = async (e: Etkinlik) => { setHizli(null); await olayCogalt(e); };
+  const hizliKapatVeSil = async (e: Etkinlik) => { setHizli(null); await olaySil(e); };
 
   const olayCogalt = async (e: Etkinlik) => {
     await m.ekle.mutateAsync({
@@ -303,14 +314,15 @@ function TakvimSayfa() {
         </Sheet>
 
         <main className="min-w-0 flex-1 overflow-hidden" onTouchStart={swipeBaslat} onTouchEnd={swipeBitir}>
-          {gorunum === "ay" && <AyGorunumu ankara={ankara} olaylar={olaylar} takvimler={takvimler} onGunClick={(g) => yeniEtkinlik(new Date(g.getFullYear(), g.getMonth(), g.getDate(), 9, 0), undefined, false)} onOlayClick={olayDuzenle} onOlayCogalt={olayCogalt} onOlaySil={olaySil} onOlayRenk={olayRenkDegistir} />}
+          {gorunum === "ay" && <AyGorunumu ankara={ankara} olaylar={olaylar} takvimler={takvimler} onGunClick={(g) => yeniEtkinlik(new Date(g.getFullYear(), g.getMonth(), g.getDate(), 9, 0), undefined, false)} onOlayClick={olayHizli} onOlayDuzenle={olayDuzenle} onOlayCogalt={olayCogalt} onOlaySil={olaySil} onOlayRenk={olayRenkDegistir} />}
           {(gorunum === "hafta" || gorunum === "gun") && (
             <HaftaGorunumu
               gunler={gorunum === "gun" ? [ankara] : Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(ankara, { weekStartsOn: 1 }), i))}
               olaylar={olaylar}
               takvimler={takvimler}
               onAralikSec={(b, bi) => yeniEtkinlik(b, bi, false)}
-              onOlayClick={olayDuzenle}
+              onOlayClick={olayHizli}
+              onOlayDuzenle={olayDuzenle}
               onOlayCogalt={olayCogalt}
               onOlaySil={olaySil}
               onOlayRenk={olayRenkDegistir}
@@ -340,6 +352,14 @@ function TakvimSayfa() {
       )}
 
       <EtkinlikDialog acik={diyAcik} onOpenChange={setDiyAcik} duzenle={duzenle} baslangic={diyBas} bitis={diyBit} tumGun={diyTumGun} takvimler={takvimler} />
+      <EtkinlikHizliPopover
+        hizli={hizli}
+        onOpenChange={(o) => { if (!o) setHizli(null); }}
+        takvimler={takvimler}
+        onDuzenle={hizliKapatVeDuzenle}
+        onCogalt={hizliKapatVeCogalt}
+        onSil={hizliKapatVeSil}
+      />
     </div>
   );
 }
@@ -486,13 +506,14 @@ function OlayMenu({ olay, onDuzenle, onCogalt, onSil, onRenk, children }: {
 type AyProps = {
   ankara: Date; olaylar: EtkinlikOlay[]; takvimler: Takvim[];
   onGunClick: (d: Date) => void;
-  onOlayClick: (e: Etkinlik) => void;
+  onOlayClick: (o: EtkinlikOlay, ev: React.MouseEvent) => void;
+  onOlayDuzenle: (e: Etkinlik) => void;
   onOlayCogalt: (e: Etkinlik) => void;
   onOlaySil: (e: Etkinlik) => void;
   onOlayRenk: (e: Etkinlik, r: string | null) => void;
 };
 
-function AyGorunumu({ ankara, olaylar, takvimler, onGunClick, onOlayClick, onOlayCogalt, onOlaySil, onOlayRenk }: AyProps) {
+function AyGorunumu({ ankara, olaylar, takvimler, onGunClick, onOlayClick, onOlayDuzenle, onOlayCogalt, onOlaySil, onOlayRenk }: AyProps) {
   const ab = startOfMonth(ankara), ae = endOfMonth(ankara);
   const gb = startOfWeek(ab, { weekStartsOn: 1 });
   const ge = endOfWeek(ae, { weekStartsOn: 1 });
@@ -580,9 +601,9 @@ function AyGorunumu({ ankara, olaylar, takvimler, onGunClick, onOlayClick, onOla
                   const w = (s.bitCol - s.baslaCol + 1) / 7;
                   const left = (s.baslaCol / 7) * 100;
                   return (
-                    <OlayMenu key={i} olay={s.olay} onDuzenle={onOlayClick} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
+                    <OlayMenu key={i} olay={s.olay} onDuzenle={onOlayDuzenle} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
                       <button
-                        onClick={(e) => { e.stopPropagation(); onOlayClick(s.olay); }}
+                        onClick={(e) => { e.stopPropagation(); onOlayClick(s.olay, e); }}
                         className={cn(
                           "pointer-events-auto absolute mx-0.5 truncate px-1.5 py-0.5 text-left text-[10px] text-white",
                           s.soldevam ? "rounded-l-none" : "rounded-l",
@@ -608,7 +629,8 @@ function AyGorunumu({ ankara, olaylar, takvimler, onGunClick, onOlayClick, onOla
 type HaftaProps = {
   gunler: Date[]; olaylar: EtkinlikOlay[]; takvimler: Takvim[];
   onAralikSec: (b: Date, bi: Date) => void;
-  onOlayClick: (e: Etkinlik) => void;
+  onOlayClick: (o: EtkinlikOlay, ev: React.MouseEvent) => void;
+  onOlayDuzenle: (e: Etkinlik) => void;
   onOlayCogalt: (e: Etkinlik) => void;
   onOlaySil: (e: Etkinlik) => void;
   onOlayRenk: (e: Etkinlik, r: string | null) => void;
@@ -616,7 +638,7 @@ type HaftaProps = {
   onResize: (o: EtkinlikOlay, yeniBitis: Date) => void;
 };
 
-function HaftaGorunumu({ gunler, olaylar, takvimler, onAralikSec, onOlayClick, onOlayCogalt, onOlaySil, onOlayRenk, onMove, onResize }: HaftaProps) {
+function HaftaGorunumu({ gunler, olaylar, takvimler, onAralikSec, onOlayClick, onOlayDuzenle, onOlayCogalt, onOlaySil, onOlayRenk, onMove, onResize }: HaftaProps) {
   const today = new Date();
   const [now, setNow] = React.useState(new Date());
   React.useEffect(() => {
@@ -659,8 +681,8 @@ function HaftaGorunumu({ gunler, olaylar, takvimler, onAralikSec, onOlayClick, o
               return (
                 <div key={g.toISOString()} className="border-l border-border p-0.5">
                   {ogun.map((o, i) => (
-                    <OlayMenu key={o.id + i} olay={o} onDuzenle={onOlayClick} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
-                      <button onClick={() => onOlayClick(o)} className="mb-0.5 block w-full truncate rounded px-1 py-0.5 text-left text-[10px] text-white" style={{ background: rengiBul(o.renk ?? takvimler.find((t) => t.id === o.takvim_id)?.renk) }}>
+                    <OlayMenu key={o.id + i} olay={o} onDuzenle={onOlayDuzenle} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
+                      <button onClick={(e) => onOlayClick(o, e)} className="mb-0.5 block w-full truncate rounded px-1 py-0.5 text-left text-[10px] text-white" style={{ background: rengiBul(o.renk ?? takvimler.find((t) => t.id === o.takvim_id)?.renk) }}>
                         {o.baslik}
                       </button>
                     </OlayMenu>
@@ -701,6 +723,7 @@ function HaftaGorunumu({ gunler, olaylar, takvimler, onAralikSec, onOlayClick, o
               isToday={isSameDay(g, today)}
               onAralikSec={onAralikSec}
               onOlayClick={onOlayClick}
+              onOlayDuzenle={onOlayDuzenle}
               onOlayCogalt={onOlayCogalt}
               onOlaySil={onOlaySil}
               onOlayRenk={onOlayRenk}
@@ -718,10 +741,11 @@ function pxToDk(y: number) {
   return Math.max(0, Math.min(24 * 60 - 15, Math.floor(y / SAAT_PX * 60 / 15) * 15));
 }
 
-function GunSutun({ gun, olaylar, takvimler, now, isToday, onAralikSec, onOlayClick, onOlayCogalt, onOlaySil, onOlayRenk, onMove, onResize }: {
+function GunSutun({ gun, olaylar, takvimler, now, isToday, onAralikSec, onOlayClick, onOlayDuzenle, onOlayCogalt, onOlaySil, onOlayRenk, onMove, onResize }: {
   gun: Date; olaylar: EtkinlikOlay[]; takvimler: Takvim[]; now: Date; isToday: boolean;
   onAralikSec: (b: Date, bi: Date) => void;
-  onOlayClick: (e: Etkinlik) => void;
+  onOlayClick: (o: EtkinlikOlay, ev: React.MouseEvent) => void;
+  onOlayDuzenle: (e: Etkinlik) => void;
   onOlayCogalt: (e: Etkinlik) => void;
   onOlaySil: (e: Etkinlik) => void;
   onOlayRenk: (e: Etkinlik, r: string | null) => void;
@@ -732,6 +756,7 @@ function GunSutun({ gun, olaylar, takvimler, now, isToday, onAralikSec, onOlayCl
   const ref = React.useRef<HTMLDivElement>(null);
   const [secim, setSecim] = React.useState<{ basDk: number; bitDk: number } | null>(null);
   const secimRef = React.useRef<{ basDk: number; startY: number } | null>(null);
+  const [hayalet, setHayalet] = React.useState<{ basDk: number; sureDk: number; baslik: string; renk: string } | null>(null);
 
   const localY = (clientY: number) => {
     if (!ref.current) return 0;
@@ -779,9 +804,33 @@ function GunSutun({ gun, olaylar, takvimler, now, isToday, onAralikSec, onOlayCl
     e.dataTransfer.setData("application/json", JSON.stringify(yuk));
     e.dataTransfer.setData("text/plain", o.id);
     e.dataTransfer.effectAllowed = "move";
+    // Tarayıcının varsayılan sürükleme hayaletini gizle — kendi önizlememizi göstereceğiz
+    try {
+      const img = new Image();
+      img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+      e.dataTransfer.setDragImage(img, 0, 0);
+    } catch {}
   };
+  const dragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    const json = e.dataTransfer.types.includes("application/json")
+      ? e.dataTransfer.getData("application/json")
+      : "";
+    let veri: any = null;
+    if (json) { try { veri = JSON.parse(json); } catch {} }
+    const dk = pxToDk(localY(e.clientY));
+    if (veri && veri.olayBaslangic && veri.olayBitis) {
+      const sureDk = Math.max(15, Math.round((new Date(veri.olayBitis).getTime() - new Date(veri.olayBaslangic).getTime()) / 60_000));
+      const renk = rengiBul(veri.renk ?? takvimler.find((t) => t.id === veri.takvim_id)?.renk);
+      setHayalet({ basDk: dk, sureDk, baslik: veri.baslik ?? "", renk });
+    } else {
+      setHayalet({ basDk: dk, sureDk: 60, baslik: "", renk: "var(--primary)" });
+    }
+  };
+  const dragLeave = () => setHayalet(null);
   const drop = (e: React.DragEvent) => {
     e.preventDefault();
+    setHayalet(null);
     const json = e.dataTransfer.getData("application/json");
     if (!json || !ref.current) return;
     let veri: any;
@@ -823,7 +872,7 @@ function GunSutun({ gun, olaylar, takvimler, now, isToday, onAralikSec, onOlayCl
   };
 
   return (
-    <div ref={ref} className={cn("relative border-l border-border", isToday && "bg-primary/[0.02]")} onMouseDown={slotBasla} onDragOver={(e) => e.preventDefault()} onDrop={drop} style={{ height: 24 * SAAT_PX }}>
+    <div ref={ref} className={cn("relative border-l border-border", isToday && "bg-primary/[0.02]")} onMouseDown={slotBasla} onDragOver={dragOver} onDragLeave={dragLeave} onDrop={drop} style={{ height: 24 * SAAT_PX }}>
       {Array.from({ length: 24 }, (_, h) => (
         <div key={h} className={cn("border-b border-border", h >= 9 && h < 17 && "bg-accent/10")} style={{ height: SAAT_PX }} />
       ))}
@@ -837,6 +886,25 @@ function GunSutun({ gun, olaylar, takvimler, now, isToday, onAralikSec, onOlayCl
           <div className="px-1 text-[10px] font-medium text-primary">{String(Math.floor(secim.basDk / 60)).padStart(2,"0")}:{String(secim.basDk % 60).padStart(2,"0")} – {String(Math.floor(secim.bitDk / 60)).padStart(2,"0")}:{String(secim.bitDk % 60).padStart(2,"0")}</div>
         </div>
       )}
+      {hayalet && (
+        <div
+          className="pointer-events-none absolute left-0.5 right-0.5 z-30 overflow-hidden rounded border-2 border-dashed text-[10px] text-white shadow-lg"
+          style={{
+            top: (hayalet.basDk / 60) * SAAT_PX,
+            height: Math.max(20, (hayalet.sureDk / 60) * SAAT_PX),
+            background: hayalet.renk,
+            opacity: 0.75,
+            borderColor: "rgba(255,255,255,0.7)",
+          }}
+        >
+          <div className="px-1 py-0.5">
+            <div className="truncate font-medium">{hayalet.baslik || "Yeni konum"}</div>
+            <div className="truncate opacity-90">
+              {String(Math.floor(hayalet.basDk / 60)).padStart(2, "0")}:{String(hayalet.basDk % 60).padStart(2, "0")} – {String(Math.floor(((hayalet.basDk + hayalet.sureDk) % (24 * 60)) / 60)).padStart(2, "0")}:{String((hayalet.basDk + hayalet.sureDk) % 60).padStart(2, "0")}
+            </div>
+          </div>
+        </div>
+      )}
       {yerlesimler.map(({ olay, sutun, toplam }) => {
         const dakBas = olay.olayBaslangic.getHours() * 60 + olay.olayBaslangic.getMinutes();
         const dakBit = olay.olayBitis.getHours() * 60 + olay.olayBitis.getMinutes() || dakBas + 60;
@@ -844,8 +912,8 @@ function GunSutun({ gun, olaylar, takvimler, now, isToday, onAralikSec, onOlayCl
         const yuks = Math.max(20, ((dakBit - dakBas) / 60) * SAAT_PX);
         const w = 100 / toplam;
         return (
-          <OlayMenu key={olay.id} olay={olay} onDuzenle={onOlayClick} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
-            <div data-olay draggable onDragStart={dragHandle(olay)} onClick={(e) => { e.stopPropagation(); onOlayClick(olay); }} onMouseDown={(e) => e.stopPropagation()} className="absolute overflow-hidden rounded text-left text-[10px] text-white shadow-sm cursor-pointer" style={{ top, height: yuks, left: `${sutun * w}%`, width: `calc(${w}% - 2px)`, background: rengiBul(olay.renk ?? takvimler.find((t) => t.id === olay.takvim_id)?.renk) }}>
+          <OlayMenu key={olay.id} olay={olay} onDuzenle={onOlayDuzenle} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
+            <div data-olay draggable onDragStart={dragHandle(olay)} onDragEnd={() => setHayalet(null)} onClick={(e) => { e.stopPropagation(); onOlayClick(olay, e); }} onMouseDown={(e) => e.stopPropagation()} className="absolute overflow-hidden rounded text-left text-[10px] text-white shadow-sm cursor-pointer" style={{ top, height: yuks, left: `${sutun * w}%`, width: `calc(${w}% - 2px)`, background: rengiBul(olay.renk ?? takvimler.find((t) => t.id === olay.takvim_id)?.renk) }}>
               <div className="px-1 py-0.5">
                 <div className="truncate font-medium">{olay.baslik}</div>
                 <div className="truncate opacity-80">{format(olay.olayBaslangic, "HH:mm")} – {format(olay.olayBitis, "HH:mm")}</div>
