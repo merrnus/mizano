@@ -506,13 +506,14 @@ function OlayMenu({ olay, onDuzenle, onCogalt, onSil, onRenk, children }: {
 type AyProps = {
   ankara: Date; olaylar: EtkinlikOlay[]; takvimler: Takvim[];
   onGunClick: (d: Date) => void;
-  onOlayClick: (e: Etkinlik) => void;
+  onOlayClick: (o: EtkinlikOlay, ev: React.MouseEvent) => void;
+  onOlayDuzenle: (e: Etkinlik) => void;
   onOlayCogalt: (e: Etkinlik) => void;
   onOlaySil: (e: Etkinlik) => void;
   onOlayRenk: (e: Etkinlik, r: string | null) => void;
 };
 
-function AyGorunumu({ ankara, olaylar, takvimler, onGunClick, onOlayClick, onOlayCogalt, onOlaySil, onOlayRenk }: AyProps) {
+function AyGorunumu({ ankara, olaylar, takvimler, onGunClick, onOlayClick, onOlayDuzenle, onOlayCogalt, onOlaySil, onOlayRenk }: AyProps) {
   const ab = startOfMonth(ankara), ae = endOfMonth(ankara);
   const gb = startOfWeek(ab, { weekStartsOn: 1 });
   const ge = endOfWeek(ae, { weekStartsOn: 1 });
@@ -600,9 +601,9 @@ function AyGorunumu({ ankara, olaylar, takvimler, onGunClick, onOlayClick, onOla
                   const w = (s.bitCol - s.baslaCol + 1) / 7;
                   const left = (s.baslaCol / 7) * 100;
                   return (
-                    <OlayMenu key={i} olay={s.olay} onDuzenle={onOlayClick} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
+                    <OlayMenu key={i} olay={s.olay} onDuzenle={onOlayDuzenle} onCogalt={onOlayCogalt} onSil={onOlaySil} onRenk={onOlayRenk}>
                       <button
-                        onClick={(e) => { e.stopPropagation(); onOlayClick(s.olay); }}
+                        onClick={(e) => { e.stopPropagation(); onOlayClick(s.olay, e); }}
                         className={cn(
                           "pointer-events-auto absolute mx-0.5 truncate px-1.5 py-0.5 text-left text-[10px] text-white",
                           s.soldevam ? "rounded-l-none" : "rounded-l",
