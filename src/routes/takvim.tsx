@@ -707,7 +707,7 @@ function HaftaGorunumu({ gunler, olaylar, takvimler, onAralikSec, onOlayClick, o
           else if (e.clientY > r.bottom - esik) el.scrollTop += 12;
         }}
       >
-        <div className="relative grid" style={{ gridTemplateColumns: `3rem repeat(${gunler.length}, 1fr)` }}>
+        <div className="relative grid pb-24" style={{ gridTemplateColumns: `3rem repeat(${gunler.length}, 1fr)` }}>
           <div>
             {Array.from({ length: 24 }, (_, h) => (
               <div key={h} style={{ height: SAAT_PX }} className="border-b border-border pr-1 text-right text-[10px] text-muted-foreground">
