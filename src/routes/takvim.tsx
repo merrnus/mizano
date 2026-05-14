@@ -711,7 +711,7 @@ function HaftaGorunumu({ gunler, olaylar, takvimler, onAralikSec, onOlayClick, o
           <div>
             {Array.from({ length: 24 }, (_, h) => (
               <div key={h} style={{ height: SAAT_PX }} className="border-b border-border pr-1 text-right text-[10px] text-muted-foreground">
-                {h > 0 && `${String(h).padStart(2, "0")}:00`}
+                {`${String(h).padStart(2, "0")}:00`}
               </div>
             ))}
           </div>
@@ -874,7 +874,7 @@ function GunSutun({ gun, olaylar, takvimler, now, isToday, onAralikSec, onOlayCl
   return (
     <div ref={ref} className={cn("relative border-l border-border", isToday && "bg-primary/[0.02]")} onMouseDown={slotBasla} onDragOver={dragOver} onDragLeave={dragLeave} onDrop={drop} style={{ height: 24 * SAAT_PX }}>
       {Array.from({ length: 24 }, (_, h) => (
-        <div key={h} className={cn("border-b border-border", h >= 9 && h < 17 && "bg-accent/10")} style={{ height: SAAT_PX }} />
+        <div key={h} className="border-b border-border" style={{ height: SAAT_PX }} />
       ))}
       {isToday && (
         <div className="pointer-events-none absolute left-0 right-0 z-10 border-t-2 border-destructive" style={{ top: ((now.getHours() * 60 + now.getMinutes()) / (24 * 60)) * (24 * SAAT_PX) }}>
