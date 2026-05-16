@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import * as React from "react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
-import { Sun, Sunset, Moon, Plus, CalendarPlus } from "lucide-react";
+import { Sun, Sunset, Moon } from "lucide-react";
 import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-hooks";
 import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { BugunCetelesi } from "@/components/mizan/dashboard/bugun-cetelesi";
@@ -10,17 +10,18 @@ import { BugunZamanCizelgesi } from "@/components/mizan/dashboard/bugun-zaman-ci
 import { GelecekGunler } from "@/components/mizan/dashboard/gelecek-gunler";
 import { BuHaftaWidget } from "@/components/mizan/dashboard/bu-hafta-widget";
 import { BugununMufredati } from "@/components/mizan/dashboard/bugunun-mufredati";
+import { NowCard } from "@/components/mizan/dashboard/now-card";
+import { BriefRings } from "@/components/mizan/dashboard/brief-rings";
+import { BugunFab } from "@/components/mizan/dashboard/bugun-fab";
 import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
 import { GorevDialog } from "@/components/mizan/takvim/gorev-dialog";
 import { EtkinlikDialog } from "@/components/mizan/takvim/etkinlik-dialog";
-import { Button } from "@/components/ui/button";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { useAmelKurslar, useTumAmelModuller } from "@/lib/amel-hooks";
 import { useDersler, useSinavlar } from "@/lib/ilim-hooks";
 import { amelYuzdesi, ilimYuzdesi } from "@/lib/istikamet-yuzde";
 import type { TakvimGorev } from "@/lib/takvim-tipleri";
 import { useAuth } from "@/lib/auth-context";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -142,97 +143,53 @@ function AnaDashboard() {
     null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
-      {/* Selamlama + kompakt denge rozetleri */}
-      <header className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+    <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-28 sm:px-6 sm:py-8">
+      {/* App-bar: tek satır selamlama + mini halkalar */}
+      <header className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
         <div className="min-w-0">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-            {format(simdi, "EEEE, d MMMM yyyy", { locale: tr })}
+          <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            {format(simdi, "EEEE, d MMMM", { locale: tr })}
           </p>
-          <h1 className="mt-2 inline-flex items-center gap-2.5 text-2xl font-semibold tracking-tight sm:text-3xl">
+          <h1 className="mt-1 inline-flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
             <ZamanIkon
-              className="h-6 w-6 shrink-0 sm:h-7 sm:w-7"
+              className="h-5 w-5 shrink-0 sm:h-6 sm:w-6"
               style={{ color: zamanIkonRenk }}
               aria-hidden="true"
             />
-            <span>
+            <span className="truncate">
               {selamlama}
               {isim ? <span className="text-muted-foreground">, {isim}</span> : null}
             </span>
           </h1>
         </div>
-        <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card p-1.5">
-          {rozetler.map((r) => (
-            <button
-              key={r.ad}
-              type="button"
-              onClick={() => setAcikAlan(r.alan)}
-              className={cn(
-                "group inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm transition-all hover:scale-[1.03] hover:brightness-110 active:scale-[0.98]",
-                r.yuzde >= 100 && "mizan-pill-complete",
-              )}
-              style={{
-                backgroundColor: `color-mix(in oklab, var(${r.renkVar}) 14%, transparent)`,
-                boxShadow: `inset 0 0 0 1px color-mix(in oklab, var(${r.renkVar}) 22%, transparent)`,
-                ["--pill-glow" as string]: `var(${r.renkVar})`,
-              }}
-              aria-label={`${r.ad} detayını aç`}
-            >
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{
-                  backgroundColor: `var(${r.renkVar})`,
-                  boxShadow: `0 0 8px var(${r.renkVar})`,
-                }}
-              />
-              <span className="text-muted-foreground">{r.ad}</span>
-              <span
-                className="font-semibold tabular-nums"
-                style={{ color: `var(${r.renkVar})` }}
-              >
-                {r.metin}
-              </span>
-            </button>
-          ))}
-        </div>
+        <BriefRings ogeler={rozetler} onAc={(a) => setAcikAlan(a)} />
       </header>
 
-      {/* Bugünün çetelesi + zaman çizelgesi */}
-      <div className="mb-3 grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        <div className="min-w-0">
-          <BugunCetelesi simdi={simdi} />
-        </div>
-        <div className="min-w-0">
-          <BugunZamanCizelgesi simdi={simdi} />
-        </div>
-      </div>
-
-      {/* Hızlı ekleme butonları */}
-      <div className="mb-6 flex flex-wrap items-center justify-end gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
+      {/* NOW — spotlight */}
+      <div className="mb-6">
+        <NowCard
+          simdi={simdi}
+          onYeniEtkinlik={() => setEtkinlikDialogAcik(true)}
+          onYeniGorev={() => {
             setDuzenlenenGorev(null);
             setGorevDialogAcik(true);
           }}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Görev ekle
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setEtkinlikDialogAcik(true)}
-        >
-          <CalendarPlus className="h-3.5 w-3.5" />
-          Etkinlik ekle
-        </Button>
+        />
       </div>
 
-      {/* Bugünün Müfredatı (Amel) */}
+      {/* Up Next — bugünün spine'ı */}
       <div className="mb-6">
-        <BugununMufredati />
+        <BugunZamanCizelgesi simdi={simdi} />
+      </div>
+
+      {/* Müfredat + Çetele yan yana */}
+      <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        <div className="min-w-0">
+          <BugununMufredati />
+        </div>
+        <div className="min-w-0">
+          <BugunCetelesi simdi={simdi} />
+        </div>
       </div>
 
       {/* Gelecek günler */}
@@ -261,6 +218,14 @@ function AnaDashboard() {
         acik={etkinlikDialogAcik}
         onOpenChange={setEtkinlikDialogAcik}
         varsayilanBaslangic={bugun}
+      />
+
+      <BugunFab
+        onEtkinlik={() => setEtkinlikDialogAcik(true)}
+        onGorev={() => {
+          setDuzenlenenGorev(null);
+          setGorevDialogAcik(true);
+        }}
       />
     </div>
   );
