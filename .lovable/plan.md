@@ -1,78 +1,130 @@
+## Bugün — "Google standartı" yeniden tasarım
 
-# Rehberlik Sayfası — "Google Müh. Olsa Nasıl Yapardı?" Redesign Planı
-
-Google'ın Contacts + Inbox + Material 3 dilini bizim "İstişare odaklı" mantığımıza uyarlıyoruz. Amaç: gereksiz kromu kaldır, kişiyi merkeze al, istişareyi bir akış haline getir, hızlı eylemleri her yerden ulaşılabilir kıl.
-
-## Tasarım Prensipleri (Google'dan ödünç)
-
-1. **Content-first, chrome-light** — başlık + tab + filtre üst üste yığılı değil, tek satırda toplanır.
-2. **Search is the nav** — üstte tek bir geniş arama çubuğu hem kişi hem istişare hem gündem arar (Gmail/Drive paterni).
-3. **Density seçimi** — Compact / Comfortable / Cozy toggle (Gmail).
-4. **Avatar + renk = kimlik** — kategori rengi avatar halkasına geçer, badge yığını kalkar.
-5. **Hover'da değil, tıklamada açılan detay** — sağdan slide-in panel, full sayfa değil (Inbox/Calendar paterni; takvimde de yaptık).
-6. **FAB** — sağ-altta tek, bağlama göre değişen "+ Yeni" (Material).
-7. **Empty state'ler illüstrasyonlu, eyleme yönlendiren** — boş ekranlar boşa gitmez.
-
-## Yapısal Değişiklikler
-
-### 1) Üst bar (tek satır, Gmail tarzı)
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  Rehberlik   🔍 Kişi, istişare veya gündem ara…    ⚙  👤  │
-└─────────────────────────────────────────────────────────────┘
-```
-- "Yol Arkadaşları" başlığı küçülür, sol tarafa.
-- Arama global; sonuçlar grup başlıklı dropdown'da (Kişiler / İstişareler / Gündemler).
-- Rapor butonu üst-sağdaki overflow menüye taşınır.
-
-### 2) İki sekmeli ana görünüm — sekmeler segmented
-- "Kişiler" ve "İstişareler" yerine Material segmented control. Sekme altı 2px primary çizgi.
-- URL state aynen korunur.
-
-### 3) Kişiler sekmesi — "Contacts-grade"
-- **Sol kolon (≥md):** Kategoriler dikey liste, sayı badge'li, drag-to-reorder, "+ Yeni kategori" altta. Mobilde üstte yatay chip kalır.
-- **Sağ alan:** Kişiler — varsayılan "kart yerine satır" (Contacts list). Density toggle ile kart görünümüne geçilebilir.
-- Her satırda: renkli halkalı avatar · isim · alt satırda küçük gri "kategoriler · son etkinlik tarihi" · sağda hover'da hızlı eylemler (mesaj, etkinlik ekle, düzenle, sil).
-- Derin takip ⭐ ikonu sol kenarda küçük şerit halinde — daha sakin.
-- Çoklu seçim: satır soluna hover edince checkbox gelir; seçilince üstte "3 kişi · Kategori ata · Etkinlik · Sil" action bar açılır (Gmail paterni).
-- Hızlı kişi ekleme inline kalkar; FAB → "Yeni kişi" sheet.
-- Tıklayınca: hafif takip ise sağdan **detay paneli** (50% genişlik), derin takip ise tam sayfaya geç.
-
-### 4) İstişareler sekmesi — "Timeline + Kanban hibridi"
-- Üstte yatay zaman şeridi (son 6 ay, ay grupları), her noktada istişare. Inbox'ın "schedule" görünümüne benzer.
-- Altta liste: her satır küçük ilerleme halkası (tamamlanan/toplam), başlık, tarih, "3 ana / 5 yan gündem" özeti, sorumlu avatar yığını.
-- Liste satırına tıklayınca yine sağdan detay paneli; gündemler içinde inline checkbox ile kapatılabilir (sayfa açmadan).
-- Filtre chip'leri: "Bu ay · Açık · Tamamlanan · Beni ilgilendirenler".
-
-### 5) Detay paneli (sağdan slide-in)
-- 480px varsayılan, "Tam ekran aç" butonu üstte (takvimdeki popover paternine paralel).
-- Kişi paneli: avatar + ad + kategori chip'leri + "Son 5 etkinlik" timeline + "Açık gündemler" listesi + hızlı not.
-- İstişare paneli: gündem listesi inline editlenebilir, sürükle-sırala, "+ Gündem" altta sticky.
-
-### 6) FAB (Material)
-- Sağ-alt, primary renkli, bağlam: Kişiler sekmesinde "Yeni kişi", İstişareler'de "Yeni istişare". Long-press / dropdown ile diğer eylemler.
-
-### 7) Mikroetkileşimler
-- Satır hover'da hafif elevation (shadow-sm → shadow), 120ms.
-- Panel açılışında 200ms ease-out slide + content fade-in.
-- Checkbox tamamlamada Material "ripple" + strikethrough animasyonu.
-- Boş durum: küçük SVG illüstrasyon + tek CTA.
-
-## Teknik Notlar
-
-- `src/routes/network.tsx`: header sadeleşir, global arama eklenir, FAB eklenir.
-- `src/components/mizan/network/kisiler-tab.tsx`: chip-bar ↔ dikey kategori paneli (md+), satır komponentine refactor, çoklu seçim state'i, density toggle.
-- `src/components/mizan/network/istisareler-tab.tsx`: timeline şeridi + zenginleşmiş satırlar; sağ panel için yeni `istisare-detay-panel.tsx`.
-- Yeni: `src/components/mizan/network/kisi-detay-panel.tsx` (mevcut Sheet'ten içerik taşınır, "tam ekran aç" eklenir).
-- Yeni: `src/components/mizan/network/global-arama.tsx` — kişi/istişare/gündem üzerinde combobox tarzı arama.
-- Yeni: `src/components/mizan/network/fab.tsx` — bağlam-duyarlı floating action button.
-- Tüm renkler `src/styles.css` semantic token'ları üzerinden (yeni custom renk yok).
-- Mobile (<sm): kategoriler chip bar olarak kalır, FAB alt nav'ın üstüne pozisyonlanır (pb-24 mantığı).
-
-## Kapsam Dışı (bu turda)
-- Backend / RLS / hook değişiklikleri yok; sadece sunum katmanı.
-- Rapor sayfası dokunulmaz, sadece menüye taşınır.
+Google'ın "günün özeti" desenleri (Calendar Schedule, Assistant Your Day, Material 3 At-a-Glance, Tasks Today) referans alındı. Hedef: **göz tek bir yere düşsün, sıradaki eylem ortada olsun, geri kalanı progressive disclosure ile arka planda dursun.**
 
 ---
 
-Onaylarsan adım adım uygulayalım. Tercih edersen bunun yerine sadece **Kişiler sekmesi**ne odaklanan daha küçük bir ilk faz da yapabiliriz — söyle yeter.
+### Mevcut durumun problemi (kısa)
+
+```text
+[ Selamlama .................. (Mana 70%)(İlim 40%)(Amel 90%) ]   ← bilgi var, eylem yok
+[ Bugünün Çetelesi       ][ Bugünün Zaman Çizelgesi          ]   ← iki ağır kart yan yana, rekabet
+                              [+ Görev]  [+ Etkinlik]            ← sayfanın ortasında kayıp aksiyonlar
+[ Bugünün Müfredatı (Amel) ............................... ]
+[ Gelecek Günler — 4 gün kartı ........................... ]
+[ Bu hafta — Programlar / Faaliyetler .................... ]
+```
+
+Sorunlar: tek bir "şu an ne yapayım?" odak yok, % chip'leri dekoratif, hızlı ekle butonları içeride boğuluyor, scroll uzun ve hiyerarşisiz.
+
+---
+
+### Yeni mimari (üstten alta)
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ App-bar:  Bugün · 16 Mayıs Cumartesi · 14:22                │
+│           [Mana 70%] [İlim 40%] [Amel 90%]   (mini ring)    │
+├─────────────────────────────────────────────────────────────┤
+│ ✦ NOW CARD  (büyük, tek spotlight)                          │
+│   "Şu an" — devam eden ya da bir sonraki 1 öge              │
+│   14:30  Talebe ile görüşme · 30 dk · Salon                 │
+│   ▸ Aç   ▸ Ertele 10 dk   ▸ Tamamla                         │
+├─────────────────────────────────────────────────────────────┤
+│ Up Next (zaman çizelgesi spine)                             │
+│   15:00 ─•─ Evrad-ı şerif                                   │
+│   16:30 ─•─ Modül: Akaid §3                                 │
+│   18:15 ─•─ İstişare — Ahmet                                │
+│   "Gün sonuna 4 öge"  ▾ tümünü göster                       │
+├─────────────────────────────────────────────────────────────┤
+│ Peek tiles (3 kolon, kompakt — tıkla genişler)              │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                     │
+│  │ Çetele   │ │ Müfredat │ │ Görevler │                     │
+│  │ 3 / 7    │ │ 2 modül  │ │ 4 açık   │                     │
+│  │ ▸ Akış   │ │ ▸ Çalış  │ │ ▸ Hepsi  │                     │
+│  └──────────┘ └──────────┘ └──────────┘                     │
+├─────────────────────────────────────────────────────────────┤
+│ Sonraki 4 gün — yatay carousel (snap), küçük kartlar        │
+├─────────────────────────────────────────────────────────────┤
+│ Bu hafta — kardeşler (mevcut widget, sadeleştirilmiş)       │
+└─────────────────────────────────────────────────────────────┘
+
+FAB (sağ-alt, alt-bar üstünde):  [ + ]
+  açılır: Etkinlik · Görev · Müfredat modülü tamamla
+```
+
+---
+
+### Bölüm bölüm tasarım
+
+**1. App-bar (yeni)**  
+Tek satır: selamlama + tarih solda, 3 küçük halka (mana/ilim/amel) sağda. Pill'ler kaldırıldı; yerine **mini ring** (24px daire + sayı altında 10px). Tıklanınca yine `AlanDetaySheet` açılır. Material 3 "at-a-glance" tipi.
+
+**2. Now Card — spotlight (yeni, sayfanın ana fikri)**  
+Sayfanın yüksek-kontrast tek büyük kartı. İçerik kuralı:
+- Şu an devam eden etkinlik varsa **onu** göster (live ring + dakika sayacı).
+- Yoksa: bugünün sıradaki etkinliği.
+- Etkinlik de yoksa: bugünün ilk açık `önemli/yüksek` görevi.
+- O da yoksa: müfredat ilk modülü.
+- O da yoksa: "Bugün boş — bir şey ekle" empty state + büyük FAB ipucu.
+
+Aksiyonlar (sağda, 3 chip): **Aç** (sheet), **10 dk ertele** (görev/etkinlik için), **Tamamla / Katıldım**. Üst-sağda alan rengi ince çizgi. Yumuşak `0 0 24px var(--alan)/15` gölge.
+
+**3. Up Next — timeline spine**  
+Mevcut `BugunZamanCizelgesi`'nden türetilir ama **Now Card'da gösterilen öge listenin başından çıkarılır** (tekrar olmaması için). Varsayılan: bugünün kalan ilk 4 ögesi. Alt link: `▾ Tümünü göster` → in-place genişler (collapsible), `/takvim` linki ek olarak kalır.
+
+**4. Peek tiles (3 kolon)**  
+Çetele, Müfredat ve Görevler artık ağır kart değil; her biri **80–96px yüksekliğinde** özet tile. Veri:
+- **Çetele**: `tamamlanan/toplam` (mana), ana CTA `Akış` butonu (mevcut `AkisModu`).
+- **Müfredat**: bugün izlenen `n modül · ~m dk`, CTA `Çalış` (mevcut `AmelAkisModu`).
+- **Görevler**: bugünkü açık görev sayısı + en üst 2 görev başlığı, CTA `Hepsi`.
+
+Tile'a tıklayınca aynı sayfada **inline expand** (Material 3 "Expandable card") olur; tüm liste kart içinde açılır. Aynı anda yalnızca **1 tile açık** kalır (accordion davranışı). Bu, bugünkü "iki büyük kart yan yana" baskısını ortadan kaldırır.
+
+**5. Sonraki 4 gün — horizontal snap carousel**  
+Mevcut `GelecekGunler` aynı veriyle; layout: dikey grid yerine `overflow-x-auto snap-x` yatay kayar şerit (Material You weather/news kartları gibi). Mobilde de doğal, masaüstünde 4 kart tam görünür.
+
+**6. Bu hafta widget**  
+Mevcut `BuHaftaWidget` korunur; sadece üst başlık tonu (text-sm semibold) ve boşluk diğer bölümlerle hizalanır.
+
+**7. FAB speed-dial (yeni)**  
+Sağ-alt sabit. Tek tıkla menü açar: **Etkinlik**, **Görev**, **Modül tamamla**. Sayfanın ortasındaki `+ Görev ekle` / `+ Etkinlik ekle` butonları kaldırılır. Mevcut alt tab-bar'ın üstünde (pb-24 paterni — alt menünün arkasında kalmasın).
+
+---
+
+### Etkileşim & micro-detaylar
+
+- **Now Card** her dakika kendini yeniler (zaten `simdi` interval var); kalan/geçen dakikayı `12 dk sonra` / `8 dk önce başladı` olarak yazar.
+- **Tile expand**: 200ms fade+height (Motion `layout`/CSS grid-rows trick). Aynı anda diğer açık tile kapanır.
+- **Greeting ikonu** (Sun/Sunset/Moon) Now Card'ın sol-üstüne küçük olarak da yansır (zaman ipucu).
+- **Boş gün**: tüm bölümler boşsa tek bir `EmptyState` (illustration + "Bir şey ekle" CTA), peek tile'lar gizlenir.
+- **Klavye**: `N` = Now Card'ı aç, `T` = Görev ekle, `E` = Etkinlik ekle (Gmail-vari kısayollar — opsiyonel, ileri faz).
+
+---
+
+### Teknik plan (UI-only, backend dokunulmaz)
+
+Yeni dosyalar:
+- `src/components/mizan/dashboard/now-card.tsx` — spotlight kart; içine `useEtkinlikler` + `useGorevler` + müfredat hook'ları aynı şekilde girer; "ne göstereceğini" seçen küçük bir resolver.
+- `src/components/mizan/dashboard/up-next.tsx` — `BugunZamanCizelgesi`'nin sadeleşmiş varyantı (`hariçTutId` prop'u alır, ilk N ögeyi gösterir, expand butonu).
+- `src/components/mizan/dashboard/brief-rings.tsx` — 3 mini halka (header için), `AlanDetaySheet`'i tetikler.
+- `src/components/mizan/dashboard/peek-tile.tsx` — generic tile + expandable içerik wrapper'ı; içine `BugunCetelesi`, `BugununMufredati` ve görev listesi gömülür.
+- `src/components/mizan/dashboard/bugun-fab.tsx` — speed-dial FAB.
+- `src/components/mizan/dashboard/sonraki-gunler-carousel.tsx` — `GelecekGunler`'in yatay snap varyantı (veya aynı dosyaya `varyant="carousel"` prop'u).
+
+Dokunulacaklar:
+- `src/routes/index.tsx` — yeni iskelet (header → NowCard → UpNext → 3 PeekTile → Carousel → BuHaftaWidget → FAB); eski `<BugunCetelesi/>`, `<BugunZamanCizelgesi/>`, ortadaki ekle butonları, `<BugununMufredati/>` doğrudan yerleşim yerine `PeekTile` içine taşınır.
+- `src/components/mizan/dashboard/bugun-cetelesi.tsx`, `bugunun-mufredati.tsx`, `gelecek-gunler.tsx` — kart kabuğu (rounded-2xl border bg-card) **opsiyonel** hâle gelir (`bareIcerik` prop'u), çünkü PeekTile içinde olacaklar.
+
+Yapılmayacaklar: hook/SQL/RLS/business logic'e dokunulmaz; veri kaynakları aynı.
+
+---
+
+### Faz önerisi
+
+Çok büyük tek atışta yapmak yerine 2 aşama:
+
+1. **Faz 1 (görsel iskelet + Now Card + brief rings + FAB)** — en yüksek değer; tek mesajda biter.
+2. **Faz 2 (peek tile expand + horizontal carousel + klavye kısayolları)** — onaylanırsa.
+
+Faz 1'i implement etmek için planı onayla; istersen direkt tek aşamada da yaparım.
