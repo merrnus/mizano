@@ -197,7 +197,7 @@ function RaporPage() {
   const setSearch = (patch: Partial<Search>) =>
     navigate({
       to: "/network/rapor",
-      search: (prev: Search) => ({ ...prev, ...patch }),
+      search: (prev) => ({ ...prev, ...patch }),
       replace: true,
     });
 
@@ -316,7 +316,7 @@ function RaporPage() {
         size="sm"
         className="mb-4 -ml-2 h-8 text-muted-foreground hover:text-foreground"
       >
-        <Link to="/network" search={{ tab: "gundemler" }}>
+        <Link to="/network" search={{ tab: "istisareler" }}>
           <ArrowLeft className="h-3.5 w-3.5" /> Rehberliğe dön
         </Link>
       </Button>
