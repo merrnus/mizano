@@ -197,7 +197,7 @@ function RaporPage() {
   const setSearch = (patch: Partial<Search>) =>
     navigate({
       to: "/network/rapor",
-      search: (prev) => ({ ...prev, ...patch }),
+      search: (prev: Search & { tab?: "kisiler" | "istisareler" }) => ({ ...prev, ...patch }),
       replace: true,
     });
 
