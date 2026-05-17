@@ -9,7 +9,7 @@ type Sonuc =
   | { tip: "belge"; id: string; baslik: string; emoji: string | null }
   | { tip: "tablo"; id: string; baslik: string };
 
-export function HubArama() {
+export function HubArama({ big = false }: { big?: boolean } = {}) {
   const [q, setQ] = React.useState("");
   const [acik, setAcik] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
@@ -58,14 +58,15 @@ export function HubArama() {
   }, [q, notlar.data, belgeler.data, tablolar.data]);
 
   return (
-    <div ref={ref} className="relative mx-auto w-full max-w-xl">
+    <div ref={ref} className={cn("relative w-full", big ? "max-w-2xl" : "mx-auto max-w-xl")}>
       <div
         className={cn(
-          "flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-2.5 shadow-sm transition-all",
+          "flex items-center rounded-full border border-border/60 bg-card shadow-sm transition-all",
+          big ? "gap-3 px-5 py-3.5" : "gap-2 px-4 py-2.5",
           acik && "shadow-md ring-2 ring-primary/20",
         )}
       >
-        <Search className="h-4 w-4 text-muted-foreground" />
+        <Search className={cn("text-muted-foreground", big ? "h-5 w-5" : "h-4 w-4")} />
         <input
           value={q}
           onChange={(e) => {
@@ -73,19 +74,31 @@ export function HubArama() {
             setAcik(true);
           }}
           onFocus={() => setAcik(true)}
-          placeholder="Mutfakta ara — notlar, belgeler, tablolar"
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          placeholder={
+            big
+              ? "Notlarda, belgelerde, tablolarda ara…"
+              : "Mutfakta ara — notlar, belgeler, tablolar"
+          }
+          className={cn(
+            "flex-1 bg-transparent outline-none placeholder:text-muted-foreground",
+            big ? "text-base" : "text-sm",
+          )}
         />
         {q && (
           <button
             onClick={() => setQ("")}
             className="rounded-full p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className={big ? "h-4 w-4" : "h-3.5 w-3.5"} />
           </button>
         )}
-        <kbd className="hidden rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">
-          /
+        <kbd
+          className={cn(
+            "hidden rounded border border-border bg-muted/50 font-medium text-muted-foreground sm:inline",
+            big ? "px-2 py-1 text-[11px]" : "px-1.5 py-0.5 text-[10px]",
+          )}
+        >
+          {big ? "⌘K" : "/"}
         </kbd>
       </div>
       {acik && q && (
