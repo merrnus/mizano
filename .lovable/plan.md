@@ -1,130 +1,93 @@
-## Bugün — "Google standartı" yeniden tasarım
+## Mutfak Hub Redesign — Google Workspace tarzı
 
-Google'ın "günün özeti" desenleri (Calendar Schedule, Assistant Your Day, Material 3 At-a-Glance, Tasks Today) referans alındı. Hedef: **göz tek bir yere düşsün, sıradaki eylem ortada olsun, geri kalanı progressive disclosure ile arka planda dursun.**
+### Hedef
+Hub'ı "her şey eşit ağırlıkta tile grid"den, **arama-merkezli, son kullanılanlar öncelikli, araçlar ikincil** bir yapıya çevirmek. Tek bakışta "ne yapacağım" net olsun.
 
----
+### Mevcut problem
+- 6 tile + recents + arama + FAB aynı anda göze çarpıyor
+- "Yeni belge" hem FAB'da hem tile'da (çift eylem)
+- Hangi araç "ana" belli değil — pomodoro ile notlar eşit ağırlıkta
+- Recents küçük, oysa kullanıcı %80 oraya gidecek
 
-### Mevcut durumun problemi (kısa)
+### Yeni hiyerarşi (yukarıdan aşağı)
 
-```text
-[ Selamlama .................. (Mana 70%)(İlim 40%)(Amel 90%) ]   ← bilgi var, eylem yok
-[ Bugünün Çetelesi       ][ Bugünün Zaman Çizelgesi          ]   ← iki ağır kart yan yana, rekabet
-                              [+ Görev]  [+ Etkinlik]            ← sayfanın ortasında kayıp aksiyonlar
-[ Bugünün Müfredatı (Amel) ............................... ]
-[ Gelecek Günler — 4 gün kartı ........................... ]
-[ Bu hafta — Programlar / Faaliyetler .................... ]
+```
+┌─────────────────────────────────────────┐
+│  Mutfak                                 │  ← küçük başlık, eyebrow yok
+│  ┌───────────────────────────────────┐  │
+│  │ 🔍  Ara: not, belge, tablo…    ⌘K │  │  ← BÜYÜK, merkezi, autofocus
+│  └───────────────────────────────────┘  │
+│                                         │
+│  Son kullanılanlar                      │  ← H2, belirgin
+│  ┌────┐ ┌────┐ ┌────┐ ┌────┐           │  ← daha büyük kartlar (h-32)
+│  │belge│ │tablo│ │ not │ │belge│   →   │     yatay scroll, snap
+│  └────┘ └────┘ └────┘ └────┘           │
+│                                         │
+│  Hızlı oluştur                          │  ← H3, küçük
+│  [+ Not] [+ Belge] [+ Tablo]            │  ← chip butonlar, satır içi
+│                                         │
+│  Araçlar                                │  ← H3
+│  ▸ Notlar          12 not, 3 sabitli   │  ← liste, ikon + sayaç
+│  ▸ Belge           5 belge              │
+│  ▸ Tablo           2 tablo              │
+│  ▸ Sürücü          18 dosya             │
+│  ▸ Pomodoro        odak süresi          │
+└─────────────────────────────────────────┘
 ```
 
-Sorunlar: tek bir "şu an ne yapayım?" odak yok, % chip'leri dekoratif, hızlı ekle butonları içeride boğuluyor, scroll uzun ve hiyerarşisiz.
+### Değişiklikler
 
----
+**1. Arama (HubArama) öne çıkar**
+- Card-like büyük arama kutusu (h-14), placeholder "Notlarda, belgelerde, tablolarda ara…"
+- Sağ üstte ⌘K kısayolu rozeti
+- Sayfa yüklendiğinde autofocus
 
-### Yeni mimari (üstten alta)
+**2. Son kullanılanlar büyür**
+- Kart genişliği `w-44` → `w-52`, yükseklik `h-32`
+- Belge için içerik önizleme satırı eklenir (ilk 60 karakter)
+- "Tümünü gör →" linki sağ üstte
+- Boşsa "Henüz bir şey yok, aşağıdan başlayalım" mesajı
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ App-bar:  Bugün · 16 Mayıs Cumartesi · 14:22                │
-│           [Mana 70%] [İlim 40%] [Amel 90%]   (mini ring)    │
-├─────────────────────────────────────────────────────────────┤
-│ ✦ NOW CARD  (büyük, tek spotlight)                          │
-│   "Şu an" — devam eden ya da bir sonraki 1 öge              │
-│   14:30  Talebe ile görüşme · 30 dk · Salon                 │
-│   ▸ Aç   ▸ Ertele 10 dk   ▸ Tamamla                         │
-├─────────────────────────────────────────────────────────────┤
-│ Up Next (zaman çizelgesi spine)                             │
-│   15:00 ─•─ Evrad-ı şerif                                   │
-│   16:30 ─•─ Modül: Akaid §3                                 │
-│   18:15 ─•─ İstişare — Ahmet                                │
-│   "Gün sonuna 4 öge"  ▾ tümünü göster                       │
-├─────────────────────────────────────────────────────────────┤
-│ Peek tiles (3 kolon, kompakt — tıkla genişler)              │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐                     │
-│  │ Çetele   │ │ Müfredat │ │ Görevler │                     │
-│  │ 3 / 7    │ │ 2 modül  │ │ 4 açık   │                     │
-│  │ ▸ Akış   │ │ ▸ Çalış  │ │ ▸ Hepsi  │                     │
-│  └──────────┘ └──────────┘ └──────────┘                     │
-├─────────────────────────────────────────────────────────────┤
-│ Sonraki 4 gün — yatay carousel (snap), küçük kartlar        │
-├─────────────────────────────────────────────────────────────┤
-│ Bu hafta — kardeşler (mevcut widget, sadeleştirilmiş)       │
-└─────────────────────────────────────────────────────────────┘
+**3. Hızlı oluştur — chip satırı (FAB'ı değiştirir)**
+- FAB kaldırılır (mobil dahil); yerine sayfa içi 3 chip buton
+- `[+ Yeni not] [+ Belge] [+ Tablo]` — outline button, ikon + label
+- Mobilde de aynı; FAB karmaşası biter
 
-FAB (sağ-alt, alt-bar üstünde):  [ + ]
-  açılır: Etkinlik · Görev · Müfredat modülü tamamla
-```
+**4. Tile grid → liste satırları**
+- 6 büyük tile yerine kompakt liste:
+  - sol: ikon (renkli badge, küçük)
+  - orta: ad + tek satır açıklama
+  - sağ: sayaç + chevron
+- 5 araç, dikey liste, her satır `h-16`
+- "Yakında" placeholder tile silinir (gereksiz)
 
----
+**5. Header sadeleşir**
+- "Mutfak" eyebrow + büyük başlık + alt yazı kalıyor ama daha küçük (text-2xl yerine değil, ama padding azalır)
+- Sparkles ikonu kalır
 
-### Bölüm bölüm tasarım
+### Teknik detaylar
 
-**1. App-bar (yeni)**  
-Tek satır: selamlama + tarih solda, 3 küçük halka (mana/ilim/amel) sağda. Pill'ler kaldırıldı; yerine **mini ring** (24px daire + sayı altında 10px). Tıklanınca yine `AlanDetaySheet` açılır. Material 3 "at-a-glance" tipi.
+**Düzenlenecek dosyalar:**
+- `src/routes/workspace.index.tsx` — komple layout yeniden yazılır
+- `src/components/mizan/mutfak/hub-fab.tsx` — **silinir**
+- `src/components/mizan/mutfak/hub-tile.tsx` — kullanılmaz olur (silmek yerine bırakabiliriz, başka yerde kullanılırsa)
+- `src/components/mizan/mutfak/hub-arama.tsx` — daha büyük variant (prop ekle veya stil güncelle)
 
-**2. Now Card — spotlight (yeni, sayfanın ana fikri)**  
-Sayfanın yüksek-kontrast tek büyük kartı. İçerik kuralı:
-- Şu an devam eden etkinlik varsa **onu** göster (live ring + dakika sayacı).
-- Yoksa: bugünün sıradaki etkinliği.
-- Etkinlik de yoksa: bugünün ilk açık `önemli/yüksek` görevi.
-- O da yoksa: müfredat ilk modülü.
-- O da yoksa: "Bugün boş — bir şey ekle" empty state + büyük FAB ipucu.
+**Yeni küçük komponentler (inline veya yeni dosya):**
+- `RecentKartBuyuk` — mevcut `RecentKart`'ın büyük varyantı (workspace.index.tsx içinde inline kalabilir)
+- `AracSatiri` — araç listesi satırı (inline)
+- `HizliOlusturChips` — 3 chip buton (inline, mevcut hook'ları kullanır: `useNotEkle` benzeri yoksa /workspace/notlar'a yönlendir, `useBelgeEkle`, `useTabloEkle` zaten var)
 
-Aksiyonlar (sağda, 3 chip): **Aç** (sheet), **10 dk ertele** (görev/etkinlik için), **Tamamla / Katıldım**. Üst-sağda alan rengi ince çizgi. Yumuşak `0 0 24px var(--alan)/15` gölge.
+**Backend / hook değişikliği:** YOK. Sadece sunum katmanı.
 
-**3. Up Next — timeline spine**  
-Mevcut `BugunZamanCizelgesi`'nden türetilir ama **Now Card'da gösterilen öge listenin başından çıkarılır** (tekrar olmaması için). Varsayılan: bugünün kalan ilk 4 ögesi. Alt link: `▾ Tümünü göster` → in-place genişler (collapsible), `/takvim` linki ek olarak kalır.
+**⌘K kısayolu:** Bu plan kapsamında sadece görsel rozet. Gerçek global ⌘K palette ileride (öncelik 5).
 
-**4. Peek tiles (3 kolon)**  
-Çetele, Müfredat ve Görevler artık ağır kart değil; her biri **80–96px yüksekliğinde** özet tile. Veri:
-- **Çetele**: `tamamlanan/toplam` (mana), ana CTA `Akış` butonu (mevcut `AkisModu`).
-- **Müfredat**: bugün izlenen `n modül · ~m dk`, CTA `Çalış` (mevcut `AmelAkisModu`).
-- **Görevler**: bugünkü açık görev sayısı + en üst 2 görev başlığı, CTA `Hepsi`.
+### Etkilenmeyen
+- `/workspace/notlar`, `/belge`, `/tablo`, `/surucu`, `/pomodoro` alt sayfaları — dokunulmaz
+- Diğer Mutfak komponentleri (not-kart, not-composer, belge-editor, tablo-editor) — dokunulmaz
+- Veri katmanı, RLS, tipler — dokunulmaz
 
-Tile'a tıklayınca aynı sayfada **inline expand** (Material 3 "Expandable card") olur; tüm liste kart içinde açılır. Aynı anda yalnızca **1 tile açık** kalır (accordion davranışı). Bu, bugünkü "iki büyük kart yan yana" baskısını ortadan kaldırır.
-
-**5. Sonraki 4 gün — horizontal snap carousel**  
-Mevcut `GelecekGunler` aynı veriyle; layout: dikey grid yerine `overflow-x-auto snap-x` yatay kayar şerit (Material You weather/news kartları gibi). Mobilde de doğal, masaüstünde 4 kart tam görünür.
-
-**6. Bu hafta widget**  
-Mevcut `BuHaftaWidget` korunur; sadece üst başlık tonu (text-sm semibold) ve boşluk diğer bölümlerle hizalanır.
-
-**7. FAB speed-dial (yeni)**  
-Sağ-alt sabit. Tek tıkla menü açar: **Etkinlik**, **Görev**, **Modül tamamla**. Sayfanın ortasındaki `+ Görev ekle` / `+ Etkinlik ekle` butonları kaldırılır. Mevcut alt tab-bar'ın üstünde (pb-24 paterni — alt menünün arkasında kalmasın).
-
----
-
-### Etkileşim & micro-detaylar
-
-- **Now Card** her dakika kendini yeniler (zaten `simdi` interval var); kalan/geçen dakikayı `12 dk sonra` / `8 dk önce başladı` olarak yazar.
-- **Tile expand**: 200ms fade+height (Motion `layout`/CSS grid-rows trick). Aynı anda diğer açık tile kapanır.
-- **Greeting ikonu** (Sun/Sunset/Moon) Now Card'ın sol-üstüne küçük olarak da yansır (zaman ipucu).
-- **Boş gün**: tüm bölümler boşsa tek bir `EmptyState` (illustration + "Bir şey ekle" CTA), peek tile'lar gizlenir.
-- **Klavye**: `N` = Now Card'ı aç, `T` = Görev ekle, `E` = Etkinlik ekle (Gmail-vari kısayollar — opsiyonel, ileri faz).
-
----
-
-### Teknik plan (UI-only, backend dokunulmaz)
-
-Yeni dosyalar:
-- `src/components/mizan/dashboard/now-card.tsx` — spotlight kart; içine `useEtkinlikler` + `useGorevler` + müfredat hook'ları aynı şekilde girer; "ne göstereceğini" seçen küçük bir resolver.
-- `src/components/mizan/dashboard/up-next.tsx` — `BugunZamanCizelgesi`'nin sadeleşmiş varyantı (`hariçTutId` prop'u alır, ilk N ögeyi gösterir, expand butonu).
-- `src/components/mizan/dashboard/brief-rings.tsx` — 3 mini halka (header için), `AlanDetaySheet`'i tetikler.
-- `src/components/mizan/dashboard/peek-tile.tsx` — generic tile + expandable içerik wrapper'ı; içine `BugunCetelesi`, `BugununMufredati` ve görev listesi gömülür.
-- `src/components/mizan/dashboard/bugun-fab.tsx` — speed-dial FAB.
-- `src/components/mizan/dashboard/sonraki-gunler-carousel.tsx` — `GelecekGunler`'in yatay snap varyantı (veya aynı dosyaya `varyant="carousel"` prop'u).
-
-Dokunulacaklar:
-- `src/routes/index.tsx` — yeni iskelet (header → NowCard → UpNext → 3 PeekTile → Carousel → BuHaftaWidget → FAB); eski `<BugunCetelesi/>`, `<BugunZamanCizelgesi/>`, ortadaki ekle butonları, `<BugununMufredati/>` doğrudan yerleşim yerine `PeekTile` içine taşınır.
-- `src/components/mizan/dashboard/bugun-cetelesi.tsx`, `bugunun-mufredati.tsx`, `gelecek-gunler.tsx` — kart kabuğu (rounded-2xl border bg-card) **opsiyonel** hâle gelir (`bareIcerik` prop'u), çünkü PeekTile içinde olacaklar.
-
-Yapılmayacaklar: hook/SQL/RLS/business logic'e dokunulmaz; veri kaynakları aynı.
-
----
-
-### Faz önerisi
-
-Çok büyük tek atışta yapmak yerine 2 aşama:
-
-1. **Faz 1 (görsel iskelet + Now Card + brief rings + FAB)** — en yüksek değer; tek mesajda biter.
-2. **Faz 2 (peek tile expand + horizontal carousel + klavye kısayolları)** — onaylanırsa.
-
-Faz 1'i implement etmek için planı onayla; istersen direkt tek aşamada da yaparım.
+### Doğrulama
+- Build başarılı
+- `/workspace` yüklendiğinde: arama büyük, recents belirgin, FAB yok
+- Mobil viewport'ta (723px) hâlâ rahat okunur
