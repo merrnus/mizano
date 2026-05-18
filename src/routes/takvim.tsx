@@ -240,7 +240,7 @@ function TakvimSayfa() {
       <Button size="sm" className="self-start" onClick={() => { yeniEtkinlik(ankara); setYanSheet(false); }}><Plus className="mr-1 h-4 w-4" />Oluştur</Button>
       <MiniTakvim ankara={ankara} setAnkara={(d) => { setAnkara(d); if (mobil) setYanSheet(false); }} olaylar={olaylar} />
       <TakvimListesi takvimler={takvimler} onToggle={(t) => tmu.guncelle.mutate({ id: t.id, gorunur: !t.gorunur })} onYeni={(ad, renk) => tmu.ekle.mutate({ ad, renk })} onSil={(id) => tmu.sil.mutate(id)} />
-      <YaklaşanListesi olaylar={yaklaşan} takvimler={takvimler} onClick={(o) => { olayDuzenle(o); setYanSheet(false); }} />
+      <YaklasanListesi olaylar={yaklaşan} takvimler={takvimler} onClick={(o) => { olayDuzenle(o); setYanSheet(false); }} />
     </div>
   );
 
