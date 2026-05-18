@@ -8,7 +8,8 @@ import {
 import { tr } from "date-fns/locale";
 import {
   ChevronLeft, ChevronRight, Plus, Search, Settings, Calendar as CalIcon,
-  Download, Upload, ArrowLeft, Menu, Edit, Copy, Trash2, Palette,
+  Download, Upload, Menu, Edit, Copy, Trash2, Palette,
+  MoreHorizontal, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +68,9 @@ function TakvimSayfa() {
   const [diyBit, setDiyBit] = React.useState<Date | undefined>();
   const [diyTumGun, setDiyTumGun] = React.useState(false);
   const [hizli, setHizli] = React.useState<{ olay: EtkinlikOlay; rect: { x: number; y: number; width: number; height: number } } | null>(null);
+  const aramaRef = React.useRef<HTMLInputElement>(null);
+  const [aramaAcik, setAramaAcik] = React.useState(false);
+  const [baslikPop, setBaslikPop] = React.useState(false);
 
   // Mobilde haftalık görünümü zorla güne düşürme — kullanıcı isterse görsün.
 
@@ -172,6 +176,9 @@ function TakvimSayfa() {
       else if (e.key === "ArrowLeft") geri();
       else if (e.key === "ArrowRight") ileri();
       else if (e.key.toLowerCase() === "n") yeniEtkinlik(ankara);
+      else if (e.key.toLowerCase() === "c") yeniEtkinlik(ankara);
+      else if (e.key.toLowerCase() === "g") setGorunum("gun");
+      else if (e.key === "/") { e.preventDefault(); aramaRef.current?.focus(); }
     };
     window.addEventListener("keydown", f);
     return () => window.removeEventListener("keydown", f);
@@ -216,8 +223,6 @@ function TakvimSayfa() {
     if (dx < 0) ileri(); else geri();
   };
 
-  const bugunSayisi = etkinlikler.filter((e) => isSameDay(new Date(e.baslangic), new Date())).length;
-
   const ics = () => { indir(disaAktar(etkinlikler), "takvim.ics"); };
   const icsYukle = async (file: File) => {
     if (!takvimler[0]) return;
@@ -249,22 +254,59 @@ function TakvimSayfa() {
   return (
     <div className="flex h-svh flex-col bg-background">
       <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-border bg-card px-2 md:gap-2 md:px-3">
-        <Link to="/" className="text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" /></Link>
-        {/* Hamburger menü düğmesi sadece sidebar gizliyken (mobile + tablet) görünür */}
         <Button variant="ghost" size="icon" onClick={() => setYanSheet(true)} aria-label="Menü" className="md:hidden"><Menu className="h-5 w-5" /></Button>
-        <CalIcon className="hidden h-5 w-5 text-primary md:block" />
+        <Link to="/" className="hidden md:block text-primary hover:opacity-80" aria-label="Ana sayfa"><CalIcon className="h-5 w-5" /></Link>
         <Button variant="outline" size="sm" onClick={bugun} className="ml-0.5 px-2 text-xs md:px-3 md:text-sm">Bugün</Button>
-        <Button variant="ghost" size="icon" onClick={geri}><ChevronLeft className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" onClick={ileri}><ChevronRight className="h-4 w-4" /></Button>
-        <h1 className="ml-0.5 min-w-0 truncate text-sm font-medium tabular-nums md:text-lg">{baslikYazi}</h1>
-        {bugunSayisi > 0 && !mobil && (
-          <span className="ml-2 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary">{bugunSayisi} bugün</span>
-        )}
+        <Button variant="ghost" size="icon" onClick={geri} aria-label="Önceki"><ChevronLeft className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" onClick={ileri} aria-label="Sonraki"><ChevronRight className="h-4 w-4" /></Button>
+        <Popover open={baslikPop} onOpenChange={setBaslikPop}>
+          <PopoverTrigger asChild>
+            <button className="ml-0.5 flex min-w-0 items-center gap-1 truncate rounded px-1.5 py-1 text-sm font-medium tabular-nums hover:bg-accent md:text-lg">
+              <span className="truncate">{baslikYazi}</span>
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" align="start">
+            <MiniTakvim ankara={ankara} setAnkara={(d) => { setAnkara(d); setBaslikPop(false); }} olaylar={olaylar} />
+          </PopoverContent>
+        </Popover>
         <div className="ml-auto flex items-center gap-1 md:gap-2">
+          {/* Desktop inline arama */}
+          <Popover open={aramaAcik && aramaSonuc.length > 0} onOpenChange={setAramaAcik}>
+            <PopoverTrigger asChild>
+              <div className="relative hidden md:block">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  ref={aramaRef}
+                  placeholder="Ara…  /"
+                  value={arama}
+                  onChange={(e) => { setArama(e.target.value); setAramaAcik(true); }}
+                  onFocus={() => setAramaAcik(true)}
+                  className="h-8 w-44 pl-7 text-sm transition-all focus:w-64"
+                />
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-1" align="end" onOpenAutoFocus={(e) => e.preventDefault()}>
+              {aramaSonuc.length > 0 && (
+                <div className="max-h-72 overflow-y-auto">
+                  {aramaSonuc.map((e) => (
+                    <button key={e.id} onClick={() => { setAnkara(new Date(e.baslangic)); setGorunum("gun"); olayDuzenle(e); setArama(""); setAramaAcik(false); }} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent">
+                      <span className="h-2 w-2 rounded-full" style={{ background: rengiBul(e.renk ?? takvimler.find((t) => t.id === e.takvim_id)?.renk) }} />
+                      <span className="flex-1 truncate">{e.baslik}</span>
+                      <span className="text-xs text-muted-foreground">{format(new Date(e.baslangic), "d MMM", { locale: tr })}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+          {/* Mobil arama */}
           <Popover>
-            <PopoverTrigger asChild><Button variant="ghost" size="icon"><Search className="h-4 w-4" /></Button></PopoverTrigger>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden"><Search className="h-4 w-4" /></Button>
+            </PopoverTrigger>
             <PopoverContent className="w-80 p-2" align="end">
-              <Input placeholder="Etkinlik ara..." value={arama} onChange={(e) => setArama(e.target.value)} autoFocus />
+              <Input placeholder="Etkinlik ara…" value={arama} onChange={(e) => setArama(e.target.value)} autoFocus />
               {aramaSonuc.length > 0 && (
                 <div className="mt-2 max-h-72 overflow-y-auto">
                   {aramaSonuc.map((e) => (
@@ -278,18 +320,24 @@ function TakvimSayfa() {
               )}
             </PopoverContent>
           </Popover>
-          <Select value={gorunum} onValueChange={(v) => setGorunum(v as Gorunum)}>
-            <SelectTrigger className="h-8 w-20 md:w-24"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="gun">Gün</SelectItem>
-              <SelectItem value="hafta">Hafta</SelectItem>
-              <SelectItem value="ay">Ay</SelectItem>
-              <SelectItem value="yil">Yıl</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Desktop görünüm segmented control */}
+          <div className="hidden items-center gap-0.5 rounded-md border border-border p-0.5 md:flex">
+            {(["gun","hafta","ay","yil"] as Gorunum[]).map((v) => (
+              <button
+                key={v}
+                onClick={() => setGorunum(v)}
+                className={cn(
+                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                  gorunum === v ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {v === "gun" ? "Gün" : v === "hafta" ? "Hafta" : v === "ay" ? "Ay" : "Yıl"}
+              </button>
+            ))}
+          </div>
           {!mobil && <Button size="sm" onClick={() => yeniEtkinlik(ankara)}><Plus className="mr-1 h-4 w-4" />Oluştur</Button>}
           <Popover>
-            <PopoverTrigger asChild><Button variant="ghost" size="icon"><Settings className="h-4 w-4" /></Button></PopoverTrigger>
+            <PopoverTrigger asChild><Button variant="ghost" size="icon" aria-label="Daha fazla"><MoreHorizontal className="h-4 w-4" /></Button></PopoverTrigger>
             <PopoverContent align="end" className="w-52 p-2">
               <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent" onClick={ics}>
                 <Download className="h-4 w-4" />.ics dışa aktar
@@ -340,15 +388,22 @@ function TakvimSayfa() {
       </div>
 
       {mobil && (
-        <nav className="grid shrink-0 grid-cols-6 border-t border-border bg-card">
-          {([
-            ["gun", "Gün"], ["hafta", "Hafta"], ["ay", "Ay"], ["yil", "Yıl"],
-          ] as Array<[Gorunum, string]>).map(([v, e]) => (
-            <button key={v} onClick={() => setGorunum(v)} className={cn("py-2 text-xs font-medium", gorunum === v ? "text-primary" : "text-muted-foreground")}>{e}</button>
-          ))}
-          <button onClick={bugun} className="py-2 text-xs font-medium text-muted-foreground">Bugün</button>
-          <button onClick={() => yeniEtkinlik(ankara)} className="flex items-center justify-center bg-primary text-primary-foreground"><Plus className="h-5 w-5" /></button>
-        </nav>
+        <>
+          <nav className="grid shrink-0 grid-cols-4 border-t border-border bg-card">
+            {([
+              ["gun", "Gün"], ["hafta", "Hafta"], ["ay", "Ay"], ["yil", "Yıl"],
+            ] as Array<[Gorunum, string]>).map(([v, e]) => (
+              <button key={v} onClick={() => setGorunum(v)} className={cn("py-2.5 text-xs font-medium transition-colors", gorunum === v ? "text-primary" : "text-muted-foreground")}>{e}</button>
+            ))}
+          </nav>
+          <button
+            onClick={() => yeniEtkinlik(ankara)}
+            aria-label="Yeni etkinlik"
+            className="fixed bottom-16 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95"
+          >
+            <Plus className="h-6 w-6" />
+          </button>
+        </>
       )}
 
       <EtkinlikDialog acik={diyAcik} onOpenChange={setDiyAcik} duzenle={duzenle} baslangic={diyBas} bitis={diyBit} tumGun={diyTumGun} takvimler={takvimler} />
