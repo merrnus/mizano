@@ -2,41 +2,35 @@ import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   addDays, addMonths, addYears, endOfMonth, endOfWeek, format, isSameDay,
-  isSameMonth, startOfDay, startOfMonth, startOfWeek, subMonths, subWeeks,
-  getISOWeek, max as dMax, min as dMin,
+  startOfDay, startOfMonth, startOfWeek, subWeeks,
 } from "date-fns";
 import { tr } from "date-fns/locale";
 import {
   ChevronLeft, ChevronRight, Plus, Search, Calendar as CalIcon,
-  Download, Upload, Menu, Edit, Copy, Trash2, Palette,
-  MoreHorizontal, ChevronDown,
+  Download, Upload, Menu, MoreHorizontal, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import {
-  ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem,
-  ContextMenuSeparator, ContextMenuSub, ContextMenuSubTrigger, ContextMenuSubContent,
-} from "@/components/ui/context-menu";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useTakvimler, useTakvimMutasyonlari, useEtkinlikler, useEtkinlikMutasyonlari } from "@/lib/takvim/hooks";
 import { genisletListe } from "@/lib/takvim/tekrar";
-import { yerlestir } from "@/lib/takvim/cakisma";
-import { TAKVIM_RENKLERI, rengiBul } from "@/lib/takvim/renkler";
+import { rengiBul } from "@/lib/takvim/renkler";
 import { disaAktar, indir, iceAktar } from "@/lib/takvim/ics";
 import { useAuth } from "@/lib/auth-context";
 import { EtkinlikDialog } from "@/components/takvim/etkinlik-dialog";
 import { EtkinlikHizliPopover } from "@/components/mizan/takvim/etkinlik-hizli-popover";
+import { MiniTakvim } from "@/components/mizan/takvim/mini-takvim";
+import { TakvimListesi } from "@/components/mizan/takvim/takvim-listesi";
+import { YaklasanListesi } from "@/components/mizan/takvim/yaklasan-listesi";
+import { AyGorunumu } from "@/components/mizan/takvim/ay-gorunumu";
+import { HaftaGorunumu } from "@/components/mizan/takvim/hafta-gorunumu";
+import { YilGorunumu } from "@/components/mizan/takvim/yil-gorunumu";
 import type { Etkinlik, EtkinlikOlay, Gorunum, Takvim } from "@/lib/takvim/tipler";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/takvim")({ component: TakvimSayfa });
-
-const SAAT_PX = 48;
 
 function useMedya(q: string) {
   const [m, setM] = React.useState(false);
