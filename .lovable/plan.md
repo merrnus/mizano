@@ -1,93 +1,86 @@
-## Mutfak Hub Redesign — Google Workspace tarzı
+## Takvim Redesign — Google Calendar tarzı sadeleştirme
 
-### Hedef
-Hub'ı "her şey eşit ağırlıkta tile grid"den, **arama-merkezli, son kullanılanlar öncelikli, araçlar ikincil** bir yapıya çevirmek. Tek bakışta "ne yapacağım" net olsun.
+### Tespit
+Yapı aslında **Google Calendar'a çok yakın** (header + sol sidebar + ana grid + mobil sheet). Ama:
+- **964 satır tek dosyada** — 11 alt-komponent inline (geliştirici acısı, kullanıcı acısı değil)
+- **Header çok kalabalık**: geri ok, hamburger, takvim ikonu, "Bugün", ‹ ›, başlık, sayı rozeti, arama ikonu, görünüm select, "Oluştur", ayarlar → 10+ element, mobilde sıkışıyor
+- **Arama gizli** — popover ikonun arkasında; Google Calendar'da inline genişler
+- **Görünüm değiştirme iki yerde** — üstte select + mobilde alt nav (çift kontrol, kafa karıştırıcı)
+- **Mobilde "+"** alt nav'a sıkışmış; klasik FAB daha keşfedilebilir
+- **Klavye kısayolu yok** — Google Calendar'da G/W/M/Y, T, J/K, C, / standartı
 
-### Mevcut problem
-- 6 tile + recents + arama + FAB aynı anda göze çarpıyor
-- "Yeni belge" hem FAB'da hem tile'da (çift eylem)
-- Hangi araç "ana" belli değil — pomodoro ile notlar eşit ağırlıkta
-- Recents küçük, oysa kullanıcı %80 oraya gidecek
+### Plan: 2 faz
 
-### Yeni hiyerarşi (yukarıdan aşağı)
+---
+
+### **Faz 1 — UX sadeleştirme** (kullanıcıya görünür kazanç)
+
+**1. Header yeniden düzeni**
+```
+[‹] [›] [Bugün]   Mart 2026 ▾    🔍 Ara… (inline)   [Gün▾]  [+ Oluştur]  [⋯]
+```
+- Geri ok kaldırılır (zaten sol sidebar'da Bugün linki var)
+- "Bugün" + ‹ ›: sola, kompakt grup
+- Başlık ortada, küçük chevron ile aydan ay seçici popover (mini takvim)
+- **Arama**: sm+ ekranda inline input (w-44 → focus'ta w-72 büyür), mobilde ikon
+- Görünüm: kompakt segmented control (Gün/Hafta/Ay/Yıl) — desktop'ta görünür, mobilde select kalır
+- Ayarlar: 3-dot menü (.ics import/export buraya)
+- "Bugün X etkinlik" rozeti kaldırılır — başlık altına küçük metin
+
+**2. Mobil sadeleştirme**
+- Alt nav'daki "Bugün" silinir (header'da var)
+- Alt nav'daki "+" silinir → sağ-alt **FAB** (sticky)
+- Alt nav sadece görünüm seçici olarak kalır: 4 düğme (Gün/Hafta/Ay/Yıl) — segmented control
+- Hamburger menü yerleşik kalır (sidebar açar)
+
+**3. Klavye kısayolları** (Google Calendar standardı)
+- `T` → Bugün
+- `J` / `K` veya `←` / `→` → İleri/geri
+- `G` / `W` / `M` / `Y` → Gün/Hafta/Ay/Yıl
+- `C` → Oluştur
+- `/` → Arama focus
+- Input/textarea içinde tetiklenmez
+
+**4. Başlık tıklanabilir → mini takvim popover**
+- "Mart 2026 ▾" tıklanınca popover'da mini takvim açılır, ay/yıl atlamak için. Google Calendar'daki davranış.
+
+**Etkilenen dosya:** sadece `src/routes/takvim.tsx` (header bloğu + bottom nav bloğu + yeni `useEffect` kısayollar için).
+
+---
+
+### **Faz 2 — Kod ayrıştırma** (görünmez ama bakım için kritik)
+
+964 satırlık dosyayı 7 parçaya böl:
 
 ```
-┌─────────────────────────────────────────┐
-│  Mutfak                                 │  ← küçük başlık, eyebrow yok
-│  ┌───────────────────────────────────┐  │
-│  │ 🔍  Ara: not, belge, tablo…    ⌘K │  │  ← BÜYÜK, merkezi, autofocus
-│  └───────────────────────────────────┘  │
-│                                         │
-│  Son kullanılanlar                      │  ← H2, belirgin
-│  ┌────┐ ┌────┐ ┌────┐ ┌────┐           │  ← daha büyük kartlar (h-32)
-│  │belge│ │tablo│ │ not │ │belge│   →   │     yatay scroll, snap
-│  └────┘ └────┘ └────┘ └────┘           │
-│                                         │
-│  Hızlı oluştur                          │  ← H3, küçük
-│  [+ Not] [+ Belge] [+ Tablo]            │  ← chip butonlar, satır içi
-│                                         │
-│  Araçlar                                │  ← H3
-│  ▸ Notlar          12 not, 3 sabitli   │  ← liste, ikon + sayaç
-│  ▸ Belge           5 belge              │
-│  ▸ Tablo           2 tablo              │
-│  ▸ Sürücü          18 dosya             │
-│  ▸ Pomodoro        odak süresi          │
-└─────────────────────────────────────────┘
+src/components/mizan/takvim/
+├── takvim-toolbar.tsx         (yeni — header)
+├── takvim-yan-panel.tsx       (yeni — mini takvim + liste + yaklaşan)
+├── ay-gorunumu.tsx            (taşı, ~110 sat)
+├── hafta-gorunumu.tsx         (taşı, ~100 sat)
+├── gun-sutun.tsx              (taşı, ~190 sat)
+├── yil-gorunumu.tsx           (taşı, ~35 sat)
+├── olay-menu.tsx              (taşı, ~40 sat)
+└── (mevcut) etkinlik-dialog.tsx, etkinlik-hizli-popover.tsx, gorev-dialog.tsx
 ```
 
-### Değişiklikler
+Sonuç: `takvim.tsx` ~150 satır (sadece state + orkestrasyon).
 
-**1. Arama (HubArama) öne çıkar**
-- Card-like büyük arama kutusu (h-14), placeholder "Notlarda, belgelerde, tablolarda ara…"
-- Sağ üstte ⌘K kısayolu rozeti
-- Sayfa yüklendiğinde autofocus
+**Davranış değişikliği YOK** — sadece dosya bölünmesi. Build sonrası birebir aynı çalışacak.
 
-**2. Son kullanılanlar büyür**
-- Kart genişliği `w-44` → `w-52`, yükseklik `h-32`
-- Belge için içerik önizleme satırı eklenir (ilk 60 karakter)
-- "Tümünü gör →" linki sağ üstte
-- Boşsa "Henüz bir şey yok, aşağıdan başlayalım" mesajı
+---
 
-**3. Hızlı oluştur — chip satırı (FAB'ı değiştirir)**
-- FAB kaldırılır (mobil dahil); yerine sayfa içi 3 chip buton
-- `[+ Yeni not] [+ Belge] [+ Tablo]` — outline button, ikon + label
-- Mobilde de aynı; FAB karmaşası biter
+### Sıralama önerisi
 
-**4. Tile grid → liste satırları**
-- 6 büyük tile yerine kompakt liste:
-  - sol: ikon (renkli badge, küçük)
-  - orta: ad + tek satır açıklama
-  - sağ: sayaç + chevron
-- 5 araç, dikey liste, her satır `h-16`
-- "Yakında" placeholder tile silinir (gereksiz)
-
-**5. Header sadeleşir**
-- "Mutfak" eyebrow + büyük başlık + alt yazı kalıyor ama daha küçük (text-2xl yerine değil, ama padding azalır)
-- Sparkles ikonu kalır
-
-### Teknik detaylar
-
-**Düzenlenecek dosyalar:**
-- `src/routes/workspace.index.tsx` — komple layout yeniden yazılır
-- `src/components/mizan/mutfak/hub-fab.tsx` — **silinir**
-- `src/components/mizan/mutfak/hub-tile.tsx` — kullanılmaz olur (silmek yerine bırakabiliriz, başka yerde kullanılırsa)
-- `src/components/mizan/mutfak/hub-arama.tsx` — daha büyük variant (prop ekle veya stil güncelle)
-
-**Yeni küçük komponentler (inline veya yeni dosya):**
-- `RecentKartBuyuk` — mevcut `RecentKart`'ın büyük varyantı (workspace.index.tsx içinde inline kalabilir)
-- `AracSatiri` — araç listesi satırı (inline)
-- `HizliOlusturChips` — 3 chip buton (inline, mevcut hook'ları kullanır: `useNotEkle` benzeri yoksa /workspace/notlar'a yönlendir, `useBelgeEkle`, `useTabloEkle` zaten var)
-
-**Backend / hook değişikliği:** YOK. Sadece sunum katmanı.
-
-**⌘K kısayolu:** Bu plan kapsamında sadece görsel rozet. Gerçek global ⌘K palette ileride (öncelik 5).
+İkisini ayrı turlarda yapmak daha güvenli:
+1. **Önce Faz 1** — sen test edersin, UX değişikliklerini görürsün, geri bildirim verirsin
+2. **Sonra Faz 2** — refactor; davranış değişmediğinden risk düşük
 
 ### Etkilenmeyen
-- `/workspace/notlar`, `/belge`, `/tablo`, `/surucu`, `/pomodoro` alt sayfaları — dokunulmaz
-- Diğer Mutfak komponentleri (not-kart, not-composer, belge-editor, tablo-editor) — dokunulmaz
-- Veri katmanı, RLS, tipler — dokunulmaz
+- Veri katmanı (`src/lib/takvim/*`) — dokunulmaz
+- `etkinlik-dialog.tsx`, `etkinlik-hizli-popover.tsx`, `gorev-dialog.tsx` — dokunulmaz
+- Çakışma/tekrar/ics mantığı — dokunulmaz
+- Sürükleme, resize, context menu davranışı — aynı kalır
 
-### Doğrulama
-- Build başarılı
-- `/workspace` yüklendiğinde: arama büyük, recents belirgin, FAB yok
-- Mobil viewport'ta (723px) hâlâ rahat okunur
+### Soru
+Faz 1 ile başlayıp onayını alıp Faz 2'ye geçmemi mi istersin, yoksa **ikisini birden** tek seferde yapayım mı? (İkisi birden = daha hızlı ama tek büyük diff, geri dönmek zor.)
