@@ -25,12 +25,12 @@ import {
   type TakvimEtkinlik,
   type TakvimEtkinlikEkle,
   type TakvimTekrar,
-} from "@/lib/takvim-tipleri";
+} from "@/lib/takvim/tipler";
 import { ALAN_ETIKET, type CeteleAlan } from "@/lib/cetele-tipleri";
 import {
   useEtkinlikGuncelle,
   useEtkinlikSil,
-} from "@/lib/takvim-hooks";
+} from "@/lib/takvim/hooks";
 import { toast } from "sonner";
 
 const pad = (n: number) => String(n).padStart(2, "0");

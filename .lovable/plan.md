@@ -1,38 +1,12 @@
-## Faz 2 — Takvim kod ayrıştırma
+## Faz A — Temizlik (tamamlandı ✓)
 
-Mevcut `src/routes/takvim.tsx` (~960 satır) sayfa-orkestrasyon dosyası olarak ~150 satıra inecek. 7 alt-komponent kendi dosyalarına taşınır. **Davranış değişmez** — sadece dosya bölünmesi.
+- `lib/takvim-hooks.ts` + `lib/takvim-tipleri.ts` → `lib/takvim/`'e konsolide (yeni `gorev.ts`, eski isim aliasları korundu)
+- `components/takvim/etkinlik-dialog.tsx` → `components/mizan/takvim/etkinlik-dialog.tsx`'e taşındı
+- Eski basit dashboard dialog → `etkinlik-hizli-dialog.tsx` (`EtkinlikHizliDialog`)
+- `lib/network-hooks.ts` (1468 sat) → `lib/network/` altında 9 dosya (kategori, kisiler, istisareler, gundemler, kardes-etkinlik, bu-hafta, kardes-mufredat, kardes-evrad, rapor); kök `network-hooks.ts` barrel re-export
 
-### Dosya planı
+Build temiz, davranış değişmedi.
 
-```
-src/components/mizan/takvim/
-├── mini-takvim.tsx          (yeni — 37 sat)
-├── takvim-listesi.tsx       (yeni — 46 sat)
-├── yaklasan-listesi.tsx     (yeni — 19 sat)
-├── olay-menu.tsx            (yeni — ~40 sat)
-├── ay-gorunumu.tsx          (yeni — ~115 sat)
-├── hafta-gorunumu.tsx       (yeni — ~100 sat + GunSutun helper)
-├── gun-sutun.tsx            (yeni — ~190 sat, içinde pxToDk + GunSutun)
-└── yil-gorunumu.tsx         (yeni — ~35 sat)
-```
-
-`takvim.tsx`'te kalan: route definition, state, mutasyon handler'ları, klavye dinleyici, hatırlatıcı timer'ı, swipe, `yanIcerik` JSX, ana JSX iskeleti (header + main + bottom nav + dialog'lar). ~150 satır.
-
-### Import düzeni
-Her yeni dosya kendi gerekli importlarını (date-fns, lucide, ui/*, lib/takvim/*, tipler) içerir. `takvim.tsx` artık sadece kullandığı 8 komponenti import eder.
-
-### Korunanlar (dokunulmaz)
-- `src/lib/takvim/*` (hooks, tekrar, cakisma, renkler, ics, tipler)
-- `src/components/takvim/etkinlik-dialog.tsx`
-- `src/components/mizan/takvim/etkinlik-hizli-popover.tsx`
-- `src/components/mizan/takvim/gorev-dialog.tsx`
-- Faz 1'de yeniden düzenlenen header, bottom nav, FAB, klavye kısayolları — değişmez
-
-### Yöntem
-1. Yeni dosyaları yarat, ilgili fonksiyon bloklarını birebir kopyala (tip imzaları dahil)
-2. `takvim.tsx`'ten alt-komponent tanımlarını sil, başa importları ekle
-3. `useMedya` hook'u `takvim.tsx`'te kalır (sadece orada kullanılıyor)
-4. Build doğrulama
-
-### Risk
-Düşük. Saf taşıma, mantık değişmiyor. Tek sıkıntı olabilir: `HaftaGorunumu` → `GunSutun` çağırıyor, `OlayMenu` birden fazla görünümden çağrılıyor — bunlar normal import'la çözülür.
+## Sırada
+- **Faz B** — şişkin route'ları böl (mizan.ilim.$id, mizan.amel.$id, network.rapor)
+- **Faz C** — global Cmd+K, cross-domain bağlama, birleşik bildirim, UX redundancy temizliği

@@ -2,14 +2,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import * as React from "react";
+import { addDays, addMonths, isAfter, isBefore } from "date-fns";
 import type {
   Etkinlik,
   EtkinlikEkle,
   EtkinlikGuncelle,
+  EtkinlikOlay,
   Takvim,
   TakvimEkle,
   TakvimGuncelle,
 } from "./tipler";
+import { etkinlikBitisi } from "./tipler";
 
 export function useTakvimler() {
   const { user } = useAuth();
@@ -105,7 +108,104 @@ export function useTakvimMutasyonlari() {
   return { ekle, guncelle, sil };
 }
 
-export function useEtkinlikler() {
+/**
+ * Geri-uyum: dashboard widget'ları bu hooks'ları tek tek import ediyor.
+ * Eski API'nin `{ id, degisiklikler }` şeklini de kabul eden mutation'lar.
+ */
+export function useEtkinlikEkle() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: Omit<EtkinlikEkle, "user_id">) => {
+      const { error } = await supabase
+        .from("takvim_etkinlik")
+        .insert({ ...input, user_id: user!.id });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etkinlikler"] }),
+  });
+}
+
+export function useEtkinlikGuncelle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      args:
+        | (EtkinlikGuncelle & { id: string })
+        | { id: string; degisiklikler: EtkinlikGuncelle },
+    ) => {
+      const id = args.id;
+      const patch =
+        "degisiklikler" in args
+          ? args.degisiklikler
+          : (() => { const { id: _i, ...r } = args; return r; })();
+      const { error } = await supabase
+        .from("takvim_etkinlik")
+        .update(patch)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etkinlikler"] }),
+  });
+}
+
+export function useEtkinlikSil() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("takvim_etkinlik")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etkinlikler"] }),
+  });
+}
+
+/**
+ * Geri-uyum: dashboard'un eski tekrar genişletme fonksiyonu.
+ * `takvim_etkinlik.tekrar` (yok|haftalik|aylik) alanına bakar.
+ * Yeni takvim sayfası RRULE tabanlı `genisletListe` kullanır (tekrar.ts).
+ */
+export function genisletEtkinlikleri(
+  etkinlikler: Etkinlik[],
+  pencereBas: Date,
+  pencereBit: Date,
+): EtkinlikOlay[] {
+  const sonuc: EtkinlikOlay[] = [];
+  for (const e of etkinlikler) {
+    const bas0 = new Date(e.baslangic);
+    const bit0 = etkinlikBitisi(e);
+    const sure = bit0.getTime() - bas0.getTime();
+    const tekrarBitis = e.tekrar_bitis ? new Date(e.tekrar_bitis) : null;
+
+    const ilerlet = (d: Date): Date => {
+      if (e.tekrar === "haftalik") return addDays(d, 7);
+      if (e.tekrar === "aylik") return addMonths(d, 1);
+      return new Date(d.getTime() + 365 * 24 * 3600_000);
+    };
+
+    let cur = bas0;
+    let safety = 0;
+    while (safety++ < 500) {
+      if (isAfter(cur, pencereBit)) break;
+      if (tekrarBitis && isAfter(cur, tekrarBitis)) break;
+      const olayBit = new Date(cur.getTime() + sure);
+      if (!isBefore(olayBit, pencereBas)) {
+        sonuc.push({ ...e, olayBaslangic: cur, olayBitis: olayBit });
+      }
+      if (e.tekrar === "yok") break;
+      cur = ilerlet(cur);
+    }
+  }
+  return sonuc;
+}
+
+export type { EtkinlikOlay } from "./tipler";
+export { useGorevler, useGorevEkle, useGorevGuncelle, useGorevSil } from "./gorev";
+
+export function useEtkinlikler(_from?: Date, _to?: Date) {
   const { user } = useAuth();
   const qc = useQueryClient();
 
