@@ -8,7 +8,7 @@ import type {
   TakvimGorevGuncelle,
 } from "./tipler";
 
-export function useGorevler() {
+export function useGorevler(_from?: Date, _to?: Date) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const q = useQuery({
