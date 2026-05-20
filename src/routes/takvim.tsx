@@ -19,7 +19,7 @@ import { genisletListe } from "@/lib/takvim/tekrar";
 import { rengiBul } from "@/lib/takvim/renkler";
 import { disaAktar, indir, iceAktar } from "@/lib/takvim/ics";
 import { useAuth } from "@/lib/auth-context";
-import { EtkinlikDialog } from "@/components/takvim/etkinlik-dialog";
+import { EtkinlikDialog } from "@/components/mizan/takvim/etkinlik-dialog";
 import { EtkinlikHizliPopover } from "@/components/mizan/takvim/etkinlik-hizli-popover";
 import { MiniTakvim } from "@/components/mizan/takvim/mini-takvim";
 import { TakvimListesi } from "@/components/mizan/takvim/takvim-listesi";

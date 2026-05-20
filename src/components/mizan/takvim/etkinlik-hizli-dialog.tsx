@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useEtkinlikEkle } from "@/lib/takvim-hooks";
+import { useEtkinlikEkle } from "@/lib/takvim/hooks";
 import { ALAN_ETIKET, type CeteleAlan } from "@/lib/cetele-tipleri";
 
 type Props = {
@@ -16,7 +16,7 @@ type Props = {
   varsayilanBaslangic?: Date;
 };
 
-export function EtkinlikDialog({ acik, onOpenChange, varsayilanBaslangic }: Props) {
+export function EtkinlikHizliDialog({ acik, onOpenChange, varsayilanBaslangic }: Props) {
   const ekle = useEtkinlikEkle();
   const ref = varsayilanBaslangic ?? new Date();
   const [baslik, setBaslik] = React.useState("");

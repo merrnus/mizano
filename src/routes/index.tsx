@@ -15,12 +15,12 @@ import { BriefRings } from "@/components/mizan/dashboard/brief-rings";
 import { BugunFab } from "@/components/mizan/dashboard/bugun-fab";
 import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
 import { GorevDialog } from "@/components/mizan/takvim/gorev-dialog";
-import { EtkinlikDialog } from "@/components/mizan/takvim/etkinlik-dialog";
+import { EtkinlikHizliDialog } from "@/components/mizan/takvim/etkinlik-hizli-dialog";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { useAmelKurslar, useTumAmelModuller } from "@/lib/amel-hooks";
 import { useDersler, useSinavlar } from "@/lib/ilim-hooks";
 import { amelYuzdesi, ilimYuzdesi } from "@/lib/istikamet-yuzde";
-import type { TakvimGorev } from "@/lib/takvim-tipleri";
+import type { TakvimGorev } from "@/lib/takvim/tipler";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/")({
@@ -214,7 +214,7 @@ function AnaDashboard() {
         duzenle={duzenlenenGorev}
       />
 
-      <EtkinlikDialog
+      <EtkinlikHizliDialog
         acik={etkinlikDialogAcik}
         onOpenChange={setEtkinlikDialogAcik}
         varsayilanBaslangic={bugun}

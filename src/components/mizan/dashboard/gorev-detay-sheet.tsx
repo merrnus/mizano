@@ -24,9 +24,9 @@ import {
   type GorevOncelik,
   type TakvimGorev,
   type TakvimGorevEkle,
-} from "@/lib/takvim-tipleri";
+} from "@/lib/takvim/tipler";
 import { ALAN_ETIKET, type CeteleAlan } from "@/lib/cetele-tipleri";
-import { useGorevGuncelle, useGorevSil } from "@/lib/takvim-hooks";
+import { useGorevGuncelle, useGorevSil } from "@/lib/takvim/hooks";
 import { toast } from "sonner";
 
 type Props = {

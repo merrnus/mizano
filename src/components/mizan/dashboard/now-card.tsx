@@ -17,11 +17,11 @@ import {
   useGorevler,
   useGorevGuncelle,
   genisletEtkinlikleri,
-} from "@/lib/takvim-hooks";
+} from "@/lib/takvim/hooks";
 import { useAmelKurslar, useTumAmelModuller, useAmelModulGuncelle } from "@/lib/amel-hooks";
 import { tarihFormat } from "@/lib/cetele-tarih";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
-import type { TakvimEtkinlik, TakvimGorev } from "@/lib/takvim-tipleri";
+import type { TakvimEtkinlik, TakvimGorev } from "@/lib/takvim/tipler";
 import type { AmelKurs, AmelModul } from "@/lib/amel-tipleri";
 import { EtkinlikDetaySheet } from "./etkinlik-detay-sheet";
 import { GorevDetaySheet } from "./gorev-detay-sheet";

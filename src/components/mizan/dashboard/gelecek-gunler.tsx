@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { addDays, format, isSameDay } from "date-fns";
 import { tr } from "date-fns/locale";
 import { ArrowRight } from "lucide-react";
-import { useEtkinlikler, useGorevler, genisletEtkinlikleri } from "@/lib/takvim-hooks";
+import { useEtkinlikler, useGorevler, genisletEtkinlikleri } from "@/lib/takvim/hooks";
 import { tarihFormat } from "@/lib/cetele-tarih";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 
