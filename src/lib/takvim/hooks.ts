@@ -110,21 +110,57 @@ export function useTakvimMutasyonlari() {
 
 /**
  * Geri-uyum: dashboard widget'ları bu hooks'ları tek tek import ediyor.
- * useEtkinlikMutasyonlari'nin parçaları.
+ * Eski API'nin `{ id, degisiklikler }` şeklini de kabul eden mutation'lar.
  */
 export function useEtkinlikEkle() {
-  const { ekle } = useEtkinlikMutasyonlari();
-  return ekle;
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: Omit<EtkinlikEkle, "user_id">) => {
+      const { error } = await supabase
+        .from("takvim_etkinlik")
+        .insert({ ...input, user_id: user!.id });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etkinlikler"] }),
+  });
 }
 
 export function useEtkinlikGuncelle() {
-  const { guncelle } = useEtkinlikMutasyonlari();
-  return guncelle;
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      args:
+        | (EtkinlikGuncelle & { id: string })
+        | { id: string; degisiklikler: EtkinlikGuncelle },
+    ) => {
+      const id = args.id;
+      const patch =
+        "degisiklikler" in args
+          ? args.degisiklikler
+          : (() => { const { id: _i, ...r } = args; return r; })();
+      const { error } = await supabase
+        .from("takvim_etkinlik")
+        .update(patch)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etkinlikler"] }),
+  });
 }
 
 export function useEtkinlikSil() {
-  const { sil } = useEtkinlikMutasyonlari();
-  return sil;
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("takvim_etkinlik")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etkinlikler"] }),
+  });
 }
 
 /**
@@ -169,7 +205,7 @@ export function genisletEtkinlikleri(
 export type { EtkinlikOlay } from "./tipler";
 export { useGorevler, useGorevEkle, useGorevGuncelle, useGorevSil } from "./gorev";
 
-export function useEtkinlikler() {
+export function useEtkinlikler(_from?: Date, _to?: Date) {
   const { user } = useAuth();
   const qc = useQueryClient();
 
