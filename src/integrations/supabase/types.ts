@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      aktivite_tip: {
+        Row: {
+          ad: string
+          created_at: string
+          grup: string
+          id: string
+          siralama: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          grup: string
+          id?: string
+          siralama?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          grup?: string
+          id?: string
+          siralama?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       amel_alan: {
         Row: {
           aciklama: string | null
