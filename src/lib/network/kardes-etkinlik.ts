@@ -217,6 +217,24 @@ async function takvimeYansit(p: {
     : (p.baslangic_saati
         ? birlestirISO(p.tarih, addMinutes(p.baslangic_saati, 60))
         : null);
+  // Kullanıcının varsayılan takvimini bul (yoksa ilkini, yoksa oluştur).
+  let takvim_id: string | null = null;
+  const { data: takvimler } = await supabase
+    .from("takvim")
+    .select("id, is_default, siralama")
+    .order("is_default", { ascending: false })
+    .order("siralama", { ascending: true })
+    .limit(1);
+  if (takvimler && takvimler.length > 0) {
+    takvim_id = takvimler[0].id;
+  } else {
+    const { data: yeni } = await supabase
+      .from("takvim")
+      .insert({ user_id: p.user_id, ad: "Kişisel", renk: "cal-1", is_default: true, siralama: 0 })
+      .select("id")
+      .single();
+    takvim_id = yeni?.id ?? null;
+  }
   const { data, error } = await supabase
     .from("takvim_etkinlik")
     .insert({
@@ -228,6 +246,7 @@ async function takvimeYansit(p: {
       tum_gun,
       alan: "mana" as const,
       tekrar: "yok" as const,
+      takvim_id,
     })
     .select("id")
     .single();
