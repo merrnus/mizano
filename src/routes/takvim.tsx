@@ -117,9 +117,11 @@ function TakvimSayfa() {
   const bugun = () => setAnkara(new Date());
 
   const yeniEtkinlik = (bas?: Date, bit?: Date, tg = false) => {
-    // Salt-okunur mod: yeni etkinlik takvimden eklenmez.
-    // Faaliyetler /network (Rehberlik) üzerinden planlanır.
-    void bas; void bit; void tg;
+    setDuzenle(null);
+    setDiyBas(bas);
+    setDiyBit(bit);
+    setDiyTumGun(tg);
+    setDiyAcik(true);
   };
 
   const olayDuzenle = (e: Etkinlik) => {
@@ -235,16 +237,13 @@ function TakvimSayfa() {
 
   const yanIcerik = (
     <div className="flex flex-col gap-4">
-      <Link
-        to="/network"
-        onClick={() => setYanSheet(false)}
+      <button
+        type="button"
+        onClick={() => { yeniEtkinlik(ankara); setYanSheet(false); }}
         className="inline-flex items-center gap-1.5 self-start rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:opacity-90"
       >
-        <Plus className="h-3.5 w-3.5" />Faaliyet planla
-      </Link>
-      <p className="rounded-md border border-dashed border-border bg-muted/30 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
-        Planlama salt-okunurdur. Yeni faaliyet eklemek için Rehberlik'i kullanın.
-      </p>
+        <Plus className="h-3.5 w-3.5" />Yeni etkinlik
+      </button>
       <MiniTakvim ankara={ankara} setAnkara={(d) => { setAnkara(d); if (mobil) setYanSheet(false); }} olaylar={olaylar} />
       <TakvimListesi takvimler={takvimler} onToggle={(t) => tmu.guncelle.mutate({ id: t.id, gorunur: !t.gorunur })} onYeni={(ad, renk) => tmu.ekle.mutate({ ad, renk })} onSil={(id) => tmu.sil.mutate(id)} />
       <YaklasanListesi olaylar={yaklaşan} takvimler={takvimler} onClick={(o) => { olayDuzenle(o); setYanSheet(false); }} />
@@ -335,14 +334,6 @@ function TakvimSayfa() {
               </button>
             ))}
           </div>
-          {!mobil && (
-            <Link
-              to="/network"
-              className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm hover:opacity-90"
-            >
-              <Plus className="mr-0.5 h-4 w-4" />Faaliyet planla
-            </Link>
-          )}
           <Popover>
             <PopoverTrigger asChild><Button variant="ghost" size="icon" aria-label="Daha fazla"><MoreHorizontal className="h-4 w-4" /></Button></PopoverTrigger>
             <PopoverContent align="end" className="w-52 p-2">
