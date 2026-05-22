@@ -1,11 +1,12 @@
 import * as React from "react";
+import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
-import { Users } from "lucide-react";
+import { Users, ArrowRight } from "lucide-react";
 import type { KisiDetay } from "@/lib/network-tipleri";
 import {
   useFaaliyetOzetleri,
@@ -137,6 +138,19 @@ function KisiHizliSheet({
             />
             <span className="text-sm">Bu hafta okumasını yaptı</span>
           </label>
+
+          {kisi && (
+            <Link
+              to="/network/kisi/$id"
+              params={{ id: kisi.id }}
+              search={{ kt: "faaliyetler" }}
+              onClick={onClose}
+              className="flex items-center justify-between rounded-md border border-border bg-primary/5 px-3 py-2.5 text-sm font-medium text-primary hover:bg-primary/10"
+            >
+              <span>Profili aç · Faaliyetleri düzenle</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
         </div>
       </SheetContent>
     </Sheet>
