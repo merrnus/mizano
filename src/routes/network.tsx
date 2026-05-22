@@ -21,6 +21,7 @@ import {
   MoreHorizontal,
   Search,
   Star,
+  TrendingUp,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -132,6 +133,18 @@ function Network() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() =>
+                navigate({
+                  to: "/istikamet",
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  search: (() => ({})) as any,
+                })
+              }
+            >
+              <TrendingUp className="mr-2 h-3.5 w-3.5" />
+              İstikamet
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() =>
                 navigate({
