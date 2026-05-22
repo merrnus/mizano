@@ -117,11 +117,9 @@ function TakvimSayfa() {
   const bugun = () => setAnkara(new Date());
 
   const yeniEtkinlik = (bas?: Date, bit?: Date, tg = false) => {
-    setDuzenle(null);
-    setDiyBas(bas ?? new Date());
-    setDiyBit(bit ?? (bas ? new Date(bas.getTime() + 3600_000) : undefined));
-    setDiyTumGun(tg);
-    setDiyAcik(true);
+    // Salt-okunur mod: yeni etkinlik takvimden eklenmez.
+    // Faaliyetler /network (Rehberlik) üzerinden planlanır.
+    void bas; void bit; void tg;
   };
 
   const olayDuzenle = (e: Etkinlik) => {
@@ -237,7 +235,16 @@ function TakvimSayfa() {
 
   const yanIcerik = (
     <div className="flex flex-col gap-4">
-      <Button size="sm" className="self-start" onClick={() => { yeniEtkinlik(ankara); setYanSheet(false); }}><Plus className="mr-1 h-4 w-4" />Oluştur</Button>
+      <Link
+        to="/network"
+        onClick={() => setYanSheet(false)}
+        className="inline-flex items-center gap-1.5 self-start rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:opacity-90"
+      >
+        <Plus className="h-3.5 w-3.5" />Faaliyet planla
+      </Link>
+      <p className="rounded-md border border-dashed border-border bg-muted/30 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
+        Planlama salt-okunurdur. Yeni faaliyet eklemek için Rehberlik'i kullanın.
+      </p>
       <MiniTakvim ankara={ankara} setAnkara={(d) => { setAnkara(d); if (mobil) setYanSheet(false); }} olaylar={olaylar} />
       <TakvimListesi takvimler={takvimler} onToggle={(t) => tmu.guncelle.mutate({ id: t.id, gorunur: !t.gorunur })} onYeni={(ad, renk) => tmu.ekle.mutate({ ad, renk })} onSil={(id) => tmu.sil.mutate(id)} />
       <YaklasanListesi olaylar={yaklaşan} takvimler={takvimler} onClick={(o) => { olayDuzenle(o); setYanSheet(false); }} />
@@ -328,7 +335,14 @@ function TakvimSayfa() {
               </button>
             ))}
           </div>
-          {!mobil && <Button size="sm" onClick={() => yeniEtkinlik(ankara)}><Plus className="mr-1 h-4 w-4" />Oluştur</Button>}
+          {!mobil && (
+            <Link
+              to="/network"
+              className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm hover:opacity-90"
+            >
+              <Plus className="mr-0.5 h-4 w-4" />Faaliyet planla
+            </Link>
+          )}
           <Popover>
             <PopoverTrigger asChild><Button variant="ghost" size="icon" aria-label="Daha fazla"><MoreHorizontal className="h-4 w-4" /></Button></PopoverTrigger>
             <PopoverContent align="end" className="w-52 p-2">
@@ -389,13 +403,6 @@ function TakvimSayfa() {
               <button key={v} onClick={() => setGorunum(v)} className={cn("py-2.5 text-xs font-medium transition-colors", gorunum === v ? "text-primary" : "text-muted-foreground")}>{e}</button>
             ))}
           </nav>
-          <button
-            onClick={() => yeniEtkinlik(ankara)}
-            aria-label="Yeni etkinlik"
-            className="fixed bottom-16 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95"
-          >
-            <Plus className="h-6 w-6" />
-          </button>
         </>
       )}
 

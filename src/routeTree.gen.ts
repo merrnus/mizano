@@ -13,6 +13,7 @@ import { Route as WorkspaceRouteImport } from './routes/workspace'
 import { Route as TakvimRouteImport } from './routes/takvim'
 import { Route as NetworkRouteImport } from './routes/network'
 import { Route as MizanRouteImport } from './routes/mizan'
+import { Route as IstikametRouteImport } from './routes/istikamet'
 import { Route as GundemlerRouteImport } from './routes/gundemler'
 import { Route as GirisRouteImport } from './routes/giris'
 import { Route as IndexRouteImport } from './routes/index'
@@ -58,6 +59,11 @@ const NetworkRoute = NetworkRouteImport.update({
 const MizanRoute = MizanRouteImport.update({
   id: '/mizan',
   path: '/mizan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IstikametRoute = IstikametRouteImport.update({
+  id: '/istikamet',
+  path: '/istikamet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GundemlerRoute = GundemlerRouteImport.update({
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/giris': typeof GirisRoute
   '/gundemler': typeof GundemlerRoute
+  '/istikamet': typeof IstikametRoute
   '/mizan': typeof MizanRouteWithChildren
   '/network': typeof NetworkRouteWithChildren
   '/takvim': typeof TakvimRoute
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/giris': typeof GirisRoute
   '/gundemler': typeof GundemlerRoute
+  '/istikamet': typeof IstikametRoute
   '/network': typeof NetworkRouteWithChildren
   '/takvim': typeof TakvimRoute
   '/mizan/akademi': typeof MizanAkademiRoute
@@ -256,6 +264,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/giris': typeof GirisRoute
   '/gundemler': typeof GundemlerRoute
+  '/istikamet': typeof IstikametRoute
   '/mizan': typeof MizanRouteWithChildren
   '/network': typeof NetworkRouteWithChildren
   '/takvim': typeof TakvimRoute
@@ -290,6 +299,7 @@ export interface FileRouteTypes {
     | '/'
     | '/giris'
     | '/gundemler'
+    | '/istikamet'
     | '/mizan'
     | '/network'
     | '/takvim'
@@ -322,6 +332,7 @@ export interface FileRouteTypes {
     | '/'
     | '/giris'
     | '/gundemler'
+    | '/istikamet'
     | '/network'
     | '/takvim'
     | '/mizan/akademi'
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/'
     | '/giris'
     | '/gundemler'
+    | '/istikamet'
     | '/mizan'
     | '/network'
     | '/takvim'
@@ -383,6 +395,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GirisRoute: typeof GirisRoute
   GundemlerRoute: typeof GundemlerRoute
+  IstikametRoute: typeof IstikametRoute
   MizanRoute: typeof MizanRouteWithChildren
   NetworkRoute: typeof NetworkRouteWithChildren
   TakvimRoute: typeof TakvimRoute
@@ -417,6 +430,13 @@ declare module '@tanstack/react-router' {
       path: '/mizan'
       fullPath: '/mizan'
       preLoaderRoute: typeof MizanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/istikamet': {
+      id: '/istikamet'
+      path: '/istikamet'
+      fullPath: '/istikamet'
+      preLoaderRoute: typeof IstikametRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gundemler': {
@@ -721,6 +741,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GirisRoute: GirisRoute,
   GundemlerRoute: GundemlerRoute,
+  IstikametRoute: IstikametRoute,
   MizanRoute: MizanRouteWithChildren,
   NetworkRoute: NetworkRouteWithChildren,
   TakvimRoute: TakvimRoute,
