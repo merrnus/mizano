@@ -256,6 +256,7 @@ function TakvimSayfa() {
         <Button variant="ghost" size="icon" onClick={() => setYanSheet(true)} aria-label="Menü" className="md:hidden"><Menu className="h-5 w-5" /></Button>
         <Link to="/" className="hidden md:block text-primary hover:opacity-80" aria-label="Ana sayfa"><CalIcon className="h-5 w-5" /></Link>
         <Button variant="outline" size="sm" onClick={bugun} className="ml-0.5 px-2 text-xs md:px-3 md:text-sm">Bugün</Button>
+        <Button variant="ghost" size="icon" onClick={() => yeniEtkinlik(ankara)} aria-label="Yeni etkinlik" title="Yeni etkinlik (N)"><Plus className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" onClick={geri} aria-label="Önceki"><ChevronLeft className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" onClick={ileri} aria-label="Sonraki"><ChevronRight className="h-4 w-4" /></Button>
         <Popover open={baslikPop} onOpenChange={setBaslikPop}>
