@@ -1,118 +1,67 @@
-# Sadeleştirme Planı — Rehberlik · Planlama · İstikamet
+# Bugün sayfası — minimalist yeniden yapı
 
-Felsefe: **Tüm planlama Rehberlik'ten başlar**. Takvim sadece yansımadır. Bir aksiyon = bir tıklama + tek modal.
+## Amaç
+"Bugün" sayfasını "şu an ne yapmalıyım?" sorusuna tek bakışta cevap veren bir akış hâline getirmek. Tekrarlayan kartları kaldırıp tek bir Odak kartı + birleşik bir günlük checklist bırakmak.
 
-## Hedef bilgi mimarisi
+## Yeni sayfa iskeleti (`src/routes/index.tsx`)
+Aşağıdan yukarıya:
 
-```text
-┌─────────────────────────────────────────────────┐
-│ Topbar: [Rehberlik] [Planlama] [İstikamet]      │
-├──────────┬──────────────────────────────────────┤
-│ Sidebar  │  ana içerik                          │
-│ Evdekiler│                                      │
-│ GG       │  (seçili kategori burada açılır)     │
-│ OMM      │                                      │
-│ Kuran    │                                      │
-│ Online   │                                      │
-└──────────┴──────────────────────────────────────┘
-```
+1. **Header** — değişmiyor: selamlama + tarih + 3 BriefRing (Mana / İlim / Amel).
+2. **Odak kartı** (yeni, tek kart) — `NowCard`'ın yerine geçer.
+3. **Bugünün Çetelesi** (yeniden tasarlanmış) — İlim + Amel birleşik checklist.
+4. **BugunFab** (alt sağ + butonu) — değişmiyor.
 
-Sidebar = `gundem_kategori` tablosundan gelen kullanıcı kategorileri (zaten var: Evdekiler, GG, OMM, Kuran, Online).
+Kaldırılacak bölümler:
+- `BugunZamanCizelgesi` ("Bugünün Takvimi" / Up Next) — Odak kartı bunu kapsıyor.
+- `BugununMufredati` — çetele içine taşınıyor.
+- `GelecekGunler` (4 gün ileri bakış) — tamamen kaldırılıyor.
+- `BuHaftaWidget` — kullanıcının listesinde yok ama "remove redundant" ruhuna uygun. **Karar gerekirse koruyabilirim** (aşağıdaki açık soruya bak).
 
----
+## 1) Odak kartı
+Mevcut `NowCard` zaten "ongoing → next event → first open task → first incomplete amel modülü → boş" önceliğini uyguluyor. Kullanıcının isteği yalnızca **şu an olan etkinlik, yoksa bugünün sıradaki etkinliği**. Bu yüzden:
 
-## Faz 1 — Rehberlik (Network sadeleştirme)
+- Yeni dosya: `src/components/mizan/dashboard/odak-karti.tsx`
+- Mantık: bugünün etkinlikleri (`useEtkinlikler` + `genisletEtkinlikleri`) → 
+  - `ongoing` varsa onu göster ("Şu an", kalan dk),
+  - yoksa bugünün sıradaki etkinliğini göster ("Sıradaki", kaç dk sonra),
+  - yoksa boş durum: "Bugün için planlı etkinlik yok" + Takvime git linki.
+- Görsel dil mevcut `NowCard` ile aynı: ince üst şerit (alan rengi), büyük saat, başlık, konum, "Detay" butonu (sheet açar).
+- Görev / amel modülü kapsam dışı (artık checklist'te yer alacak).
+- Eski `NowCard` ve `BugunZamanCizelgesi` dosyaları **silinmiyor** (başka yerden ithal edilebilir diye), sadece `index.tsx`'ten kullanım kaldırılıyor. İsterseniz silebilirim.
 
-`/network` tek görev: **kategori seç → kişi listesi → Faaliyet Planla**.
+## 2) Birleşik günlük checklist
+- Yeni dosya: `src/components/mizan/dashboard/gunluk-checklist.tsx`
+- Tek `<section>`, içinde iki alt başlık:
+  - **📚 İlim** — `useAmelKurslar` + `useTumAmelModuller`'dan aktif kursların ilk tamamlanmamış modülleri (mevcut `BugununMufredati` mantığı) — ama "İlim" başlığı altında.  
+    Not: Mevcut veri modelinde "ilim" alanı `useDersler`/`useSinavlar` üzerinden (ders/sınav), Git/Linux gibi "müfredat" öğeleri ise `amel_kurs` tablosunda. Kullanıcının verdiği örnek (Git, Linux) müfredat kurslarına denk düştüğü için **İlim bölümünde aktif amel kurslarının modüllerini** listeleyeceğim. (Bu konuda aşağıdaki açık soruya bak.)
+  - **🤲 Amel** — Mana evrâdı çetele şablonları (mevcut `BugunCetelesi`'nin `mana` filtresi). Her şablon için tek tık checkbox: hedefe ulaştıysa "tamam" (üstü çizili + fade), değilse boş.  
+    Hızlı işaretle: `CeteleHucre` yerine basit checkbox kullanılacak — tek tık tüm hedefi bir kerede tamamlatır (`useKayitYaz` ile `hedef_deger` kadar miktar yazılır). Detay sayfası eski gibi `/mizan/mana`.
+- Stil: her satır ince border, checkbox sol, başlık ortada, sağda hedef/birim küçük yazı. Tamamlandığında `line-through` + `opacity-50`.
+- Akış modu butonları (Play "Akış") sadeleştirme adına çıkarılıyor; kullanıcı detay sayfalarından erişebilir.
+- Bağlam filtresi (`BaglamFiltre`) çetele kısmından çıkarılıyor (cognitive load azaltma). Detay sayfalarında kalmaya devam ediyor.
 
-**Kaldırılacak / gizlenecek** (kod silinmez, route'lar opsiyonel "Derin Mod"a taşınır):
-- İstişareler sekmesi, Gündemler sekmesi, Maneviyat sekmesi, Rapor sayfası, FAB karmaşası, sorumlu seçici, evrad/mufredat editörleri
-- 4 sekmeli tab bar → tek görünüm
+## 3) Index sayfası diff özeti
+`src/routes/index.tsx`:
+- Şu importlar kaldırılıyor: `BugunCetelesi`, `BugunZamanCizelgesi`, `GelecekGunler`, `BugununMufredati`, `NowCard`, `BuHaftaWidget`.
+- Yeni importlar: `OdakKarti`, `GunlukChecklist`.
+- JSX gövdesi:
+  ```text
+  <header />                    -- aynı
+  <OdakKarti simdi={simdi}
+             onYeniEtkinlik=...
+             onYeniGorev=... />
+  <GunlukChecklist simdi={simdi} />
+  <BugunFab ... />
+  ```
+- `AlanDetaySheet`, `GorevDialog`, `EtkinlikHizliDialog` mevcut hâliyle korunuyor.
 
-**Yeni `/network` (Rehberlik) düzeni:**
-- Sol: kategori sidebar (mevcut sol-sidebar bileşeni yeniden kullanılır)
-- Üst: tek büyük buton **"Faaliyet Planla"**
-- Liste satırı: `● Ad   ·   Sonraki: 23 Kas · Çay/Kahve`
-  - Nokta rengi son `kardes_etkinlik.tarih`'e göre:
-    - Yeşil: ≤7 gün
-    - Sarı: 8–21 gün
-    - Gri: >21 gün veya hiç
-- Tıklama → küçük sheet: Son faaliyet + bu hafta için "Haftalık Okuma ✓" checkbox (zaten var olan `kardes_evrad` mantığı tek satıra indirgenir)
+## 4) Stil
+Mevcut tasarım token'ları (`var(--mana)`, `var(--ilim)`, `var(--amel)`, `bg-card`, `border-border` vb.) aynen kullanılıyor. Yeni renk eklenmiyor, yeni varyant eklenmiyor.
 
-**Faaliyet Planla modal'ı** (yeni, sade):
-- Aktivite tipi: gruplu select (sabit varsayılan + kullanıcı kendi ekleyebilsin)
-  - Aksiyon: Halı Saha, Çay/Kahve, Sabah Namazı+Çorba
-  - Manevi: Hasbihal, Kuran Pratik, Online Sohbet
-  - Alt buton: "+ Yeni tip ekle" (kullanıcı bazlı `aktivite_tip` tablosu)
-- Kişi(ler): kategori önceden seçili → çoklu kişi seçimi
-- Tarih + Saat picker
-- Kaydet
+## Açık soru (uygulamadan önce)
+Sayfada **"Bu hafta Evdekiler" (`BuHaftaWidget`)** ve **"Mana çetelesi (evrâd)"** ile **"Amel başlığı altında listelenecek şey"** seçimi konusunda küçük belirsizlik var:
 
-Kaydetme tek transaction'da:
-1. `takvim_etkinlik` insert (Planlama'da otomatik görünür)
-2. Her seçilen kişi için `kardes_etkinlik` insert + `takvim_etkinlik_id` bağla (zaten var olan alan)
+- "Amel (Spiritual)" başlığı altında **Evvâbîn, Teheccüd** gibi öğeler söylediniz → bunlar bugün `cetele_sablon` tablosunda `alan = 'mana'` olarak duruyor (kod tabanında "Mana = maneviyat/evrâd"). Yani sizin "Amel" dediğiniz şey, kodda "Mana" alanı. Plan bunu varsayıyor: **🤲 Amel bölümünde Mana çetele şablonları gösterilecek**. Onaylıyor musunuz, yoksa veritabanı etiketlerini de değiştirelim mi?
+- `BuHaftaWidget`'ı kaldırayım mı, yoksa kalsın mı? (Listenizde adı geçmediği için kaldırmaya meyilliyim.)
 
----
-
-## Faz 2 — Planlama (Takvim read-only mod)
-
-`/takvim` mevcut tam takvim aşırı; yeni mod:
-- Varsayılan **Hafta** görünümü (mevcut `hafta-gorunumu` korunur)
-- "Etkinlik ekle" / FAB / sağ tık menüsü → **kaldırılır**
-- Etkinliğe tıkla → sadece detay sheet (düzenle butonu Rehberlik'teki kaynak kişiye link verir)
-- Üst bar: hafta navigasyonu + "Bugün" + alan filtreleri (kategori renkleri)
-- "Görev ekle" akışları gizlenir (görev sistemi Mizan tarafında kalır, takvimde sadece okunur)
-
-Mesaj: "Planlama, Rehberlik'ten gelen faaliyetlerin yansımasıdır."
-
----
-
-## Faz 3 — İstikamet (haftalık özet)
-
-Yeni `/istikamet` rotası (mevcut `mizan/index.tsx` dashboard'undan ayrı, sade tek sayfa):
-- Üstte: "Bu hafta X faaliyet tamamlandı / Y planlandı" — büyük sayı
-- Kategori başına ilerleme satırı:
-  - `GG   ████████░░  6/8` (yapılan kardes_etkinlik / planlanan)
-- "İhmal edilen kardeşler" listesi: 21+ gündür faaliyeti olmayan kişiler (gri nokta), kategori bazlı gruplu
-- Tek tıkla → Rehberlik'te o kişiye git
-
----
-
-## Veri modeli
-
-Mevcut tablolar yeterli. Tek küçük ekleme:
-
-```sql
-create table public.aktivite_tip (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  ad text not null,
-  grup text not null check (grup in ('aksiyon','manevi')),
-  siralama int not null default 0,
-  created_at timestamptz not null default now()
-);
--- RLS: auth.uid() = user_id (4 policy)
--- Seed: kullanıcı ilk girişte 6 varsayılan tip
-```
-
-Kullanım: `kardes_etkinlik.tip` enum'una dokunmayız (geriye dönük uyumluluk). Yeni tip seçimi `kardes_etkinlik.baslik` + `takvim_etkinlik.aciklama` alanlarına yazılır; enum için "diger" gibi nötr bir değer kullanılır.
-
-> Alternatif: yeni özel tipler için `kardes_etkinlik`'e nullable `tip_id uuid` kolonu eklenir, eski `tip` enum'u dururken yeni tipler bu kolondan okunur. Onayını beklerim.
-
----
-
-## Yapılacaklar sırası
-
-1. `aktivite_tip` migration + 6 varsayılan seed hook'u
-2. Yeni `FaaliyetPlanlaDialog` bileşeni (`src/components/mizan/network/faaliyet-planla-dialog.tsx`)
-3. `routes/network.tsx` yeniden yazımı: tek görünüm, sidebar + liste + buton (eski sekmeli yapı `_derin/` altına taşınır, route gizli)
-4. Kişi satırında "sonraki faaliyet" + durum noktası hesaplaması (yeni hook `useSonrakiFaaliyet`)
-5. `routes/takvim.tsx` read-only mod toggle'ı; oluşturma/düzenleme aksiyonları kaldırılır
-6. `routes/istikamet.tsx` yeni rota; haftalık özet + ihmal listesi
-7. Topbar/sol-sidebar: 3 ana tab'a indirgenmiş üst nav
-
-## Riskler / kararlar (onayını bekliyorum)
-
-- **İstişare/Gündem/Rapor**: tamamen sil mi, yoksa `/derin/*` altında erişilebilir mi kalsın? Önerim: kalsın, üst nav'dan kaldırılsın.
-- **`aktivite_tip` tablosu**: yukarıdaki sade yaklaşım mı, yoksa `kardes_etkinlik`'e `tip_id` kolonu mu?
-- **Mizan dashboard**: dokunmayalım, sadece yeni `/istikamet` ekleyelim — yoksa `/` rotasını da `/istikamet`'e mi yönlendirelim?
+Onaylarsanız "Implement plan" ile uygularım.

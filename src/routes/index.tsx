@@ -5,12 +5,8 @@ import { tr } from "date-fns/locale";
 import { Sun, Sunset, Moon } from "lucide-react";
 import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-hooks";
 import { haftaBaslangici } from "@/lib/cetele-tarih";
-import { BugunCetelesi } from "@/components/mizan/dashboard/bugun-cetelesi";
-import { BugunZamanCizelgesi } from "@/components/mizan/dashboard/bugun-zaman-cizelgesi";
-import { GelecekGunler } from "@/components/mizan/dashboard/gelecek-gunler";
-import { BuHaftaWidget } from "@/components/mizan/dashboard/bu-hafta-widget";
-import { BugununMufredati } from "@/components/mizan/dashboard/bugunun-mufredati";
-import { NowCard } from "@/components/mizan/dashboard/now-card";
+import { OdakKarti } from "@/components/mizan/dashboard/odak-karti";
+import { GunlukChecklist } from "@/components/mizan/dashboard/gunluk-checklist";
 import { BriefRings } from "@/components/mizan/dashboard/brief-rings";
 import { BugunFab } from "@/components/mizan/dashboard/bugun-fab";
 import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
@@ -165,38 +161,16 @@ function AnaDashboard() {
         <BriefRings ogeler={rozetler} onAc={(a) => setAcikAlan(a)} />
       </header>
 
-      {/* NOW — spotlight */}
+      {/* Odak — tek kart, şu an / sıradaki etkinlik */}
       <div className="mb-6">
-        <NowCard
+        <OdakKarti
           simdi={simdi}
           onYeniEtkinlik={() => setEtkinlikDialogAcik(true)}
-          onYeniGorev={() => {
-            setDuzenlenenGorev(null);
-            setGorevDialogAcik(true);
-          }}
         />
       </div>
 
-      {/* Up Next — bugünün spine'ı */}
-      <div className="mb-6">
-        <BugunZamanCizelgesi simdi={simdi} />
-      </div>
-
-      {/* Müfredat + Çetele yan yana */}
-      <div className="mb-6 grid gap-6 lg:grid-cols-2">
-        <div className="min-w-0">
-          <BugununMufredati />
-        </div>
-        <div className="min-w-0">
-          <BugunCetelesi simdi={simdi} />
-        </div>
-      </div>
-
-      {/* Gelecek günler */}
-      <GelecekGunler simdi={simdi} />
-
-      {/* Bu hafta Evdekiler */}
-      <BuHaftaWidget />
+      {/* Bugünün Çetelesi — birleşik checklist */}
+      <GunlukChecklist simdi={simdi} />
 
       <AlanDetaySheet
         alan={acikAlan}
