@@ -456,15 +456,18 @@ function HizliEkleSatiri({ tarih }: { tarih: string }) {
   };
 
   return (
-    <div className="mb-1 flex flex-col gap-1 rounded-md px-2 py-1.5">
+    <div className="mb-1 flex flex-col gap-1 rounded-lg px-2 py-1 transition-colors focus-within:bg-muted/30">
       <div className="flex items-center gap-2">
-        <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <Plus className="h-4 w-4 shrink-0 text-primary" />
         <Input
           value={ad}
           onChange={(e) => setAd(e.target.value)}
           placeholder="Bir görev ekleyin"
           onKeyDown={(e) => e.key === "Enter" && onEkle()}
-          className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+          className={cn(
+            "h-9 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0",
+            !ad && "placeholder:text-primary/80 placeholder:font-medium",
+          )}
         />
         <button
           type="button"
