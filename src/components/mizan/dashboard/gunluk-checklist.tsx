@@ -88,11 +88,11 @@ export function GunlukChecklist({ simdi }: Props) {
   };
 
   return (
-    <section className="flex flex-col">
+    <section className="flex flex-col rounded-2xl border border-border/60 bg-card/40 p-2 sm:p-3">
       {/* Başlık */}
-      <header className="flex items-center justify-between gap-2 px-1 pb-3">
-        <h2 className="text-base font-semibold tracking-tight">Görevlerim</h2>
-        <div className="flex items-center gap-1 text-muted-foreground">
+      <header className="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
+        <h2 className="text-sm font-semibold tracking-tight">Görevlerim</h2>
+        <div className="flex items-center gap-0.5 text-muted-foreground">
           <Link
             to="/mizan/mana"
             title="Şablonları yönet"
@@ -124,15 +124,15 @@ export function GunlukChecklist({ simdi }: Props) {
 
       {/* Aktif görevler */}
       {aktif.length === 0 && biten.length === 0 ? (
-        <div className="px-4 py-10 text-center">
-          <p className="text-sm text-muted-foreground">
-            Bugün için görev yok. Yukarıdan ekleyebilirsin.
+        <div className="px-4 py-12 text-center">
+          <p className="text-sm text-muted-foreground/70">
+            Bugün için görev yok.
           </p>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={aktif.map((g) => g.id)} strategy={verticalListSortingStrategy}>
-            <ul className="flex flex-col">
+            <ul className="flex flex-col divide-y divide-border/40">
               {aktif.map((g) => (
                 <SatirSortable
                   key={g.id}
@@ -156,22 +156,22 @@ export function GunlukChecklist({ simdi }: Props) {
 
       {/* Tamamlananlar */}
       {biten.length > 0 && (
-        <div className="mt-2">
+        <div className="mt-2 border-t border-border/60 pt-1">
           <button
             type="button"
             onClick={() => setBitenAcik((v) => !v)}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            className="flex w-full items-center gap-1.5 rounded-md px-2 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground/80 transition-colors hover:bg-muted/40 hover:text-foreground"
           >
             <ChevronRight
               className={cn(
-                "h-3.5 w-3.5 transition-transform",
+                "h-3 w-3 transition-transform",
                 bitenAcik && "rotate-90",
               )}
             />
-            Tamamlananlar ({biten.length})
+            Tamamlananlar · {biten.length}
           </button>
           {bitenAcik && (
-            <ul className="flex flex-col">
+            <ul className="flex flex-col divide-y divide-border/30">
               {biten.map((g) => (
                 <Satir
                   key={g.id}
@@ -456,15 +456,18 @@ function HizliEkleSatiri({ tarih }: { tarih: string }) {
   };
 
   return (
-    <div className="mb-1 flex flex-col gap-1 rounded-md px-2 py-1.5">
+    <div className="mb-1 flex flex-col gap-1 rounded-lg px-2 py-1 transition-colors focus-within:bg-muted/30">
       <div className="flex items-center gap-2">
-        <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <Plus className="h-4 w-4 shrink-0 text-primary" />
         <Input
           value={ad}
           onChange={(e) => setAd(e.target.value)}
           placeholder="Bir görev ekleyin"
           onKeyDown={(e) => e.key === "Enter" && onEkle()}
-          className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+          className={cn(
+            "h-9 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0",
+            !ad && "placeholder:text-primary/80 placeholder:font-medium",
+          )}
         />
         <button
           type="button"
