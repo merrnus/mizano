@@ -5,6 +5,7 @@ import { useTheme } from "./theme-provider";
 import { useAuth } from "@/lib/auth-context";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { MizanLogo } from "./mizan-logo";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,6 +67,9 @@ export function Topbar() {
         <MizanLogo className="text-primary" />
         <h1 className="text-sm font-semibold tracking-tight text-foreground">{baslik}</h1>
       </div>
+
+      {/* Masaüstü sidebar toggle */}
+      <SidebarTrigger className="hidden h-8 w-8 xl:inline-flex" />
 
       {/* Masaüstü arama — mobilde gizli */}
       <div className="relative hidden min-w-0 flex-1 max-w-md xl:block">
