@@ -9,7 +9,6 @@ import { OdakKarti } from "@/components/mizan/dashboard/odak-karti";
 import { GunlukChecklist } from "@/components/mizan/dashboard/gunluk-checklist";
 import { BriefRings } from "@/components/mizan/dashboard/brief-rings";
 import { BugunFab } from "@/components/mizan/dashboard/bugun-fab";
-import { HavuzSheet } from "@/components/mizan/dashboard/havuz-sheet";
 import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
 import { EtkinlikHizliDialog } from "@/components/mizan/takvim/etkinlik-hizli-dialog";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
@@ -107,7 +106,6 @@ function AnaDashboard() {
     acikAlan === "mana" ? manaYuzde : acikAlan === "ilim" ? ilimYuzde : amelYuzde;
 
   const [etkinlikDialogAcik, setEtkinlikDialogAcik] = React.useState(false);
-  const [havuzAcik, setHavuzAcik] = React.useState(false);
 
   const saat = simdi.getHours();
   const selamlama =
@@ -165,7 +163,7 @@ function AnaDashboard() {
       </div>
 
       {/* Bugünün Çetelesi — birleşik checklist */}
-      <GunlukChecklist simdi={simdi} onHavuzAc={() => setHavuzAcik(true)} />
+      <GunlukChecklist simdi={simdi} />
 
       <AlanDetaySheet
         alan={acikAlan}
@@ -179,16 +177,7 @@ function AnaDashboard() {
         varsayilanBaslangic={bugun}
       />
 
-      <HavuzSheet
-        acik={havuzAcik}
-        onOpenChange={setHavuzAcik}
-        simdi={simdi}
-      />
-
-      <BugunFab
-        onEtkinlik={() => setEtkinlikDialogAcik(true)}
-        onHavuz={() => setHavuzAcik(true)}
-      />
+      <BugunFab onEtkinlik={() => setEtkinlikDialogAcik(true)} />
     </div>
   );
 }
