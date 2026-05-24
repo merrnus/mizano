@@ -1,5 +1,6 @@
 import * as React from "react";
-import { X, Plus, RotateCcw } from "lucide-react";
+import { X, Plus, RotateCcw, Settings2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -69,22 +70,32 @@ export function GunlukChecklist({ simdi, onHavuzAc }: Props) {
             Bugün ne yapacağım?
           </h2>
         </div>
-        {gorevler.length > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm("Bugünün tüm görevleri silinsin mi?")) {
-                sifirla.mutate(tarih, {
-                  onSuccess: () => toast.success("Sıfırlandı"),
-                });
-              }
-            }}
-            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+        <div className="flex items-center gap-3">
+          {gorevler.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("Bugünün tüm görevleri silinsin mi?")) {
+                  sifirla.mutate(tarih, {
+                    onSuccess: () => toast.success("Sıfırlandı"),
+                  });
+                }
+              }}
+              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Sıfırla
+            </button>
+          )}
+          <Link
+            to="/mana"
+            title="Şablonları yönet"
+            aria-label="Şablonları yönet"
+            className="text-muted-foreground transition-colors hover:text-foreground"
           >
-            <RotateCcw className="h-3 w-3" />
-            Sıfırla
-          </button>
-        )}
+            <Settings2 className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </header>
 
       {gorevler.length === 0 ? (
