@@ -7,15 +7,16 @@ import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-h
 import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { OdakKarti } from "@/components/mizan/dashboard/odak-karti";
 import { GunlukChecklist } from "@/components/mizan/dashboard/gunluk-checklist";
+import { CeteleBugunMini } from "@/components/mizan/dashboard/cetele-bugun-mini";
 import { BriefRings } from "@/components/mizan/dashboard/brief-rings";
 import { BugunFab } from "@/components/mizan/dashboard/bugun-fab";
-import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
 import { EtkinlikHizliDialog } from "@/components/mizan/takvim/etkinlik-hizli-dialog";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { useAmelKurslar, useTumAmelModuller } from "@/lib/amel-hooks";
 import { useDersler, useSinavlar } from "@/lib/ilim-hooks";
 import { amelYuzdesi, ilimYuzdesi } from "@/lib/istikamet-yuzde";
 import { useAuth } from "@/lib/auth-context";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -37,6 +38,7 @@ export const Route = createFileRoute("/")({
 
 function AnaDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [simdi, setSimdi] = React.useState(() => new Date());
   React.useEffect(() => {
     const id = setInterval(() => setSimdi(new Date()), 60_000);
@@ -101,10 +103,6 @@ function AnaDashboard() {
     { ad: "Amel", yuzde: amelYuzde, metin: `${amelYuzde}%`, renkVar: "--amel", alan: "amel" },
   ];
 
-  const [acikAlan, setAcikAlan] = React.useState<CeteleAlan | null>(null);
-  const acikYuzde =
-    acikAlan === "mana" ? manaYuzde : acikAlan === "ilim" ? ilimYuzde : amelYuzde;
-
   const [etkinlikDialogAcik, setEtkinlikDialogAcik] = React.useState(false);
 
   const saat = simdi.getHours();
@@ -154,7 +152,14 @@ function AnaDashboard() {
             </span>
           </h1>
         </div>
-        <BriefRings ogeler={rozetler} onAc={(a) => setAcikAlan(a)} />
+        <BriefRings
+          ogeler={rozetler}
+          onAc={(a) =>
+            navigate({
+              to: a === "mana" ? "/mizan/mana" : a === "ilim" ? "/mizan/ilim" : "/mizan/amel",
+            })
+          }
+        />
       </header>
 
       {/* Odak — tek kart, şu an / sıradaki etkinlik */}
@@ -164,12 +169,7 @@ function AnaDashboard() {
 
       {/* Bugünün Çetelesi — birleşik checklist */}
       <GunlukChecklist simdi={simdi} />
-
-      <AlanDetaySheet
-        alan={acikAlan}
-        onOpenChange={(o) => !o && setAcikAlan(null)}
-        yuzde={acikYuzde}
-      />
+      <CeteleBugunMini simdi={simdi} />
 
       <EtkinlikHizliDialog
         acik={etkinlikDialogAcik}

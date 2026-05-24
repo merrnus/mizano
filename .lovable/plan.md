@@ -1,48 +1,86 @@
-## Görevlerim listesini sadeleştir
+# Yapı İyileştirmeleri — 4 Aşamalı Uygulama
 
-Tek dosya değişikliği: `src/components/mizan/dashboard/gunluk-checklist.tsx`. Mantık, veri katmanı ve sıralama olduğu gibi kalır — yalnızca üst sıra ve satır içi aksiyonların görünümü değişir.
+Önceki gözlemlerin hepsini mantıklı bir sırayla, küçük adımlarla uyguluyorum. Her aşama bağımsız çalışır, bir öncekini bozmaz. Soldan başlıyoruz: **navigasyon → ana sayfa → çetele köprüsü → mutfak**.
 
-### 1) Başlık satırı
+---
 
-- "Şablonları yönet" linki (`Settings2` → `/mizan/mana`) **tamamen kaldırılır**. Bu liste şablonlardan bağımsız; o butonun çetele sayfasına gitmesi kafa karıştırıcıydı.
-- "Sıfırla" (`RotateCcw`) butonu kalır, aynı yerde.
-- "Görevlerim" başlığı kalır.
-- Kullanılmayan `Link` import'u ve `Settings2` ikonu temizlenir.
+## Aşama 1 — Navigasyon ikiliğini çöz (SolSidebar + IconRail)
 
-Sonuç: başlık satırında sadece **Görevlerim** + (görev varsa) ↻ sıfırla.
+**Problem:** Desktop'ta sol kenarda iki sidebar var (`SolSidebar` tam menü + `IconRail` ikon şerit). Roller belirsiz.
 
-### 2) Satır aksiyonları — tek popover
+**Çözüm:**
+- `IconRail` kaldırılıyor. Tek bir `SolSidebar` kalıyor; bu sidebar collapsed (ikon-only) ve expanded (ikon+label) iki moda sahip olacak.
+- `useSidebar()` zaten shadcn'de var — `SolSidebar`'a `collapsible="icon"` ekleyip varsayılan olarak collapsed başlatıyoruz. Hover'da veya toggle ile expand oluyor.
+- `app-shell.tsx`'ten `IconRail` import'u ve `xl:pl-12` padding'i kaldırılıyor (sidebar artık kendi alanını yönetiyor).
+- Mobile'da `AltTabBar` aynı kalıyor (mobil için doğru pattern).
 
-Şu an her satırda hover'la beliren 4 ayrı kontrol var: sürükle tutamacı, saat, süre, sil. Bunlar görsel olarak yoğun. Yeni davranış:
+**Sonuç:** Tek navigasyon kaynağı. Daha sade kenar.
 
-- Satırın **başlık alanına tıklamak** satırın altında küçük bir aksiyon popover'ı açar (mevcut `SurePopover` stilinde, satır altında inline).
-- Popover içeriği tek satır:
-  - Saat girişi (mevcut `<input type="time">` mantığı)
-  - Süre seçici (mevcut `SurePopover` butonları: 5/10/15/30/45/60 + özel)
-  - Sil butonu (sağda, `text-destructive`)
-- Açıkken satıra tekrar tıklamak veya dışarı tıklamak popover'ı kapatır (mevcut click-outside pattern'i yeniden kullanılır).
-- Saat ve süre **rozetleri** (saat varsa `09:30`, süre varsa `30 dk`) satırda sağda **her zaman** görünmeye devam eder — hover'a bağlı opaklık kalkar, kalıcı olurlar. Bunlara tıklamak da aynı popover'ı açar.
-- Daire checkbox tıklaması popover'ı açmaz; sadece tamamla/geri al yapar (mevcut davranış).
-- Sürükleme tutamacı (`GripVertical`) kalır ama sadece `group-hover` ile görünmeye devam eder — bu zaten sade, kullanıcı bunu kaldırmayı istemedi (yalnızca hover ikonlarını tek menüde topladık).
+---
 
-### 3) Temizlenecek hover-only ikonlar
+## Aşama 2 — `/mizan` hub ile ana sayfa tekrarını çöz
 
-Aşağıdaki "boşken görünen, hover'da beliren" butonlar **kaldırılır** (artık popover'dan ulaşılıyor):
+**Problem:** Ana sayfa (`/`) ve `/mizan` hub'ı aynı 3 halkayı farklı boyutta gösteriyor.
 
-- Saat eklemek için hover'daki `Clock` ikonu
-- Süre eklemek için hover'daki `Timer` ikonu
-- Hover'daki `X` sil butonu
+**Çözüm — `/mizan` hub'ını "haftalık denge raporu" sayfasına dönüştür:**
+- Üst kısım: 3 büyük `IstikametKart` kalır (mana/ilim/amel) — buradan derin sayfalara giriş.
+- Yeni bölüm 1: **Bu haftanın özeti** — `haftaSablonOzet` verisiyle "tamamlanan/toplam" + en güçlü/zayıf alan.
+- Yeni bölüm 2: **Streak ısı haritası** (son 12 hafta) — mevcut `streak-isi-haritasi.tsx` component'i tüm alanlar için yeniden kullanılır.
+- Ana sayfadaki `BriefRings` kalıyor ama davranışı küçük değişiyor: tıklayınca `AlanDetaySheet` yerine doğrudan ilgili alan sayfasına (`/mizan/mana` vb.) gidiyor — hub bir ara katman olmaktan çıkıyor, kısayol oluyor.
 
-Değer **varsa** gösterilen rozetler (saat, süre) kalır; tıklanınca popover açılır.
+**Sonuç:** `/mizan` artık tekrar değil, gerçek "rapor" sayfası.
 
-### Teknik notlar
+---
 
-- Mevcut `SurePopover` bileşeni satır-altı tam aksiyon popover'ına genişletilir (`AksiyonPopover` olarak yeniden adlandırılabilir). API genişler: `saat`, `onSaat`, ek olarak `onSil`.
-- `Satir` bileşenine yerel `popoverAcik` state'i eklenir; `saatAcik` ve `sureAcik` state'leri kaldırılır.
-- `Timer`, `Settings2`, `Clock` (satırdaki hover varyantı için) gibi artık kullanılmayan import'lar temizlenir. `Clock` hızlı ekleme satırının "Saat / süre" düğmesinde kullanılmaya devam ettiği için import'u korunur.
-- Veritabanı, hook'lar, sıralama mantığı, tamamlananlar bölümü — **dokunulmaz**.
+## Aşama 3 — Ana sayfa `GunlukChecklist` ↔ `/mizan/mana` çetele köprüsü
 
-### Etkilenmeyen kısımlar
+**Problem:** Ana sayfadaki esnek görevler ile çetele sistemi paralel duruyor, kullanıcı hangisini ne zaman kullanacağını bilmiyor.
 
-- `BugunFab`, `OdakKarti`, `BriefRings`, hızlı ekleme satırı (`HizliEkleSatiri`) aynen kalır.
-- `/mizan/mana` sayfası ve şablon sistemi etkilenmez; sadece bu listeden oraya giden kısayol kaldırılır.
+**Çözüm:**
+- `GunlukChecklist`'in altına küçük bir **"Bugünün çetelesinden"** bölümü ekleniyor. Bugüne denk gelen çetele şablonları (sayılı liste, max 3) tıklanabilir satırlar olarak gösteriliyor — tamamlanma durumu çetele tablosuna yazılıyor (`useHaftaKayitlari` mutation).
+- Üstte küçük açıklama: *"Esnek görevler bugüne özel · Çetele tekrar eden ritüeller"*.
+- "Tümünü gör" linki `/mizan/mana`'ya gidiyor.
+
+**Sonuç:** İki sistem birbirine referans veriyor, rol farkı görsel olarak net.
+
+---
+
+## Aşama 4 — Mutfak (`/workspace`) birleşik akış
+
+**Problem:** Belge/not/tablo/sürücü ayrı route'lar, aralarında geçiş hub'a dönmeden mümkün değil.
+
+**Çözüm:**
+- `workspace.tsx` layout route'una **sol panel** ekleniyor (sadece `/workspace/*` rotalarında, mobile'da gizli):
+  - Üstte arama kutusu (mevcut `HubArama` reuse).
+  - Altında "Son kullanılanlar" listesi — son 10 belge/not/tablo karışık, ikonlu, tıklayınca o item'a gidiyor.
+- `workspace.index.tsx` (hub tile grid) korunuyor — landing olarak iş görüyor.
+- Belge editörü açıkken bile sol panelden başka bir nota geçiş tek tıkla mümkün.
+
+**Sonuç:** Mutfak gerçek bir "workspace" gibi davranıyor — bağlamı kaybetmeden gezinti.
+
+---
+
+## Aşamada YAPILMAYAN şeyler (bilinçli)
+
+- **Takvim "ana sayfaya dön" kısayolu:** `SolSidebar` collapsed modda zaten görünür kalıyor, ekstra kısayol gereksiz.
+- **`/mizan` hub'ını tamamen kaldırmak:** Çok agresif olur; "rapor" olarak konumlandırmak daha güvenli.
+- **Component / hook isimlendirme refaktörü:** Bu turun kapsamı dışında.
+- **Veritabanı / RLS / migration:** Hiçbir aşama schema değiştirmiyor. Sadece UI/route düzeni.
+
+---
+
+## Teknik detaylar (kısa)
+
+| Aşama | Dokunulan dosyalar |
+|---|---|
+| 1 | `app-shell.tsx`, `sol-sidebar.tsx`, sil: `icon-rail.tsx` |
+| 2 | `mizan.index.tsx` (yeniden yazım), `dashboard/brief-rings.tsx` (onAc → navigate), `routes/index.tsx` (`AlanDetaySheet` kaldır) |
+| 3 | `dashboard/gunluk-checklist.tsx` (alt bölüm), muhtemelen küçük yeni component `cetele-bugun-mini.tsx` |
+| 4 | `workspace.tsx` (layout panel), olası yeni `mutfak/son-kullanilanlar.tsx`; `mutfak-hooks.ts` "recent" sorgusu eklenebilir |
+
+Hepsi pure frontend. Auth/Cloud şeması değişmiyor.
+
+---
+
+**Onaylarsan Aşama 1'den başlayıp sırayla ilerleyeceğim. Her aşamadan sonra durup sana göstermemi istersen söyle — yoksa 4'ünü peş peşe yapıp tek seferde teslim ederim.**
+

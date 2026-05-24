@@ -6,7 +6,6 @@ import { SolSidebar } from "./sol-sidebar";
 import { Topbar } from "./topbar";
 import { useAuth } from "@/lib/auth-context";
 import { MizanLogo } from "./mizan-logo";
-import { IconRail } from "./icon-rail";
 import { AltTabBar } from "./alt-tab-bar";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -38,10 +37,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeProvider>
-      <SidebarProvider>
+      <SidebarProvider defaultOpen={false}>
         <SolSidebar />
-        <IconRail />
-        <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background xl:pl-12">
+        <SidebarInset className="flex min-h-svh min-w-0 flex-col bg-background">
           {!pathname.startsWith("/takvim") && <Topbar />}
           <Main>{children}</Main>
           <AltTabBar />
