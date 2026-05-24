@@ -1,16 +1,9 @@
 import * as React from "react";
-import { X, Plus, RotateCcw, Settings2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { X, Plus, RotateCcw, Settings2, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   useBugunGorevler,
   useGunlukGorevEkle,
@@ -19,7 +12,6 @@ import {
   useGunSifirla,
   type GunlukGorev,
 } from "@/lib/gunluk-gorev";
-import { useKategoriler } from "@/lib/gorev-kategori";
 import { tarihFormat } from "@/lib/cetele-tarih";
 import { toast } from "sonner";
 
@@ -29,40 +21,35 @@ type Props = {
 };
 
 /**
- * Esnek Görevler — kullanıcının havuzdan çektiği veya ad-hoc eklediği
- * günlük checklist. Veriler `gunluk_gorev` tablosundan gelir.
+ * Esnek Görevler — Google Tasks tarzı tek düz liste.
+ * Tamamlanmayanlar üstte (saat varsa kronolojik, yoksa siralama), tamamlananlar altta.
  */
 export function GunlukChecklist({ simdi, onHavuzAc }: Props) {
   const tarih = tarihFormat(simdi);
   const { data: gorevler = [] } = useBugunGorevler(simdi);
-  const { data: kategoriler = [] } = useKategoriler();
   const guncelle = useGunlukGorevGuncelle();
   const sil = useGunlukGorevSil();
   const sifirla = useGunSifirla();
 
-  const gruplar = React.useMemo(() => {
-    const map = new Map<string | null, GunlukGorev[]>();
-    for (const g of gorevler) {
-      const k = g.kategori_id ?? null;
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push(g);
-    }
-    const dizi = Array.from(map.entries()).map(([kategoriId, items]) => ({
-      kategoriId,
-      items,
-    }));
-    dizi.sort((a, b) => {
-      const ka = kategoriler.find((k) => k.id === a.kategoriId);
-      const kb = kategoriler.find((k) => k.id === b.kategoriId);
-      return (ka?.siralama ?? 999) - (kb?.siralama ?? 999);
+  const { aktif, biten } = React.useMemo(() => {
+    const a: GunlukGorev[] = [];
+    const b: GunlukGorev[] = [];
+    for (const g of gorevler) (g.tamamlandi ? b : a).push(g);
+    a.sort((x, y) => {
+      // saatli görevler üstte, kronolojik
+      if (x.saat && y.saat) return x.saat.localeCompare(y.saat);
+      if (x.saat) return -1;
+      if (y.saat) return 1;
+      return (x.siralama ?? 0) - (y.siralama ?? 0);
     });
-    return dizi;
-  }, [gorevler, kategoriler]);
+    b.sort((x, y) => (y.tamamlanma_at ?? "").localeCompare(x.tamamlanma_at ?? ""));
+    return { aktif: a, biten: b };
+  }, [gorevler]);
 
   return (
     <section className="rounded-2xl border border-border bg-card">
       <header className="flex items-center justify-between gap-2 border-b border-border px-5 py-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
             Esnek Görevler
           </p>
@@ -70,10 +57,28 @@ export function GunlukChecklist({ simdi, onHavuzAc }: Props) {
             Bugün ne yapacağım?
           </h2>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onHavuzAc}
+            className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+          >
+            <LayoutGrid className="h-3 w-3" />
+            Havuzdan ekle
+          </button>
+          <Link
+            to="/mizan/mana"
+            title="Şablonları yönet"
+            aria-label="Şablonları yönet"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+          </Link>
           {gorevler.length > 0 && (
             <button
               type="button"
+              title="Sıfırla"
+              aria-label="Sıfırla"
               onClick={() => {
                 if (confirm("Bugünün tüm görevleri silinsin mi?")) {
                   sifirla.mutate(tarih, {
@@ -81,20 +86,11 @@ export function GunlukChecklist({ simdi, onHavuzAc }: Props) {
                   });
                 }
               }}
-              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground transition-colors hover:text-foreground"
             >
-              <RotateCcw className="h-3 w-3" />
-              Sıfırla
+              <RotateCcw className="h-3.5 w-3.5" />
             </button>
           )}
-          <Link
-            to="/mana"
-            title="Şablonları yönet"
-            aria-label="Şablonları yönet"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <Settings2 className="h-3.5 w-3.5" />
-          </Link>
         </div>
       </header>
 
@@ -113,41 +109,39 @@ export function GunlukChecklist({ simdi, onHavuzAc }: Props) {
           </button>
         </div>
       ) : (
-        <div className="divide-y divide-border">
-          {gruplar.map(({ kategoriId, items }) => {
-            const k = kategoriler.find((x) => x.id === kategoriId);
-            const baslik = k
-              ? `${k.emoji ?? ""} ${k.ad}`.trim()
-              : "Kategorisiz";
-            const renk = k?.renk ?? "kisisel";
-            return (
-              <div key={kategoriId ?? "none"} className="px-5 py-4">
-                <p
-                  className="mb-2 text-[11px] font-semibold uppercase tracking-wider"
-                  style={{ color: `var(--${renk})` }}
-                >
-                  {baslik}
-                </p>
-                <ul className="flex flex-col gap-1.5">
-                  {items.map((g) => (
-                    <Satir
-                      key={g.id}
-                      gorev={g}
-                      onToggle={(v) =>
-                        guncelle.mutate({
-                          id: g.id,
-                          tamamlandi: v,
-                          tamamlanma_at: v ? new Date().toISOString() : null,
-                        })
-                      }
-                      onSil={() => sil.mutate(g.id)}
-                    />
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
+        <ul className="flex flex-col gap-0 px-2 py-2">
+          {aktif.map((g) => (
+            <Satir
+              key={g.id}
+              gorev={g}
+              onToggle={(v) =>
+                guncelle.mutate({
+                  id: g.id,
+                  tamamlandi: v,
+                  tamamlanma_at: v ? new Date().toISOString() : null,
+                })
+              }
+              onSil={() => sil.mutate(g.id)}
+            />
+          ))}
+          {biten.length > 0 && aktif.length > 0 && (
+            <li className="my-1 border-t border-border/60" aria-hidden />
+          )}
+          {biten.map((g) => (
+            <Satir
+              key={g.id}
+              gorev={g}
+              onToggle={(v) =>
+                guncelle.mutate({
+                  id: g.id,
+                  tamamlandi: v,
+                  tamamlanma_at: v ? new Date().toISOString() : null,
+                })
+              }
+              onSil={() => sil.mutate(g.id)}
+            />
+          ))}
+        </ul>
       )}
 
       <HizliEkleSatiri simdi={simdi} />
@@ -167,7 +161,7 @@ function Satir({
   return (
     <li
       className={cn(
-        "group flex items-center gap-2.5 rounded-md border border-border bg-background/40 px-3 py-2 transition-opacity",
+        "group flex items-center gap-2.5 rounded-md px-3 py-2 transition-opacity hover:bg-muted/40",
         gorev.tamamlandi && "opacity-50",
       )}
     >
@@ -176,6 +170,11 @@ function Satir({
         onCheckedChange={(v) => onToggle(v === true)}
         aria-label={`${gorev.baslik} tamamla`}
       />
+      {gorev.saat && (
+        <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+          {gorev.saat.slice(0, 5)}
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <div
           className={cn(
@@ -206,10 +205,9 @@ function Satir({
 function HizliEkleSatiri({ simdi }: { simdi: Date }) {
   const tarih = tarihFormat(simdi);
   const ekle = useGunlukGorevEkle();
-  const { data: kategoriler = [] } = useKategoriler();
   const [ad, setAd] = React.useState("");
+  const [saat, setSaat] = React.useState("");
   const [dk, setDk] = React.useState("");
-  const [kategoriId, setKategoriId] = React.useState<string>("");
 
   const onEkle = async () => {
     if (!ad.trim()) return;
@@ -218,10 +216,11 @@ function HizliEkleSatiri({ simdi }: { simdi: Date }) {
         tarih,
         baslik: ad.trim(),
         tahmini_sure_dk: dk ? Number(dk) : null,
-        kategori_id: kategoriId || null,
+        saat: saat || null,
         sablon_id: null,
       });
       setAd("");
+      setSaat("");
       setDk("");
     } catch {
       toast.error("Eklenemedi");
@@ -238,28 +237,20 @@ function HizliEkleSatiri({ simdi }: { simdi: Date }) {
         className="h-9 flex-1"
       />
       <Input
+        type="time"
+        value={saat}
+        onChange={(e) => setSaat(e.target.value)}
+        className="h-9 w-[110px]"
+        aria-label="Saat (ops.)"
+      />
+      <Input
         type="number"
         value={dk}
         onChange={(e) => setDk(e.target.value)}
         placeholder="dk"
         className="h-9 w-16"
+        aria-label="Süre (dk)"
       />
-      <Select
-        value={kategoriId || "none"}
-        onValueChange={(v) => setKategoriId(v === "none" ? "" : v)}
-      >
-        <SelectTrigger className="h-9 w-28">
-          <SelectValue placeholder="—" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">—</SelectItem>
-          {kategoriler.map((k) => (
-            <SelectItem key={k.id} value={k.id}>
-              {k.emoji ?? ""} {k.ad}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
       <button
         type="button"
         onClick={onEkle}

@@ -1,0 +1,1 @@
+ALTER TABLE public.gunluk_gorev ADD COLUMN IF NOT EXISTS saat time NULL;
