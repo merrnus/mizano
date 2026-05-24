@@ -88,11 +88,11 @@ export function GunlukChecklist({ simdi }: Props) {
   };
 
   return (
-    <section className="flex flex-col">
+    <section className="flex flex-col rounded-2xl border border-border/60 bg-card/40 p-2 sm:p-3">
       {/* Başlık */}
-      <header className="flex items-center justify-between gap-2 px-1 pb-3">
-        <h2 className="text-base font-semibold tracking-tight">Görevlerim</h2>
-        <div className="flex items-center gap-1 text-muted-foreground">
+      <header className="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
+        <h2 className="text-sm font-semibold tracking-tight">Görevlerim</h2>
+        <div className="flex items-center gap-0.5 text-muted-foreground">
           <Link
             to="/mizan/mana"
             title="Şablonları yönet"
@@ -124,15 +124,15 @@ export function GunlukChecklist({ simdi }: Props) {
 
       {/* Aktif görevler */}
       {aktif.length === 0 && biten.length === 0 ? (
-        <div className="px-4 py-10 text-center">
-          <p className="text-sm text-muted-foreground">
-            Bugün için görev yok. Yukarıdan ekleyebilirsin.
+        <div className="px-4 py-12 text-center">
+          <p className="text-sm text-muted-foreground/70">
+            Bugün için görev yok.
           </p>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={aktif.map((g) => g.id)} strategy={verticalListSortingStrategy}>
-            <ul className="flex flex-col">
+            <ul className="flex flex-col divide-y divide-border/40">
               {aktif.map((g) => (
                 <SatirSortable
                   key={g.id}
