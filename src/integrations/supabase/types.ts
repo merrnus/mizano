@@ -1006,6 +1006,7 @@ export type Database = {
           created_at: string
           id: string
           kategori_id: string | null
+          saat: string | null
           sablon_id: string | null
           siralama: number
           tahmini_sure_dk: number | null
@@ -1020,6 +1021,7 @@ export type Database = {
           created_at?: string
           id?: string
           kategori_id?: string | null
+          saat?: string | null
           sablon_id?: string | null
           siralama?: number
           tahmini_sure_dk?: number | null
@@ -1034,6 +1036,7 @@ export type Database = {
           created_at?: string
           id?: string
           kategori_id?: string | null
+          saat?: string | null
           sablon_id?: string | null
           siralama?: number
           tahmini_sure_dk?: number | null
