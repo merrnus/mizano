@@ -129,7 +129,7 @@ export function OdakKarti({ simdi }: Props) {
 
 function Etiket({ alan, kind }: { alan: CeteleAlan; kind: "ongoing" | "next" }) {
   const renk = `var(--${alan})`;
-  const metin = kind === "ongoing" ? "Şu an" : "Sıradaki";
+  const metin = kind === "ongoing" ? "ŞU AN" : "SIRADAKİ";
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
