@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Search, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSablonlar } from "@/lib/cetele-hooks";
+import { ALAN_ETIKET, type CeteleAlan } from "@/lib/cetele-tipleri";
 import {
   useBugunGorevler,
   useGunlukGorevTopluEkle,
@@ -53,12 +54,23 @@ export function HavuzSheet({ acik, onOpenChange, simdi }: Props) {
     [bugunGorevler],
   );
 
-  const filtreliSablonlar = React.useMemo(() => {
+  const gruplanmis = React.useMemo(() => {
     const q = arama.trim().toLowerCase();
     const liste = q
       ? sablonlar.filter((s) => s.ad.toLowerCase().includes(q))
       : sablonlar;
-    return [...liste].sort((a, b) => (a.siralama ?? 0) - (b.siralama ?? 0));
+    const sirali = [...liste].sort(
+      (a, b) => (a.siralama ?? 0) - (b.siralama ?? 0),
+    );
+    const alanSira: CeteleAlan[] = ["mana", "ilim", "amel", "kisisel"];
+    const map = new Map<CeteleAlan, typeof sirali>();
+    for (const a of alanSira) map.set(a, []);
+    for (const s of sirali) {
+      const a = (s.alan ?? "kisisel") as CeteleAlan;
+      if (!map.has(a)) map.set(a, []);
+      map.get(a)!.push(s);
+    }
+    return Array.from(map.entries()).filter(([, v]) => v.length > 0);
   }, [sablonlar, arama]);
 
   const toggle = (id: string) => {
@@ -142,40 +154,58 @@ export function HavuzSheet({ acik, onOpenChange, simdi }: Props) {
               Havuz boş. Mana sayfasından şablon ekleyebilirsin.
             </p>
           ) : (
-            <ul className="flex flex-col gap-1">
-              {filtreliSablonlar.map((s) => {
-                const sure = (s as { tahmini_sure_dk: number | null })
-                  .tahmini_sure_dk;
-                const eklenmis = eklenenSablonIds.has(s.id);
-                return (
-                  <li
-                    key={s.id}
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-md border border-border px-3 py-2",
-                      eklenmis && "opacity-50",
-                    )}
-                  >
-                    <Checkbox
-                      checked={secili.has(s.id)}
-                      disabled={eklenmis}
-                      onCheckedChange={() => toggle(s.id)}
-                      aria-label={s.ad}
+            <div className="flex flex-col gap-5">
+              {gruplanmis.map(([alan, items]) => (
+                <section key={alan} className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2 px-1">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: `hsl(var(--${alan}))` }}
                     />
-                    <span className="flex-1 truncate text-sm">{s.ad}</span>
-                    {sure != null && (
-                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] tabular-nums text-muted-foreground">
-                        {sure} dk
-                      </span>
-                    )}
-                    {eklenmis && (
-                      <span className="text-[10px] text-muted-foreground">
-                        eklendi
-                      </span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {ALAN_ETIKET[alan]}
+                    </h3>
+                    <span className="text-[10px] text-muted-foreground/70">
+                      {items.length}
+                    </span>
+                  </div>
+                  <ul className="flex flex-col gap-1">
+                    {items.map((s) => {
+                      const sure = (s as { tahmini_sure_dk: number | null })
+                        .tahmini_sure_dk;
+                      const eklenmis = eklenenSablonIds.has(s.id);
+                      return (
+                        <li
+                          key={s.id}
+                          className={cn(
+                            "flex items-center gap-2.5 rounded-md border border-border px-3 py-2",
+                            eklenmis && "opacity-50",
+                          )}
+                        >
+                          <Checkbox
+                            checked={secili.has(s.id)}
+                            disabled={eklenmis}
+                            onCheckedChange={() => toggle(s.id)}
+                            aria-label={s.ad}
+                          />
+                          <span className="flex-1 truncate text-sm">{s.ad}</span>
+                          {sure != null && (
+                            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] tabular-nums text-muted-foreground">
+                              {sure} dk
+                            </span>
+                          )}
+                          {eklenmis && (
+                            <span className="text-[10px] text-muted-foreground">
+                              eklendi
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ))}
+            </div>
           )}
 
           {/* Özel görev */}
