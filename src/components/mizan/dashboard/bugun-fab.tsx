@@ -1,17 +1,16 @@
 import * as React from "react";
-import { CalendarPlus, LayoutGrid, Plus, X } from "lucide-react";
+import { CalendarPlus, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
   onEtkinlik: () => void;
-  onHavuz: () => void;
 };
 
 /**
  * Material 3 speed-dial FAB. Mobilde alt-bar üstünde (bottom-20), masaüstünde
  * sağ-altta (bottom-6). Açıkken iki mini-FAB üste doğru yelpazelenir.
  */
-export function BugunFab({ onEtkinlik, onHavuz }: Props) {
+export function BugunFab({ onEtkinlik }: Props) {
   const [acik, setAcik] = React.useState(false);
 
   // Esc → kapat
@@ -58,14 +57,6 @@ export function BugunFab({ onEtkinlik, onHavuz }: Props) {
             onClick={() => sec(onEtkinlik)}
             renkVar="--mana"
             delay={0}
-            acik={acik}
-          />
-          <MiniFab
-            label="Havuzdan ekle"
-            ikon={<LayoutGrid className="h-4 w-4" />}
-            onClick={() => sec(onHavuz)}
-            renkVar="--amel"
-            delay={40}
             acik={acik}
           />
         </div>
