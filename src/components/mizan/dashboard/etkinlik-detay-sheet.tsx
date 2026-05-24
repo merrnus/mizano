@@ -1,6 +1,8 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Trash2, ExternalLink } from "lucide-react";
+import { Trash2, ExternalLink, Clock, MapPin, Pencil, Check, RotateCcw } from "lucide-react";
+import { format } from "date-fns";
+import { tr } from "date-fns/locale";
 import {
   Sheet,
   SheetContent,
@@ -13,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -58,6 +61,7 @@ export function EtkinlikDetaySheet({ etkinlik, onOpenChange }: Props) {
   const guncelle = useEtkinlikGuncelle();
   const sil = useEtkinlikSil();
 
+  const [duzenle, setDuzenle] = React.useState(false);
   const [baslik, setBaslik] = React.useState("");
   const [aciklama, setAciklama] = React.useState("");
   const [baslangicTarih, setBaslangicTarih] = React.useState("");
@@ -73,6 +77,7 @@ export function EtkinlikDetaySheet({ etkinlik, onOpenChange }: Props) {
 
   React.useEffect(() => {
     if (!etkinlik) return;
+    setDuzenle(false);
     const bas = new Date(etkinlik.baslangic);
     const bit = etkinlik.bitis
       ? new Date(etkinlik.bitis)
@@ -88,6 +93,37 @@ export function EtkinlikDetaySheet({ etkinlik, onOpenChange }: Props) {
     setKonum(etkinlik.konum ?? "");
     setTekrar(etkinlik.tekrar);
   }, [etkinlik]);
+
+  const bas = etkinlik ? new Date(etkinlik.baslangic) : null;
+  const bit = etkinlik
+    ? etkinlik.bitis
+      ? new Date(etkinlik.bitis)
+      : new Date(new Date(etkinlik.baslangic).getTime() + 60 * 60 * 1000)
+    : null;
+
+  const zamanMetni = (() => {
+    if (!etkinlik || !bas || !bit) return "";
+    if (etkinlik.tum_gun) return "Tüm gün";
+    const ayniGun = bas.toDateString() === bit.toDateString();
+    if (ayniGun) return `${format(bas, "HH:mm")} – ${format(bit, "HH:mm")}`;
+    return `${format(bas, "d MMM HH:mm", { locale: tr })} – ${format(bit, "d MMM HH:mm", { locale: tr })}`;
+  })();
+
+  const tarihMetni = bas ? format(bas, "d MMMM EEEE", { locale: tr }) : "";
+
+  const tamamlamayiDegistir = async () => {
+    if (!etkinlik) return;
+    try {
+      await guncelle.mutateAsync({
+        id: etkinlik.id,
+        degisiklikler: { tamamlandi: !etkinlik.tamamlandi },
+      });
+      toast.success(etkinlik.tamamlandi ? "Geri alındı" : "Tamamlandı");
+      if (!etkinlik.tamamlandi) onOpenChange(false);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   const baslangicDegisti = (yeniTarih: string, yeniSaat: string) => {
     setBaslangicTarih(yeniTarih);
@@ -163,20 +199,111 @@ export function EtkinlikDetaySheet({ etkinlik, onOpenChange }: Props) {
         side="right"
         className="flex w-full flex-col gap-0 overflow-y-auto sm:max-w-md"
       >
-        <SheetHeader>
+        <SheetHeader className="sr-only">
           <SheetTitle>Etkinlik</SheetTitle>
-          <SheetDescription className="flex items-center gap-2">
-            Detayları düzenle veya
-            <Link
-              to="/takvim"
-              className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline"
-            >
-              takvime git <ExternalLink className="h-3 w-3" />
-            </Link>
-          </SheetDescription>
+          <SheetDescription>Etkinlik detayları</SheetDescription>
         </SheetHeader>
 
-        <div className="mt-5 grid gap-3">
+        {etkinlik && !duzenle ? (
+          <div className="flex flex-1 flex-col">
+            <div className="mt-2 flex flex-col gap-5">
+              <div className="flex flex-col gap-2">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {tarihMetni}
+                </span>
+                <h2
+                  className={`text-2xl font-semibold leading-tight tracking-tight ${
+                    etkinlik.tamamlandi ? "text-muted-foreground line-through" : ""
+                  }`}
+                >
+                  {etkinlik.baslik}
+                </h2>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Badge variant="secondary" className="gap-1.5 font-normal">
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ backgroundColor: `var(--${etkinlik.alan})` }}
+                    />
+                    {ALAN_ETIKET[etkinlik.alan]}
+                  </Badge>
+                  {etkinlik.tamamlandi && (
+                    <Badge variant="outline" className="gap-1 font-normal text-emerald-600">
+                      <Check className="h-3 w-3" /> Tamamlandı
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 text-sm">
+                {zamanMetni && (
+                  <div className="flex items-center gap-3 text-foreground">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span>{zamanMetni}</span>
+                  </div>
+                )}
+                {etkinlik.konum && (
+                  <div className="flex items-start gap-3 text-foreground">
+                    <MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                    <span className="leading-snug">{etkinlik.konum}</span>
+                  </div>
+                )}
+                {etkinlik.aciklama && (
+                  <p className="whitespace-pre-wrap pt-1 text-sm leading-relaxed text-muted-foreground">
+                    {etkinlik.aciklama}
+                  </p>
+                )}
+              </div>
+
+              <Link
+                to="/takvim"
+                className="inline-flex w-fit items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              >
+                Takvimde aç <ExternalLink className="h-3 w-3" />
+              </Link>
+            </div>
+
+            <div className="mt-auto flex items-center gap-2 pt-8">
+              <Button
+                className="flex-1 gap-2"
+                size="lg"
+                variant={etkinlik.tamamlandi ? "outline" : "default"}
+                onClick={tamamlamayiDegistir}
+                disabled={guncelle.isPending}
+              >
+                {etkinlik.tamamlandi ? (
+                  <>
+                    <RotateCcw className="h-4 w-4" /> Geri al
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" /> Tamamlandı
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setDuzenle(true)}
+                title="Düzenle"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={silinecek}
+                title="Sil"
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+        <div className="mt-2 grid gap-3">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">
+            Düzenle
+          </div>
           <div className="grid gap-1.5">
             <Label htmlFor="es-baslik">Başlık</Label>
             <Input
@@ -309,25 +436,28 @@ export function EtkinlikDetaySheet({ etkinlik, onOpenChange }: Props) {
             />
           </div>
         </div>
+        )}
 
-        <SheetFooter className="mt-6 flex-row items-center justify-between sm:justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={silinecek}
-            className="gap-1.5 text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-3.5 w-3.5" /> Sil
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-              İptal
+        {duzenle && (
+          <SheetFooter className="mt-6 flex-row items-center justify-between sm:justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={silinecek}
+              className="gap-1.5 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Sil
             </Button>
-            <Button size="sm" onClick={kaydet}>
-              Güncelle
-            </Button>
-          </div>
-        </SheetFooter>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setDuzenle(false)}>
+                Vazgeç
+              </Button>
+              <Button size="sm" onClick={kaydet}>
+                Güncelle
+              </Button>
+            </div>
+          </SheetFooter>
+        )}
       </SheetContent>
     </Sheet>
   );
