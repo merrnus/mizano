@@ -1,14 +1,11 @@
 import * as React from "react";
-import { Link } from "@tanstack/react-router";
 import {
   X,
   Plus,
   RotateCcw,
-  Settings2,
   ChevronRight,
   Check,
   Clock,
-  Timer,
   GripVertical,
 } from "lucide-react";
 import {
@@ -93,14 +90,6 @@ export function GunlukChecklist({ simdi }: Props) {
       <header className="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
         <h2 className="text-sm font-semibold tracking-tight">Görevlerim</h2>
         <div className="flex items-center gap-0.5 text-muted-foreground">
-          <Link
-            to="/mizan/mana"
-            title="Şablonları yönet"
-            aria-label="Şablonları yönet"
-            className="rounded-full p-1.5 transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <Settings2 className="h-4 w-4" />
-          </Link>
           {gorevler.length > 0 && (
             <button
               type="button"
