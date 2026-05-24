@@ -216,16 +216,17 @@ type SatirProps = {
 };
 
 function Satir({ gorev, onToggle, onSaat, onSure, onSil, dragHandle }: SatirProps) {
-  const [saatAcik, setSaatAcik] = React.useState(false);
-  const [sureAcik, setSureAcik] = React.useState(false);
+  const [acik, setAcik] = React.useState(false);
 
   return (
-    <li
-      className={cn(
-        "group flex items-center gap-2 rounded-md px-2 py-2.5 transition-colors hover:bg-muted/40",
-      )}
-    >
-      {dragHandle ? (
+    <li className="group">
+      <div
+        className={cn(
+          "flex items-center gap-2 rounded-md px-2 py-2.5 transition-colors hover:bg-muted/40",
+          acik && "bg-muted/40",
+        )}
+      >
+        {dragHandle ? (
         <button
           type="button"
           {...dragHandle.attributes}
@@ -236,12 +237,12 @@ function Satir({ gorev, onToggle, onSaat, onSure, onSil, dragHandle }: SatirProp
         >
           <GripVertical className="h-4 w-4" />
         </button>
-      ) : (
+        ) : (
         <span className="-ml-1 w-4" aria-hidden />
-      )}
+        )}
 
-      {/* Daire checkbox */}
-      <button
+        {/* Daire checkbox */}
+        <button
         type="button"
         role="checkbox"
         aria-checked={gorev.tamamlandi}
@@ -253,118 +254,87 @@ function Satir({ gorev, onToggle, onSaat, onSure, onSil, dragHandle }: SatirProp
             ? "border-foreground/60 bg-foreground/60 text-background"
             : "border-muted-foreground/40 hover:border-foreground",
         )}
-      >
-        {gorev.tamamlandi && <Check className="h-3 w-3" strokeWidth={3} />}
-      </button>
-
-      {/* Başlık */}
-      <div className="min-w-0 flex-1">
-        <div
-          className={cn(
-            "truncate text-sm",
-            gorev.tamamlandi
-              ? "text-muted-foreground line-through"
-              : "text-foreground",
-          )}
         >
-          {gorev.baslik}
-        </div>
+        {gorev.tamamlandi && <Check className="h-3 w-3" strokeWidth={3} />}
+        </button>
+
+        {/* Başlık — tıklayınca aksiyon popover'ı aç */}
+        <button
+          type="button"
+          onClick={() => setAcik((v) => !v)}
+          className="min-w-0 flex-1 cursor-pointer text-left"
+        >
+          <div
+            className={cn(
+              "truncate text-sm",
+              gorev.tamamlandi
+                ? "text-muted-foreground line-through"
+                : "text-foreground",
+            )}
+          >
+            {gorev.baslik}
+          </div>
+        </button>
+
+        {/* Saat rozeti — varsa kalıcı, tıklayınca popover */}
+        {gorev.saat && (
+          <button
+            type="button"
+            onClick={() => setAcik((v) => !v)}
+            className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground hover:text-foreground"
+          >
+            {gorev.saat.slice(0, 5)}
+          </button>
+        )}
+
+        {/* Süre rozeti — varsa kalıcı, tıklayınca popover */}
+        {gorev.tahmini_sure_dk != null && (
+          <button
+            type="button"
+            onClick={() => setAcik((v) => !v)}
+            className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] tabular-nums text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+          >
+            {gorev.tahmini_sure_dk} dk
+          </button>
+        )}
       </div>
 
-      {/* Saat */}
-      {saatAcik ? (
-        <input
-          type="time"
-          autoFocus
-          defaultValue={gorev.saat?.slice(0, 5) ?? ""}
-          onBlur={(e) => {
-            onSaat(e.target.value || null);
-            setSaatAcik(false);
+      {acik && (
+        <AksiyonPopover
+          saat={gorev.saat}
+          sure={gorev.tahmini_sure_dk}
+          onSaat={(s) => onSaat(s)}
+          onSure={(dk) => onSure(dk)}
+          onSil={() => {
+            setAcik(false);
+            onSil();
           }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-            if (e.key === "Escape") setSaatAcik(false);
-          }}
-          className="h-7 rounded-md border border-border bg-background px-1.5 text-[11px] tabular-nums"
+          onKapat={() => setAcik(false)}
         />
-      ) : gorev.saat ? (
-        <button
-          type="button"
-          onClick={() => setSaatAcik(true)}
-          className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground hover:text-foreground"
-          title="Saati düzenle"
-        >
-          {gorev.saat.slice(0, 5)}
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setSaatAcik(true)}
-          className="shrink-0 text-muted-foreground/40 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-          title="Saat ekle"
-          aria-label="Saat ekle"
-        >
-          <Clock className="h-3.5 w-3.5" />
-        </button>
       )}
-
-      {/* Süre */}
-      {sureAcik ? (
-        <SurePopover
-          mevcut={gorev.tahmini_sure_dk}
-          onSec={(dk) => {
-            onSure(dk);
-            setSureAcik(false);
-          }}
-          onKapat={() => setSureAcik(false)}
-        />
-      ) : gorev.tahmini_sure_dk != null ? (
-        <button
-          type="button"
-          onClick={() => setSureAcik(true)}
-          className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] tabular-nums text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-          title="Süreyi düzenle"
-        >
-          {gorev.tahmini_sure_dk} dk
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setSureAcik(true)}
-          className="shrink-0 text-muted-foreground/40 opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-          title="Süre ekle"
-          aria-label="Süre ekle"
-        >
-          <Timer className="h-3.5 w-3.5" />
-        </button>
-      )}
-
-      {/* Sil */}
-      <button
-        type="button"
-        onClick={onSil}
-        className="text-muted-foreground/40 opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-        aria-label="Sil"
-      >
-        <X className="h-3.5 w-3.5" />
-      </button>
     </li>
   );
 }
 
-/* ---------- Süre popover ---------- */
+/* ---------- Aksiyon popover (saat + süre + sil) ---------- */
 
-function SurePopover({
-  mevcut,
-  onSec,
+function AksiyonPopover({
+  saat,
+  sure,
+  onSaat,
+  onSure,
+  onSil,
   onKapat,
 }: {
-  mevcut: number | null;
-  onSec: (dk: number | null) => void;
+  saat: string | null;
+  sure: number | null;
+  onSaat: (s: string | null) => void;
+  onSure: (dk: number | null) => void;
+  onSil: () => void;
   onKapat: () => void;
 }) {
   const ref = React.useRef<HTMLDivElement>(null);
-  const [ozel, setOzel] = React.useState(mevcut?.toString() ?? "");
+  const [ozel, setOzel] = React.useState(sure?.toString() ?? "");
   React.useEffect(() => {
     const f = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) onKapat();
@@ -375,16 +345,27 @@ function SurePopover({
   return (
     <div
       ref={ref}
-      className="relative flex items-center gap-1 rounded-full border border-border bg-popover px-1.5 py-0.5 shadow-sm"
+      className="mx-2 mb-1 mt-0.5 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-popover px-2 py-1.5 shadow-sm"
     >
+      <input
+        type="time"
+        defaultValue={saat?.slice(0, 5) ?? ""}
+        onBlur={(e) => onSaat(e.target.value || null)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
+        className="h-7 rounded-md border border-border bg-background px-1.5 text-[11px] tabular-nums"
+        aria-label="Saat"
+      />
+      <span className="h-4 w-px bg-border/70" aria-hidden />
       {[5, 10, 15, 30, 45, 60].map((dk) => (
         <button
           key={dk}
           type="button"
-          onClick={() => onSec(dk)}
+          onClick={() => onSure(dk)}
           className={cn(
             "rounded-full px-1.5 py-0.5 text-[10px] tabular-nums hover:bg-muted",
-            mevcut === dk && "bg-foreground text-background hover:bg-foreground",
+            sure === dk && "bg-foreground text-background hover:bg-foreground",
           )}
         >
           {dk}
@@ -396,22 +377,32 @@ function SurePopover({
         value={ozel}
         onChange={(e) => setOzel(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") onSec(ozel ? Number(ozel) : null);
+          if (e.key === "Enter") onSure(ozel ? Number(ozel) : null);
           if (e.key === "Escape") onKapat();
         }}
         placeholder="dk"
         className="h-6 w-12 rounded-md border border-border bg-background px-1 text-[10px] tabular-nums"
       />
-      {mevcut != null && (
+      {sure != null && (
         <button
           type="button"
-          onClick={() => onSec(null)}
+          onClick={() => onSure(null)}
           className="rounded-full p-0.5 text-muted-foreground hover:text-destructive"
           title="Temizle"
         >
           <X className="h-3 w-3" />
         </button>
       )}
+      <span className="ml-auto h-4 w-px bg-border/70" aria-hidden />
+      <button
+        type="button"
+        onClick={onSil}
+        className="rounded-full p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        aria-label="Sil"
+        title="Sil"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
