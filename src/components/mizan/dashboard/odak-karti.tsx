@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
 import { format, differenceInMinutes, isSameDay } from "date-fns";
-import { ChevronRight, MapPin, CalendarPlus } from "lucide-react";
+import { ChevronRight, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEtkinlikler, genisletEtkinlikleri } from "@/lib/takvim/hooks";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
@@ -10,7 +10,6 @@ import { EtkinlikDetaySheet } from "./etkinlik-detay-sheet";
 
 type Props = {
   simdi: Date;
-  onYeniEtkinlik: () => void;
 };
 
 type Resolved =
@@ -31,7 +30,7 @@ type Resolved =
  * Devam eden etkinlik varsa onu, yoksa bugünün sıradaki etkinliğini gösterir.
  * Etkinlik yoksa boş durum + yeni etkinlik aksiyonu.
  */
-export function OdakKarti({ simdi, onYeniEtkinlik }: Props) {
+export function OdakKarti({ simdi }: Props) {
   const yil = simdi.getFullYear();
   const ay = simdi.getMonth();
   const gun = simdi.getDate();
@@ -104,7 +103,7 @@ export function OdakKarti({ simdi, onYeniEtkinlik }: Props) {
         )}
 
         {resolved.kind === "empty" ? (
-          <BosIcerik onYeniEtkinlik={onYeniEtkinlik} />
+          <BosIcerik />
         ) : (
           <EtkinlikIcerik
             kind={resolved.kind}
@@ -219,7 +218,7 @@ function EtkinlikIcerik(props: {
   );
 }
 
-function BosIcerik({ onYeniEtkinlik }: { onYeniEtkinlik: () => void }) {
+function BosIcerik() {
   return (
     <div className="flex flex-col items-start gap-3">
       <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -229,20 +228,12 @@ function BosIcerik({ onYeniEtkinlik }: { onYeniEtkinlik: () => void }) {
         Bugün için planlı etkinlik yok
       </h2>
       <p className="text-xs text-muted-foreground">
-        Yeni bir etkinlik ekle ya da takvime göz at.
+        Takvime göz atıp planlama yapabilirsin.
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={onYeniEtkinlik}
-          className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-xs font-medium text-background transition-transform hover:scale-[1.03] active:scale-[0.97]"
-        >
-          <CalendarPlus className="h-3 w-3" />
-          Etkinlik ekle
-        </button>
         <Link
           to="/takvim"
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-xs font-medium text-background transition-transform hover:scale-[1.03] active:scale-[0.97]"
         >
           Takvime git
         </Link>

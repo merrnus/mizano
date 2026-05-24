@@ -34,7 +34,7 @@ export function GunlukChecklist({ simdi }: { simdi: Date }) {
 
   const manaSablonlar = sablonlar.filter((s) => s.alan === "mana");
 
-  const ilimOgeleri = React.useMemo(() => {
+  const amelOgeleri = React.useMemo(() => {
     return kurslar
       .filter((k) => k.durum === "aktif")
       .map((kurs) => {
@@ -47,7 +47,7 @@ export function GunlukChecklist({ simdi }: { simdi: Date }) {
       .filter((x): x is { kurs: AmelKurs; modul: AmelModul } => x !== null);
   }, [kurslar, tumModuller]);
 
-  if (manaSablonlar.length === 0 && ilimOgeleri.length === 0) {
+  if (manaSablonlar.length === 0 && amelOgeleri.length === 0) {
     return null;
   }
 
@@ -63,15 +63,12 @@ export function GunlukChecklist({ simdi }: { simdi: Date }) {
       </header>
 
       <div className="divide-y divide-border">
-        {ilimOgeleri.length > 0 && (
-          <IlimBolumu ogeler={ilimOgeleri} />
-        )}
+        {amelOgeleri.length > 0 && <AmelBolumu ogeler={amelOgeleri} />}
         {manaSablonlar.length > 0 && (
-          <AmelBolumu
+          <ManaBolumu
             sablonlar={manaSablonlar}
             kayitlar={kayitlar}
             bugunStr={bugunStr}
-            simdi={simdi}
           />
         )}
       </div>
@@ -79,15 +76,15 @@ export function GunlukChecklist({ simdi }: { simdi: Date }) {
   );
 }
 
-/* ============ İlim (kurs modülleri) ============ */
+/* ============ Amel (kurs modülleri) ============ */
 
-function IlimBolumu({
+function AmelBolumu({
   ogeler,
 }: {
   ogeler: Array<{ kurs: AmelKurs; modul: AmelModul }>;
 }) {
   const guncelle = useAmelModulGuncelle();
-  const renk = "var(--ilim)";
+  const renk = "var(--amel)";
 
   return (
     <div className="px-5 py-4">
@@ -98,7 +95,7 @@ function IlimBolumu({
             className="text-xs font-semibold uppercase tracking-wider"
             style={{ color: renk }}
           >
-            İlim
+            Amel
           </span>
         </div>
         <Link
@@ -148,21 +145,18 @@ function IlimBolumu({
   );
 }
 
-/* ============ Amel (mana evrâdı) ============ */
+/* ============ Mana (evrâd) ============ */
 
-function AmelBolumu({
+function ManaBolumu({
   sablonlar,
   kayitlar,
   bugunStr,
-  simdi,
 }: {
   sablonlar: CeteleSablon[];
   kayitlar: CeteleKayit[];
   bugunStr: string;
-  simdi: Date;
 }) {
   const renk = "var(--mana)";
-  void simdi;
 
   return (
     <div className="px-5 py-4">
@@ -173,7 +167,7 @@ function AmelBolumu({
             className="text-xs font-semibold uppercase tracking-wider"
             style={{ color: renk }}
           >
-            Amel
+            Mana
           </span>
         </div>
         <Link
@@ -186,7 +180,7 @@ function AmelBolumu({
       </div>
       <ul className="flex flex-col gap-1.5">
         {sablonlar.map((s) => (
-          <AmelSatir
+          <ManaSatir
             key={s.id}
             sablon={s}
             kayitlar={kayitlar}
@@ -198,7 +192,7 @@ function AmelBolumu({
   );
 }
 
-function AmelSatir({
+function ManaSatir({
   sablon,
   kayitlar,
   bugunStr,
