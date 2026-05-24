@@ -115,3 +115,18 @@ export function useGunSifirla() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["gunluk_gorev"] }),
   });
 }
+
+export function useGunlukGorevYenidenSirala() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (items: Array<{ id: string; siralama: number }>) => {
+      if (items.length === 0) return;
+      await Promise.all(
+        items.map((it) =>
+          supabase.from("gunluk_gorev").update({ siralama: it.siralama }).eq("id", it.id),
+        ),
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["gunluk_gorev"] }),
+  });
+}
