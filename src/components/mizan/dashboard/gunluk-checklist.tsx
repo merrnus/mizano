@@ -5,7 +5,6 @@ import {
   Plus,
   RotateCcw,
   Settings2,
-  LayoutGrid,
   ChevronRight,
   Check,
   Clock,
@@ -43,7 +42,6 @@ import { toast } from "sonner";
 
 type Props = {
   simdi: Date;
-  onHavuzAc: () => void;
 };
 
 /**
@@ -53,7 +51,7 @@ type Props = {
  * - Aktif görevler sürüklenebilir (saatsiz olanlar için sıralama; saatliler kronolojik üstte)
  * - Tamamlananlar açılır-kapanır bölümde
  */
-export function GunlukChecklist({ simdi, onHavuzAc }: Props) {
+export function GunlukChecklist({ simdi }: Props) {
   const tarih = tarihFormat(simdi);
   const { data: gorevler = [] } = useBugunGorevler(simdi);
   const guncelle = useGunlukGorevGuncelle();
@@ -95,15 +93,6 @@ export function GunlukChecklist({ simdi, onHavuzAc }: Props) {
       <header className="flex items-center justify-between gap-2 px-1 pb-3">
         <h2 className="text-base font-semibold tracking-tight">Görevlerim</h2>
         <div className="flex items-center gap-1 text-muted-foreground">
-          <button
-            type="button"
-            onClick={onHavuzAc}
-            title="Havuzdan ekle"
-            aria-label="Havuzdan ekle"
-            className="rounded-full p-1.5 transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </button>
           <Link
             to="/mizan/mana"
             title="Şablonları yönet"
@@ -135,17 +124,10 @@ export function GunlukChecklist({ simdi, onHavuzAc }: Props) {
 
       {/* Aktif görevler */}
       {aktif.length === 0 && biten.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+        <div className="px-4 py-10 text-center">
           <p className="text-sm text-muted-foreground">
             Bugün için görev yok. Yukarıdan ekleyebilirsin.
           </p>
-          <button
-            type="button"
-            onClick={onHavuzAc}
-            className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-xs font-medium text-background transition-transform hover:scale-[1.03] active:scale-[0.97]"
-          >
-            <LayoutGrid className="h-3.5 w-3.5" /> Havuzdan ekle
-          </button>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
