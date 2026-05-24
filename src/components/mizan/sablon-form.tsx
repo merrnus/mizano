@@ -211,6 +211,34 @@ export function SablonForm({
               Hangi durum/yerlerde yapılabilir? Boş bırakırsan her bağlamda görünür.
             </p>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Kategori (ops.)</Label>
+              <Select
+                value={kategoriId || "none"}
+                onValueChange={(v) => setKategoriId(v === "none" ? "" : v)}
+              >
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">—</SelectItem>
+                  {kategoriler.map((k) => (
+                    <SelectItem key={k.id} value={k.id}>
+                      {k.emoji ?? ""} {k.ad}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Tahmini süre (dk)</Label>
+              <Input
+                type="number"
+                value={tahminiSure}
+                onChange={(e) => setTahminiSure(e.target.value)}
+                placeholder="—"
+              />
+            </div>
+          </div>
           <Button type="submit" disabled={pending} className="mt-2">
             {pending ? "..." : isEdit ? "Kaydet" : "Ekle"}
           </Button>
