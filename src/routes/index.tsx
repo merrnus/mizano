@@ -7,6 +7,7 @@ import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-h
 import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { OdakKarti } from "@/components/mizan/dashboard/odak-karti";
 import { GunlukChecklist } from "@/components/mizan/dashboard/gunluk-checklist";
+import { CeteleBugunMini } from "@/components/mizan/dashboard/cetele-bugun-mini";
 import { BriefRings } from "@/components/mizan/dashboard/brief-rings";
 import { BugunFab } from "@/components/mizan/dashboard/bugun-fab";
 import { EtkinlikHizliDialog } from "@/components/mizan/takvim/etkinlik-hizli-dialog";
@@ -168,6 +169,7 @@ function AnaDashboard() {
 
       {/* Bugünün Çetelesi — birleşik checklist */}
       <GunlukChecklist simdi={simdi} />
+      <CeteleBugunMini simdi={simdi} />
 
       <EtkinlikHizliDialog
         acik={etkinlikDialogAcik}
