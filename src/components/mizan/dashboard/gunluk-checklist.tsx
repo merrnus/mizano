@@ -156,22 +156,22 @@ export function GunlukChecklist({ simdi }: Props) {
 
       {/* Tamamlananlar */}
       {biten.length > 0 && (
-        <div className="mt-2">
+        <div className="mt-2 border-t border-border/60 pt-1">
           <button
             type="button"
             onClick={() => setBitenAcik((v) => !v)}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            className="flex w-full items-center gap-1.5 rounded-md px-2 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground/80 transition-colors hover:bg-muted/40 hover:text-foreground"
           >
             <ChevronRight
               className={cn(
-                "h-3.5 w-3.5 transition-transform",
+                "h-3 w-3 transition-transform",
                 bitenAcik && "rotate-90",
               )}
             />
-            Tamamlananlar ({biten.length})
+            Tamamlananlar · {biten.length}
           </button>
           {bitenAcik && (
-            <ul className="flex flex-col">
+            <ul className="flex flex-col divide-y divide-border/30">
               {biten.map((g) => (
                 <Satir
                   key={g.id}
