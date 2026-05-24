@@ -1581,6 +1581,7 @@ export type Database = {
           konum: string | null
           renk: string | null
           takvim_id: string | null
+          tamamlandi: boolean
           tekrar: Database["public"]["Enums"]["takvim_tekrar"]
           tekrar_bitis: string | null
           tekrar_kural: string | null
@@ -1601,6 +1602,7 @@ export type Database = {
           konum?: string | null
           renk?: string | null
           takvim_id?: string | null
+          tamamlandi?: boolean
           tekrar?: Database["public"]["Enums"]["takvim_tekrar"]
           tekrar_bitis?: string | null
           tekrar_kural?: string | null
@@ -1621,6 +1623,7 @@ export type Database = {
           konum?: string | null
           renk?: string | null
           takvim_id?: string | null
+          tamamlandi?: boolean
           tekrar?: Database["public"]["Enums"]["takvim_tekrar"]
           tekrar_bitis?: string | null
           tekrar_kural?: string | null
