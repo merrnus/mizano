@@ -1,17 +1,17 @@
 import * as React from "react";
-import { CalendarPlus, ListTodo, Plus, X } from "lucide-react";
+import { CalendarPlus, LayoutGrid, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
   onEtkinlik: () => void;
-  onGorev: () => void;
+  onHavuz: () => void;
 };
 
 /**
  * Material 3 speed-dial FAB. Mobilde alt-bar üstünde (bottom-20), masaüstünde
  * sağ-altta (bottom-6). Açıkken iki mini-FAB üste doğru yelpazelenir.
  */
-export function BugunFab({ onEtkinlik, onGorev }: Props) {
+export function BugunFab({ onEtkinlik, onHavuz }: Props) {
   const [acik, setAcik] = React.useState(false);
 
   // Esc → kapat
@@ -61,9 +61,9 @@ export function BugunFab({ onEtkinlik, onGorev }: Props) {
             acik={acik}
           />
           <MiniFab
-            label="Görev"
-            ikon={<ListTodo className="h-4 w-4" />}
-            onClick={() => sec(onGorev)}
+            label="Havuzdan ekle"
+            ikon={<LayoutGrid className="h-4 w-4" />}
+            onClick={() => sec(onHavuz)}
             renkVar="--amel"
             delay={40}
             acik={acik}
