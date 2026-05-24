@@ -163,10 +163,7 @@ function AnaDashboard() {
 
       {/* Odak — tek kart, şu an / sıradaki etkinlik */}
       <div className="mb-6">
-        <OdakKarti
-          simdi={simdi}
-          onYeniEtkinlik={() => setEtkinlikDialogAcik(true)}
-        />
+        <OdakKarti simdi={simdi} />
       </div>
 
       {/* Bugünün Çetelesi — birleşik checklist */}
