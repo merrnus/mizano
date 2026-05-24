@@ -1,258 +1,263 @@
 import * as React from "react";
-import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { X, Plus, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
-  useSablonlar,
-  useHaftaKayitlari,
-  useKayitEkle,
-  useKayitSil,
-  gunToplami,
-} from "@/lib/cetele-hooks";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
-  useAmelKurslar,
-  useTumAmelModuller,
-  useAmelModulGuncelle,
-} from "@/lib/amel-hooks";
-import { haftaBaslangici, tarihFormat } from "@/lib/cetele-tarih";
-import type { CeteleSablon, CeteleKayit } from "@/lib/cetele-tipleri";
-import type { AmelKurs, AmelModul } from "@/lib/amel-tipleri";
+  useBugunGorevler,
+  useGunlukGorevEkle,
+  useGunlukGorevGuncelle,
+  useGunlukGorevSil,
+  useGunSifirla,
+  type GunlukGorev,
+} from "@/lib/gunluk-gorev";
+import { useKategoriler } from "@/lib/gorev-kategori";
+import { tarihFormat } from "@/lib/cetele-tarih";
+import { toast } from "sonner";
+
+type Props = {
+  simdi: Date;
+  onHavuzAc: () => void;
+};
 
 /**
- * Bugünün birleşik checklist'i: İlim (aktif kurs modülleri) + Amel (mana evrâdı).
- * Tek tık toggle; tamamlananlar üstü çizili ve solgun.
+ * Esnek Görevler — kullanıcının havuzdan çektiği veya ad-hoc eklediği
+ * günlük checklist. Veriler `gunluk_gorev` tablosundan gelir.
  */
-export function GunlukChecklist({ simdi }: { simdi: Date }) {
-  const haftaBas = haftaBaslangici(simdi);
-  const bugunStr = tarihFormat(simdi);
+export function GunlukChecklist({ simdi, onHavuzAc }: Props) {
+  const tarih = tarihFormat(simdi);
+  const { data: gorevler = [] } = useBugunGorevler(simdi);
+  const { data: kategoriler = [] } = useKategoriler();
+  const guncelle = useGunlukGorevGuncelle();
+  const sil = useGunlukGorevSil();
+  const sifirla = useGunSifirla();
 
-  const { data: sablonlar = [] } = useSablonlar();
-  const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
-  const { data: kurslar = [] } = useAmelKurslar();
-  const { data: tumModuller = [] } = useTumAmelModuller();
-
-  const manaSablonlar = sablonlar.filter((s) => s.alan === "mana");
-
-  const amelOgeleri = React.useMemo(() => {
-    return kurslar
-      .filter((k) => k.durum === "aktif")
-      .map((kurs) => {
-        const modulSira = tumModuller
-          .filter((m) => m.kurs_id === kurs.id)
-          .sort((a, b) => a.siralama - b.siralama);
-        const ilkEksik = modulSira.find((m) => !m.tamamlandi);
-        return ilkEksik ? { kurs, modul: ilkEksik } : null;
-      })
-      .filter((x): x is { kurs: AmelKurs; modul: AmelModul } => x !== null);
-  }, [kurslar, tumModuller]);
-
-  if (manaSablonlar.length === 0 && amelOgeleri.length === 0) {
-    return null;
-  }
+  const gruplar = React.useMemo(() => {
+    const map = new Map<string | null, GunlukGorev[]>();
+    for (const g of gorevler) {
+      const k = g.kategori_id ?? null;
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(g);
+    }
+    const dizi = Array.from(map.entries()).map(([kategoriId, items]) => ({
+      kategoriId,
+      items,
+    }));
+    dizi.sort((a, b) => {
+      const ka = kategoriler.find((k) => k.id === a.kategoriId);
+      const kb = kategoriler.find((k) => k.id === b.kategoriId);
+      return (ka?.siralama ?? 999) - (kb?.siralama ?? 999);
+    });
+    return dizi;
+  }, [gorevler, kategoriler]);
 
   return (
     <section className="rounded-2xl border border-border bg-card">
-      <header className="border-b border-border px-5 py-4">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-          Bugünün Çetelesi
-        </p>
-        <h2 className="mt-0.5 text-lg font-semibold tracking-tight">
-          İşaretle, ilerle
-        </h2>
+      <header className="flex items-center justify-between gap-2 border-b border-border px-5 py-4">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+            Esnek Görevler
+          </p>
+          <h2 className="mt-0.5 text-lg font-semibold tracking-tight">
+            Bugün ne yapacağım?
+          </h2>
+        </div>
+        {gorevler.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm("Bugünün tüm görevleri silinsin mi?")) {
+                sifirla.mutate(tarih, {
+                  onSuccess: () => toast.success("Sıfırlandı"),
+                });
+              }
+            }}
+            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Sıfırla
+          </button>
+        )}
       </header>
 
-      <div className="divide-y divide-border">
-        {amelOgeleri.length > 0 && <AmelBolumu ogeler={amelOgeleri} />}
-        {manaSablonlar.length > 0 && (
-          <ManaBolumu
-            sablonlar={manaSablonlar}
-            kayitlar={kayitlar}
-            bugunStr={bugunStr}
-          />
-        )}
-      </div>
+      {gorevler.length === 0 ? (
+        <div className="flex flex-col items-start gap-3 px-5 py-6">
+          <p className="text-sm text-muted-foreground">
+            Bugün için görev seçmedin.
+          </p>
+          <button
+            type="button"
+            onClick={onHavuzAc}
+            className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-xs font-medium text-background transition-transform hover:scale-[1.03] active:scale-[0.97]"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Havuzdan ekle
+          </button>
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {gruplar.map(({ kategoriId, items }) => {
+            const k = kategoriler.find((x) => x.id === kategoriId);
+            const baslik = k
+              ? `${k.emoji ?? ""} ${k.ad}`.trim()
+              : "Kategorisiz";
+            const renk = k?.renk ?? "kisisel";
+            return (
+              <div key={kategoriId ?? "none"} className="px-5 py-4">
+                <p
+                  className="mb-2 text-[11px] font-semibold uppercase tracking-wider"
+                  style={{ color: `var(--${renk})` }}
+                >
+                  {baslik}
+                </p>
+                <ul className="flex flex-col gap-1.5">
+                  {items.map((g) => (
+                    <Satir
+                      key={g.id}
+                      gorev={g}
+                      onToggle={(v) =>
+                        guncelle.mutate({
+                          id: g.id,
+                          tamamlandi: v,
+                          tamamlanma_at: v ? new Date().toISOString() : null,
+                        })
+                      }
+                      onSil={() => sil.mutate(g.id)}
+                    />
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <HizliEkleSatiri simdi={simdi} />
     </section>
   );
 }
 
-/* ============ Amel (kurs modülleri) ============ */
-
-function AmelBolumu({
-  ogeler,
+function Satir({
+  gorev,
+  onToggle,
+  onSil,
 }: {
-  ogeler: Array<{ kurs: AmelKurs; modul: AmelModul }>;
+  gorev: GunlukGorev;
+  onToggle: (v: boolean) => void;
+  onSil: () => void;
 }) {
-  const guncelle = useAmelModulGuncelle();
-  const renk = "var(--amel)";
-
-  return (
-    <div className="px-5 py-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-base">📚</span>
-          <span
-            className="text-xs font-semibold uppercase tracking-wider"
-            style={{ color: renk }}
-          >
-            Amel
-          </span>
-        </div>
-        <Link
-          to="/mizan/amel"
-          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Tümü
-          <ArrowRight className="h-3 w-3" />
-        </Link>
-      </div>
-      <ul className="flex flex-col gap-1.5">
-        {ogeler.map(({ kurs, modul }) => (
-          <li
-            key={modul.id}
-            className={cn(
-              "flex items-center gap-2.5 rounded-md border border-border bg-background/40 px-3 py-2 transition-opacity",
-              modul.tamamlandi && "opacity-50",
-            )}
-          >
-            <Checkbox
-              checked={modul.tamamlandi}
-              onCheckedChange={(v) =>
-                guncelle.mutate({
-                  id: modul.id,
-                  tamamlandi: v === true,
-                  tamamlanma: v === true ? new Date().toISOString().slice(0, 10) : null,
-                })
-              }
-              aria-label={`${modul.baslik} tamamla`}
-            />
-            <div className="min-w-0 flex-1">
-              <div
-                className={cn(
-                  "truncate text-sm font-medium",
-                  modul.tamamlandi && "line-through",
-                )}
-              >
-                <span style={{ color: renk }}>{kurs.kod ?? kurs.ad}</span>
-                <span className="text-muted-foreground"> · </span>
-                <span>{modul.baslik}</span>
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/* ============ Mana (evrâd) ============ */
-
-function ManaBolumu({
-  sablonlar,
-  kayitlar,
-  bugunStr,
-}: {
-  sablonlar: CeteleSablon[];
-  kayitlar: CeteleKayit[];
-  bugunStr: string;
-}) {
-  const renk = "var(--mana)";
-
-  return (
-    <div className="px-5 py-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-base">🤲</span>
-          <span
-            className="text-xs font-semibold uppercase tracking-wider"
-            style={{ color: renk }}
-          >
-            Mana
-          </span>
-        </div>
-        <Link
-          to="/mizan/mana"
-          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Tümü
-          <ArrowRight className="h-3 w-3" />
-        </Link>
-      </div>
-      <ul className="flex flex-col gap-1.5">
-        {sablonlar.map((s) => (
-          <ManaSatir
-            key={s.id}
-            sablon={s}
-            kayitlar={kayitlar}
-            bugunStr={bugunStr}
-          />
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function ManaSatir({
-  sablon,
-  kayitlar,
-  bugunStr,
-}: {
-  sablon: CeteleSablon;
-  kayitlar: CeteleKayit[];
-  bugunStr: string;
-}) {
-  const ekle = useKayitEkle();
-  const sil = useKayitSil();
-  const toplam = gunToplami(kayitlar, sablon.id, bugunStr);
-  const hedef = Number(sablon.hedef_deger);
-  const tamam = toplam >= hedef && hedef > 0;
-
-  const bugunkuKayitlar = kayitlar.filter(
-    (k) => k.sablon_id === sablon.id && k.tarih === bugunStr,
-  );
-
-  const toggle = async () => {
-    if (tamam) {
-      // sıfırla
-      for (const k of bugunkuKayitlar) await sil.mutateAsync(k.id);
-    } else {
-      const eksik = Math.max(1, hedef - toplam);
-      await ekle.mutateAsync({
-        sablon_id: sablon.id,
-        tarih: bugunStr,
-        miktar: eksik,
-      });
-    }
-  };
-
-  const busy = ekle.isPending || sil.isPending;
-
   return (
     <li
       className={cn(
-        "flex items-center gap-2.5 rounded-md border border-border bg-background/40 px-3 py-2 transition-opacity",
-        tamam && "opacity-50",
+        "group flex items-center gap-2.5 rounded-md border border-border bg-background/40 px-3 py-2 transition-opacity",
+        gorev.tamamlandi && "opacity-50",
       )}
     >
       <Checkbox
-        checked={tamam}
-        disabled={busy}
-        onCheckedChange={() => void toggle()}
-        aria-label={`${sablon.ad} tamamla`}
+        checked={gorev.tamamlandi}
+        onCheckedChange={(v) => onToggle(v === true)}
+        aria-label={`${gorev.baslik} tamamla`}
       />
       <div className="min-w-0 flex-1">
         <div
           className={cn(
             "truncate text-sm font-medium",
-            tamam && "line-through",
+            gorev.tamamlandi && "line-through",
           )}
         >
-          {sablon.ad}
+          {gorev.baslik}
         </div>
       </div>
-      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-        {toplam}/{hedef} {sablon.birim === "ikili" ? "" : sablon.birim}
-      </span>
+      {gorev.tahmini_sure_dk != null && (
+        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] tabular-nums text-muted-foreground">
+          {gorev.tahmini_sure_dk} dk
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={onSil}
+        className="text-muted-foreground/40 opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+        aria-label="Sil"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
     </li>
+  );
+}
+
+function HizliEkleSatiri({ simdi }: { simdi: Date }) {
+  const tarih = tarihFormat(simdi);
+  const ekle = useGunlukGorevEkle();
+  const { data: kategoriler = [] } = useKategoriler();
+  const [ad, setAd] = React.useState("");
+  const [dk, setDk] = React.useState("");
+  const [kategoriId, setKategoriId] = React.useState<string>("");
+
+  const onEkle = async () => {
+    if (!ad.trim()) return;
+    try {
+      await ekle.mutateAsync({
+        tarih,
+        baslik: ad.trim(),
+        tahmini_sure_dk: dk ? Number(dk) : null,
+        kategori_id: kategoriId || null,
+        sablon_id: null,
+      });
+      setAd("");
+      setDk("");
+    } catch {
+      toast.error("Eklenemedi");
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2 border-t border-border bg-card/50 px-5 py-3">
+      <Input
+        value={ad}
+        onChange={(e) => setAd(e.target.value)}
+        placeholder="Hızlı görev ekle…"
+        onKeyDown={(e) => e.key === "Enter" && onEkle()}
+        className="h-9 flex-1"
+      />
+      <Input
+        type="number"
+        value={dk}
+        onChange={(e) => setDk(e.target.value)}
+        placeholder="dk"
+        className="h-9 w-16"
+      />
+      <Select
+        value={kategoriId || "none"}
+        onValueChange={(v) => setKategoriId(v === "none" ? "" : v)}
+      >
+        <SelectTrigger className="h-9 w-28">
+          <SelectValue placeholder="—" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">—</SelectItem>
+          {kategoriler.map((k) => (
+            <SelectItem key={k.id} value={k.id}>
+              {k.emoji ?? ""} {k.ad}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <button
+        type="button"
+        onClick={onEkle}
+        disabled={!ad.trim() || ekle.isPending}
+        className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-foreground text-background disabled:opacity-40"
+        aria-label="Ekle"
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+    </div>
   );
 }

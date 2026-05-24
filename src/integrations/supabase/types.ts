@@ -452,8 +452,10 @@ export type Database = {
           hedef_deger: number
           hedef_tipi: Database["public"]["Enums"]["cetele_hedef_tipi"]
           id: string
+          kategori_id: string | null
           notlar: string | null
           siralama: number
+          tahmini_sure_dk: number | null
           uc_aylik_baslangic: string | null
           uc_aylik_hedef: number | null
           updated_at: string
@@ -469,8 +471,10 @@ export type Database = {
           hedef_deger?: number
           hedef_tipi?: Database["public"]["Enums"]["cetele_hedef_tipi"]
           id?: string
+          kategori_id?: string | null
           notlar?: string | null
           siralama?: number
+          tahmini_sure_dk?: number | null
           uc_aylik_baslangic?: string | null
           uc_aylik_hedef?: number | null
           updated_at?: string
@@ -486,14 +490,24 @@ export type Database = {
           hedef_deger?: number
           hedef_tipi?: Database["public"]["Enums"]["cetele_hedef_tipi"]
           id?: string
+          kategori_id?: string | null
           notlar?: string | null
           siralama?: number
+          tahmini_sure_dk?: number | null
           uc_aylik_baslangic?: string | null
           uc_aylik_hedef?: number | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cetele_sablon_kategori_id_fkey"
+            columns: ["kategori_id"]
+            isOneToOne: false
+            referencedRelation: "gorev_kategori"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ders: {
         Row: {
@@ -746,6 +760,39 @@ export type Database = {
           },
         ]
       }
+      gorev_kategori: {
+        Row: {
+          ad: string
+          created_at: string
+          emoji: string | null
+          id: string
+          renk: string | null
+          siralama: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ad: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          renk?: string | null
+          siralama?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ad?: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          renk?: string | null
+          siralama?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gundem: {
         Row: {
           created_at: string
@@ -952,6 +999,66 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      gunluk_gorev: {
+        Row: {
+          baslik: string
+          created_at: string
+          id: string
+          kategori_id: string | null
+          sablon_id: string | null
+          siralama: number
+          tahmini_sure_dk: number | null
+          tamamlandi: boolean
+          tamamlanma_at: string | null
+          tarih: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          baslik: string
+          created_at?: string
+          id?: string
+          kategori_id?: string | null
+          sablon_id?: string | null
+          siralama?: number
+          tahmini_sure_dk?: number | null
+          tamamlandi?: boolean
+          tamamlanma_at?: string | null
+          tarih?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          baslik?: string
+          created_at?: string
+          id?: string
+          kategori_id?: string | null
+          sablon_id?: string | null
+          siralama?: number
+          tahmini_sure_dk?: number | null
+          tamamlandi?: boolean
+          tamamlanma_at?: string | null
+          tarih?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gunluk_gorev_kategori_id_fkey"
+            columns: ["kategori_id"]
+            isOneToOne: false
+            referencedRelation: "gorev_kategori"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gunluk_gorev_sablon_id_fkey"
+            columns: ["sablon_id"]
+            isOneToOne: false
+            referencedRelation: "cetele_sablon"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hedef: {
         Row: {

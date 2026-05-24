@@ -27,6 +27,7 @@ import type {
 } from "@/lib/cetele-tipleri";
 import { BaglamCokluSecici } from "@/components/mizan/baglam-chip";
 import type { BaglamId } from "@/lib/cetele-baglam";
+import { useKategoriler } from "@/lib/gorev-kategori";
 import { toast } from "sonner";
 
 export function SablonForm({
@@ -48,6 +49,15 @@ export function SablonForm({
   const [baglamlar, setBaglamlar] = React.useState<BaglamId[]>(
     (duzenle?.baglamlar as BaglamId[] | undefined) ?? [],
   );
+  const [kategoriId, setKategoriId] = React.useState<string>(
+    (duzenle as { kategori_id?: string | null } | undefined)?.kategori_id ?? "",
+  );
+  const [tahminiSure, setTahminiSure] = React.useState<string>(
+    (duzenle as { tahmini_sure_dk?: number | null } | undefined)?.tahmini_sure_dk != null
+      ? String((duzenle as { tahmini_sure_dk?: number | null }).tahmini_sure_dk)
+      : "",
+  );
+  const { data: kategoriler = [] } = useKategoriler();
   const ekle = useSablonEkle();
   const guncelle = useSablonGuncelle();
   const isEdit = !!duzenle;
@@ -62,6 +72,9 @@ export function SablonForm({
       setUcAylik(duzenle.uc_aylik_hedef != null ? String(duzenle.uc_aylik_hedef) : "");
       setNotlar(duzenle.notlar ?? "");
       setBaglamlar((duzenle.baglamlar as BaglamId[] | undefined) ?? []);
+      const d = duzenle as { kategori_id?: string | null; tahmini_sure_dk?: number | null };
+      setKategoriId(d.kategori_id ?? "");
+      setTahminiSure(d.tahmini_sure_dk != null ? String(d.tahmini_sure_dk) : "");
     }
   }, [acik, duzenle]);
 
@@ -77,6 +90,8 @@ export function SablonForm({
         uc_aylik_hedef: ucAylik ? Number(ucAylik) : null,
         notlar: notlar.trim() || null,
         baglamlar,
+        kategori_id: kategoriId || null,
+        tahmini_sure_dk: tahminiSure ? Number(tahminiSure) : null,
       };
       if (isEdit && duzenle) {
         await guncelle.mutateAsync({ id: duzenle.id, ...payload });
@@ -93,6 +108,8 @@ export function SablonForm({
         setUcAylik("");
         setNotlar("");
         setBaglamlar([]);
+        setKategoriId("");
+        setTahminiSure("");
       }
       setAcik(false);
     } catch (e) {
@@ -193,6 +210,34 @@ export function SablonForm({
             <p className="text-[10px] text-muted-foreground">
               Hangi durum/yerlerde yapılabilir? Boş bırakırsan her bağlamda görünür.
             </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Kategori (ops.)</Label>
+              <Select
+                value={kategoriId || "none"}
+                onValueChange={(v) => setKategoriId(v === "none" ? "" : v)}
+              >
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">—</SelectItem>
+                  {kategoriler.map((k) => (
+                    <SelectItem key={k.id} value={k.id}>
+                      {k.emoji ?? ""} {k.ad}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Tahmini süre (dk)</Label>
+              <Input
+                type="number"
+                value={tahminiSure}
+                onChange={(e) => setTahminiSure(e.target.value)}
+                placeholder="—"
+              />
+            </div>
           </div>
           <Button type="submit" disabled={pending} className="mt-2">
             {pending ? "..." : isEdit ? "Kaydet" : "Ekle"}

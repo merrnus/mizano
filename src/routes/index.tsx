@@ -9,14 +9,13 @@ import { OdakKarti } from "@/components/mizan/dashboard/odak-karti";
 import { GunlukChecklist } from "@/components/mizan/dashboard/gunluk-checklist";
 import { BriefRings } from "@/components/mizan/dashboard/brief-rings";
 import { BugunFab } from "@/components/mizan/dashboard/bugun-fab";
+import { HavuzSheet } from "@/components/mizan/dashboard/havuz-sheet";
 import { AlanDetaySheet } from "@/components/mizan/alan-detay-sheet";
-import { GorevDialog } from "@/components/mizan/takvim/gorev-dialog";
 import { EtkinlikHizliDialog } from "@/components/mizan/takvim/etkinlik-hizli-dialog";
 import type { CeteleAlan } from "@/lib/cetele-tipleri";
 import { useAmelKurslar, useTumAmelModuller } from "@/lib/amel-hooks";
 import { useDersler, useSinavlar } from "@/lib/ilim-hooks";
 import { amelYuzdesi, ilimYuzdesi } from "@/lib/istikamet-yuzde";
-import type { TakvimGorev } from "@/lib/takvim/tipler";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/")({
@@ -107,9 +106,8 @@ function AnaDashboard() {
   const acikYuzde =
     acikAlan === "mana" ? manaYuzde : acikAlan === "ilim" ? ilimYuzde : amelYuzde;
 
-  const [gorevDialogAcik, setGorevDialogAcik] = React.useState(false);
-  const [duzenlenenGorev, setDuzenlenenGorev] = React.useState<TakvimGorev | null>(null);
   const [etkinlikDialogAcik, setEtkinlikDialogAcik] = React.useState(false);
+  const [havuzAcik, setHavuzAcik] = React.useState(false);
 
   const saat = simdi.getHours();
   const selamlama =
@@ -167,22 +165,12 @@ function AnaDashboard() {
       </div>
 
       {/* Bugünün Çetelesi — birleşik checklist */}
-      <GunlukChecklist simdi={simdi} />
+      <GunlukChecklist simdi={simdi} onHavuzAc={() => setHavuzAcik(true)} />
 
       <AlanDetaySheet
         alan={acikAlan}
         onOpenChange={(o) => !o && setAcikAlan(null)}
         yuzde={acikYuzde}
-      />
-
-      <GorevDialog
-        acik={gorevDialogAcik}
-        onOpenChange={(o) => {
-          setGorevDialogAcik(o);
-          if (!o) setDuzenlenenGorev(null);
-        }}
-        varsayilanVade={bugun}
-        duzenle={duzenlenenGorev}
       />
 
       <EtkinlikHizliDialog
@@ -191,12 +179,15 @@ function AnaDashboard() {
         varsayilanBaslangic={bugun}
       />
 
+      <HavuzSheet
+        acik={havuzAcik}
+        onOpenChange={setHavuzAcik}
+        simdi={simdi}
+      />
+
       <BugunFab
         onEtkinlik={() => setEtkinlikDialogAcik(true)}
-        onGorev={() => {
-          setDuzenlenenGorev(null);
-          setGorevDialogAcik(true);
-        }}
+        onHavuz={() => setHavuzAcik(true)}
       />
     </div>
   );
