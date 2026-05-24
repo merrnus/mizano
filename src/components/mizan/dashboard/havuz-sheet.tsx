@@ -160,7 +160,7 @@ export function HavuzSheet({ acik, onOpenChange, simdi }: Props) {
                   <div className="flex items-center gap-2 px-1">
                     <span
                       className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: `hsl(var(--${alan}))` }}
+                      style={{ backgroundColor: `var(--${alan})` }}
                     />
                     <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       {ALAN_ETIKET[alan]}
