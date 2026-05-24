@@ -27,6 +27,7 @@ import type {
 } from "@/lib/cetele-tipleri";
 import { BaglamCokluSecici } from "@/components/mizan/baglam-chip";
 import type { BaglamId } from "@/lib/cetele-baglam";
+import { useKategoriler } from "@/lib/gorev-kategori";
 import { toast } from "sonner";
 
 export function SablonForm({
@@ -48,6 +49,15 @@ export function SablonForm({
   const [baglamlar, setBaglamlar] = React.useState<BaglamId[]>(
     (duzenle?.baglamlar as BaglamId[] | undefined) ?? [],
   );
+  const [kategoriId, setKategoriId] = React.useState<string>(
+    (duzenle as { kategori_id?: string | null } | undefined)?.kategori_id ?? "",
+  );
+  const [tahminiSure, setTahminiSure] = React.useState<string>(
+    (duzenle as { tahmini_sure_dk?: number | null } | undefined)?.tahmini_sure_dk != null
+      ? String((duzenle as { tahmini_sure_dk?: number | null }).tahmini_sure_dk)
+      : "",
+  );
+  const { data: kategoriler = [] } = useKategoriler();
   const ekle = useSablonEkle();
   const guncelle = useSablonGuncelle();
   const isEdit = !!duzenle;
@@ -62,6 +72,9 @@ export function SablonForm({
       setUcAylik(duzenle.uc_aylik_hedef != null ? String(duzenle.uc_aylik_hedef) : "");
       setNotlar(duzenle.notlar ?? "");
       setBaglamlar((duzenle.baglamlar as BaglamId[] | undefined) ?? []);
+      const d = duzenle as { kategori_id?: string | null; tahmini_sure_dk?: number | null };
+      setKategoriId(d.kategori_id ?? "");
+      setTahminiSure(d.tahmini_sure_dk != null ? String(d.tahmini_sure_dk) : "");
     }
   }, [acik, duzenle]);
 
@@ -77,6 +90,8 @@ export function SablonForm({
         uc_aylik_hedef: ucAylik ? Number(ucAylik) : null,
         notlar: notlar.trim() || null,
         baglamlar,
+        kategori_id: kategoriId || null,
+        tahmini_sure_dk: tahminiSure ? Number(tahminiSure) : null,
       };
       if (isEdit && duzenle) {
         await guncelle.mutateAsync({ id: duzenle.id, ...payload });
@@ -93,6 +108,8 @@ export function SablonForm({
         setUcAylik("");
         setNotlar("");
         setBaglamlar([]);
+        setKategoriId("");
+        setTahminiSure("");
       }
       setAcik(false);
     } catch (e) {
