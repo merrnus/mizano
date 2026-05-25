@@ -163,6 +163,21 @@ function MizanHub() {
         <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
           Bu Haftanın Özeti
         </h2>
+        {toplamTamamlanan === 0 ? (
+          <div className="flex flex-col items-start gap-3 rounded-2xl border border-dashed border-border bg-card/40 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              {toplamHedef === 0
+                ? "Henüz çetele şablonu yok. Bir alana git ve ritüellerini tanımla."
+                : "Bu hafta henüz çetele kaydı yok. Bugün ilk değerlerini gir."}
+            </p>
+            <a
+              href="/mizan/mana"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-xs font-medium text-background transition-transform hover:scale-[1.03] active:scale-[0.97]"
+            >
+              Mana'ya git →
+            </a>
+          </div>
+        ) : (
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-border bg-card p-4">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -219,6 +234,7 @@ function MizanHub() {
             </p>
           </div>
         </div>
+        )}
       </section>
 
       {/* Streak ısı haritası */}

@@ -1,9 +1,8 @@
 import * as React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { FileText, Sheet, StickyNote, Plus } from "lucide-react";
+import { FileText, Sheet, StickyNote, Plus, ChevronDown } from "lucide-react";
 import { useNotlar, useBelgeler, useTablolar } from "@/lib/mutfak-hooks";
 import { icerikOzet } from "@/lib/mutfak-not-icerik";
-import { HubArama } from "./hub-arama";
 import { cn } from "@/lib/utils";
 
 type Item =
@@ -21,6 +20,7 @@ export function MutfakYanPanel() {
   const notlar = useNotlar(false);
   const belgeler = useBelgeler();
   const tablolar = useTablolar();
+  const [acik, setAcik] = React.useState(true);
 
   const items: Item[] = React.useMemo(() => {
     const list: Item[] = [
@@ -50,7 +50,7 @@ export function MutfakYanPanel() {
   }, [belgeler.data, tablolar.data, notlar.data]);
 
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-border/60 bg-card/30 xl:flex xl:flex-col">
+    <aside className="hidden w-56 shrink-0 border-r border-border/60 bg-card/30 xl:flex xl:flex-col">
       <div className="border-b border-border/60 p-3">
         <Link
           to="/workspace"
@@ -58,14 +58,20 @@ export function MutfakYanPanel() {
         >
           ← Mutfak
         </Link>
-        <HubArama />
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">
-        <p className="px-2 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <button
+          type="button"
+          onClick={() => setAcik((v) => !v)}
+          className="flex w-full items-center gap-1 rounded-md px-2 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ChevronDown
+            className={cn("h-3 w-3 transition-transform", !acik && "-rotate-90")}
+          />
           Son kullanılanlar
-        </p>
-        {items.length === 0 ? (
+        </button>
+        {!acik ? null : items.length === 0 ? (
           <p className="px-2 py-4 text-xs text-muted-foreground/70">
             Henüz bir şey yok.
           </p>

@@ -88,7 +88,12 @@ export function GunlukChecklist({ simdi }: Props) {
     <section className="flex flex-col rounded-2xl border border-border/60 bg-card/40 p-2 sm:p-3">
       {/* Başlık */}
       <header className="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
-        <h2 className="text-sm font-semibold tracking-tight">Görevlerim</h2>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Bugün
+          </span>
+          <h2 className="text-sm font-semibold tracking-tight">Görevlerim</h2>
+        </div>
         <div className="flex items-center gap-0.5 text-muted-foreground">
           {gorevler.length > 0 && (
             <button

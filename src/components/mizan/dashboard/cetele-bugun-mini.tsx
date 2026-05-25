@@ -43,15 +43,26 @@ export function CeteleBugunMini({ simdi }: Props) {
   const tamamiBitti = aday.length === 0;
 
   return (
-    <section className="mt-3 rounded-2xl border border-border/60 bg-card/40 p-3">
+    <section
+      className="mt-2 rounded-2xl border border-border/40 bg-card/20 p-3"
+      style={{
+        borderTop: "2px solid color-mix(in oklab, var(--mana) 35%, transparent)",
+      }}
+    >
       <header className="mb-2 flex items-center justify-between gap-2 px-1">
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold tracking-tight">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className="inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+            style={{
+              color: "var(--mana)",
+              backgroundColor: "color-mix(in oklab, var(--mana) 14%, transparent)",
+            }}
+          >
+            Ritüel
+          </span>
+          <h3 className="truncate text-sm font-semibold tracking-tight">
             Bugünün çetelesinden
           </h3>
-          <p className="text-[10px] text-muted-foreground">
-            Tekrar eden ritüeller · esnek görevlerden ayrı
-          </p>
         </div>
         <Link
           to="/mizan/mana"
