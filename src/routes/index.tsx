@@ -133,9 +133,9 @@ function AnaDashboard() {
     null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-28 sm:px-6 sm:py-8">
-      {/* App-bar: tek satır selamlama + mini halkalar */}
-      <header className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
+    <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-40 sm:px-6 sm:py-8 sm:pb-28">
+      {/* App-bar: selamlama — mobilde halkalar alta düşer, lg+ ayrı bölümde büyür */}
+      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
             {format(simdi, "EEEE, d MMMM", { locale: tr })}
@@ -159,6 +159,7 @@ function AnaDashboard() {
               to: a === "mana" ? "/mizan/mana" : a === "ilim" ? "/mizan/ilim" : "/mizan/amel",
             })
           }
+          className="grid w-full grid-cols-3 gap-1 sm:inline-flex sm:w-auto"
         />
       </header>
 
