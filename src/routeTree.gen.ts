@@ -23,6 +23,7 @@ import { Route as WorkspaceTabloRouteImport } from './routes/workspace.tablo'
 import { Route as WorkspaceSurucuRouteImport } from './routes/workspace.surucu'
 import { Route as WorkspacePomodoroRouteImport } from './routes/workspace.pomodoro'
 import { Route as WorkspaceNotlarRouteImport } from './routes/workspace.notlar'
+import { Route as WorkspaceKaynaklarRouteImport } from './routes/workspace.kaynaklar'
 import { Route as WorkspaceBelgeRouteImport } from './routes/workspace.belge'
 import { Route as NetworkRaporRouteImport } from './routes/network.rapor'
 import { Route as MizanManeviyatRouteImport } from './routes/mizan.maneviyat'
@@ -109,6 +110,11 @@ const WorkspacePomodoroRoute = WorkspacePomodoroRouteImport.update({
 const WorkspaceNotlarRoute = WorkspaceNotlarRouteImport.update({
   id: '/notlar',
   path: '/notlar',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceKaynaklarRoute = WorkspaceKaynaklarRouteImport.update({
+  id: '/kaynaklar',
+  path: '/kaynaklar',
   getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceBelgeRoute = WorkspaceBelgeRouteImport.update({
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/mizan/maneviyat': typeof MizanManeviyatRoute
   '/network/rapor': typeof NetworkRaporRoute
   '/workspace/belge': typeof WorkspaceBelgeRouteWithChildren
+  '/workspace/kaynaklar': typeof WorkspaceKaynaklarRoute
   '/workspace/notlar': typeof WorkspaceNotlarRoute
   '/workspace/pomodoro': typeof WorkspacePomodoroRoute
   '/workspace/surucu': typeof WorkspaceSurucuRoute
@@ -243,6 +250,7 @@ export interface FileRoutesByTo {
   '/mizan/maneviyat': typeof MizanManeviyatRoute
   '/network/rapor': typeof NetworkRaporRoute
   '/workspace/belge': typeof WorkspaceBelgeRouteWithChildren
+  '/workspace/kaynaklar': typeof WorkspaceKaynaklarRoute
   '/workspace/notlar': typeof WorkspaceNotlarRoute
   '/workspace/pomodoro': typeof WorkspacePomodoroRoute
   '/workspace/surucu': typeof WorkspaceSurucuRoute
@@ -277,6 +285,7 @@ export interface FileRoutesById {
   '/mizan/maneviyat': typeof MizanManeviyatRoute
   '/network/rapor': typeof NetworkRaporRoute
   '/workspace/belge': typeof WorkspaceBelgeRouteWithChildren
+  '/workspace/kaynaklar': typeof WorkspaceKaynaklarRoute
   '/workspace/notlar': typeof WorkspaceNotlarRoute
   '/workspace/pomodoro': typeof WorkspacePomodoroRoute
   '/workspace/surucu': typeof WorkspaceSurucuRoute
@@ -312,6 +321,7 @@ export interface FileRouteTypes {
     | '/mizan/maneviyat'
     | '/network/rapor'
     | '/workspace/belge'
+    | '/workspace/kaynaklar'
     | '/workspace/notlar'
     | '/workspace/pomodoro'
     | '/workspace/surucu'
@@ -341,6 +351,7 @@ export interface FileRouteTypes {
     | '/mizan/maneviyat'
     | '/network/rapor'
     | '/workspace/belge'
+    | '/workspace/kaynaklar'
     | '/workspace/notlar'
     | '/workspace/pomodoro'
     | '/workspace/surucu'
@@ -374,6 +385,7 @@ export interface FileRouteTypes {
     | '/mizan/maneviyat'
     | '/network/rapor'
     | '/workspace/belge'
+    | '/workspace/kaynaklar'
     | '/workspace/notlar'
     | '/workspace/pomodoro'
     | '/workspace/surucu'
@@ -500,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/notlar'
       fullPath: '/workspace/notlar'
       preLoaderRoute: typeof WorkspaceNotlarRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/kaynaklar': {
+      id: '/workspace/kaynaklar'
+      path: '/kaynaklar'
+      fullPath: '/workspace/kaynaklar'
+      preLoaderRoute: typeof WorkspaceKaynaklarRouteImport
       parentRoute: typeof WorkspaceRoute
     }
     '/workspace/belge': {
@@ -717,6 +736,7 @@ const WorkspaceTabloRouteWithChildren = WorkspaceTabloRoute._addFileChildren(
 
 interface WorkspaceRouteChildren {
   WorkspaceBelgeRoute: typeof WorkspaceBelgeRouteWithChildren
+  WorkspaceKaynaklarRoute: typeof WorkspaceKaynaklarRoute
   WorkspaceNotlarRoute: typeof WorkspaceNotlarRoute
   WorkspacePomodoroRoute: typeof WorkspacePomodoroRoute
   WorkspaceSurucuRoute: typeof WorkspaceSurucuRoute
@@ -726,6 +746,7 @@ interface WorkspaceRouteChildren {
 
 const WorkspaceRouteChildren: WorkspaceRouteChildren = {
   WorkspaceBelgeRoute: WorkspaceBelgeRouteWithChildren,
+  WorkspaceKaynaklarRoute: WorkspaceKaynaklarRoute,
   WorkspaceNotlarRoute: WorkspaceNotlarRoute,
   WorkspacePomodoroRoute: WorkspacePomodoroRoute,
   WorkspaceSurucuRoute: WorkspaceSurucuRoute,
