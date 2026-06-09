@@ -1,94 +1,83 @@
-## Önceki refaktör sonrası tespit edilen 7 pürüz
+## Tavsiyem: Tek bir "Ek (Ek/Attachment) sistemi" — her yere bağlanır
 
-Tüm sayfaları masaüstü + mobil görünümde gerçek veriyle gezdim. Bulgular ve düzeltmeler aşağıda — sırasıyla, en bozuk olandan başlayarak.
+Şu an sistemde 3 storage kovan var: `mutfak-dosya` (kullanılıyor), `ders-dosya` ve `amel-dosya` (boş, kullanılmıyor). Yani altyapı bunun için zaten yarı kurulmuş, sadece sürücüde takılı kalmış. Mantıklı olan: **iki ayrı sistem değil, tek bir "ek" primitif'i** kurup her yere bağlamak.
 
----
+### Temel fikir
 
-### 1. Mobilde FAB içeriğin üzerine biniyor *(kritik)*
+Tek bir `ekler` tablosu, polimorfik bağlanır (`baglam_turu` + `baglam_id`). İki tipte ek olur:
+- **dosya** — Storage'a yüklenir (PDF, görsel, doc)
+- **link** — Harici URL + meta (başlık, açıklama, favicon)
 
-`BugunFab` sağ alt köşede sabit. Ana sayfada "Bugünün çetelesinden" satırlarındaki sayıları (0/3 sayfa, 0/3 adet) kapatıyor.
+Bu sayede aynı ek bileşeni:
+- `ilim` dersine PDF kaynak / link ekler
+- `amel` kaydına sertifika / kanıt fotoğrafı ekler
+- `not`a referans linki ekler
+- `belge`ye gömülü dosya ekler
+- `hedef`e plan PDF'i ekler
 
-**Düzeltme:** `routes/index.tsx`'in en alt content wrapper'ına mobilde `pb-24` ekle. Alternatif: FAB scroll-down sırasında gizlensin (`useScrollDirection` zaten var).
+### Önerilerim (3 katmanlı)
 
----
+**1. Dosya yükleme — sade saklama, akıllı önizleme**
+- PDF/görsel/doc yüklenir, küçük thumbnail oluşturulur (görseller için)
+- PDF için ilk sayfa thumbnail (`pdfjs-dist` ile client-side) — liste görünümünde tanımayı kolaylaştırır
+- OCR/metin arama **şimdilik yok**: maliyetli, kapsam genişletir, ileride istenirse Lovable AI ile eklenir
+- 20MB üst sınır, MIME whitelist
 
-### 2. Mobil header sıkışıklığı *(kritik)*
+**2. Link ekleme — otomatik önizleme**
+- URL yapıştırınca arka planda OpenGraph/oEmbed çekilir (başlık, açıklama, görsel, favicon)
+- Bir `og:fetch` server function (TanStack Start) — cache'lenir, başarısızsa düz URL gösterilir
+- Twitter/X, YouTube, GitHub, Notion linkleri için özel rich card görünümü (opsiyonel iyileştirme)
 
-Selamlama "İyi akşamlar, saalutlume" + 3 `BriefRing` halka tek satırda. Dar ekranda halkalar isim üstüne biniyor.
+**3. Yer/yerleşim — "ekler" sekmesi her yerde aynı**
+- Her detay sayfasının (ilim/$id, amel/$id, hedef/$id, belge/$id, not kart) altına/yanına aynı `<EklerPaneli>` bileşeni
+- Mutfak'ta yeni bir `/workspace/kaynaklar` sayfası: **tüm ekleri tek yerden** (filtrelemeli — tipe/bağlama göre) görüntüleme ve arama
+- Sürücü zaten dosya merkezi olarak kalır; "kaynaklar" linkleri + Mizan'a bağlı dosyaları gösterir
 
-**Düzeltme:** Header'ı mobilde 2 satıra böl — üst satır selamlama, alt satır halkalar tam genişlikte 3 eşit kolon.
+### Veri modeli (özet)
 
----
+```sql
+create table public.ekler (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  baglam_turu text not null,  -- 'ilim' | 'amel' | 'hedef' | 'not' | 'belge' | 'serbest'
+  baglam_id uuid,             -- null = serbest (kaynaklar sayfasında)
+  tur text not null,          -- 'dosya' | 'link'
+  baslik text,
+  -- dosya alanları
+  storage_path text,
+  mime_type text,
+  boyut bigint,
+  -- link alanları
+  url text,
+  aciklama text,
+  onizleme_url text,          -- og:image
+  favicon_url text,
+  site_adi text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+```
 
-### 3. `/mizan` boş veri edge case'i
+RLS: user_id = auth.uid(). Tek kova `ekler-dosya` (mevcut `ders-dosya`/`amel-dosya`'yı sileriz veya bunlardan birini yeniden adlandırıp tek başına kullanırız).
 
-"Bu haftanın özeti"nde tüm değerler 0 olduğunda hem **En güçlü** hem **Dikkat** alanı "Mana 0/57" gösteriyor. Anlamsız.
+### Bileşenler
 
-**Düzeltme:** `mizan.index.tsx`'te toplam=0 ise 3 özet kartını gizleyip yerine tek satır boş-durum mesajı: *"Bu hafta henüz çetele kaydı yok. Bugün ilk değerlerini gir."* + CTA `/mizan/mana`.
+- `<EklerPaneli baglamTuru baglamId />` — listele, ekle, sil
+- `<EkEkleDialog>` — sekmeli: "Dosya yükle" | "Link yapıştır"
+- `<EkKart>` — dosya: ikon+ad+boyut+indir; link: thumbnail+başlık+site_adi+aç
+- `useEkler(baglam)`, `useEkYukle`, `useLinkEkle`, `useEkSil` hooks (mutfak-hooks pattern'ı)
+- `og-fetch.functions.ts` — server fn, URL'den OpenGraph meta çeker
 
----
+### Yol haritası (kademeli)
 
-### 4. `OdakKarti` boş durumda fazla yer kaplıyor
+1. **Faz 1 (temel):** `ekler` tablo + RLS + tek kova, `<EklerPaneli>` bileşeni, dosya yükleme, basit link (URL+başlık), `ilim/$id` ve `amel/$id` sayfalarına entegre
+2. **Faz 2 (otomatik link):** server fn ile OG meta çekme, link kartı zenginleşir
+3. **Faz 3 (kaynaklar):** `/workspace/kaynaklar` merkezi sayfa, arama+filtre, "serbest ekler"
+4. **Faz 4 (PDF önizleme):** pdfjs ile thumbnail, ileride istersen OCR/AI özetleme
 
-"Bugün için planlı etkinlik yok" tek cümlelik bilgi için ~200px alan. Hem mobilde hem masaüstünde ekranın değerli üst kısmını dolduruyor.
+### Karar noktaları
 
-**Düzeltme:** Boş durumda kartı kompakt forma indir — tek satır, küçük takvim ikonu + metin + "Takvime git" inline link (~48px). Etkinlik varsa mevcut büyük form kalsın.
-
----
-
-### 5. `MutfakYanPanel` + alt route sidebar'ı duplicate
-
-`/workspace/notlar`'da: sol panel (recent + arama) → notlar/arşiv tab sidebar'ı → not listesi → içerik = **4 sütun**. Üstte de ayrıca topbar araması, yan panelde ikinci arama.
-
-**Düzeltme:**
-- Yan paneldeki arama kutusunu kaldır (topbar araması zaten var, mutfak içeriğini de o kapsasın).
-- "Son kullanılanlar" listesi `collapsible` olsun, varsayılan açık.
-- `/workspace/notlar`, `/workspace/belge`, `/workspace/tablo` index sayfalarının kendi inner sidebar'ı var → bu route'larda `YanPanel`'i otomatik daralt (collapsed/ikon).
-
----
-
-### 6. `CeteleBugunMini` ile `GunlukChecklist` arasında zayıf görsel ayrım
-
-İki "yapılacak" listesi alt alta, fark sadece küçük gri yazıyla anlatılıyor. Kullanıcı bağlamı kaybediyor.
-
-**Düzeltme:**
-- `CeteleBugunMini` kartını farklı varyant (daha düşük opaklık background, ince üst kenar / `border-t-2 border-primary/20`).
-- Başlığa küçük rozet: "RİTÜEL" — `GunlukChecklist`'in başlığına da rozet: "BUGÜN".
-- Aralarına 1px separator + arada `space-y-6` yerine `space-y-2`.
-
----
-
-### 7. `BriefRings` masaüstünde de hiyerarşi zayıf
-
-Halkalar selamlamayla aynı satırda, header'a sıkışık. Tıklanabilir ama davet edici değil.
-
-**Düzeltme:** Masaüstünde `lg:` breakpoint üzeri halkaları header'dan çıkar, hemen altına 3 kolon halinde büyütülmüş haliyle yerleştir (mevcut `denge-halkalari.tsx` boyut varyantı varsa onu kullan, yoksa basit `size="lg"` prop'u ekle).
-
----
-
-## Kapsam dışı (bilinçli)
-
-- **Takvim "ana sayfaya dön" kısayolu** — sol sidebar zaten görünür, sidebar'daki "Bugün" ikonu işi görüyor.
-- **Sidebar collapsed/expanded davranışı** — düzgün çalışıyor, dokunulmuyor.
-- **`BriefRings` → sheet geri getirme** — kullanıcı önceki turda explicit "navigate" istedi, geri almıyorum.
-- **Tema/dil/auth/db** — hiçbiri etkilenmiyor, sadece UI/layout.
-
----
-
-## Teknik özet
-
-| # | Dosya |
-|---|---|
-| 1 | `routes/index.tsx` (mobile bottom padding) |
-| 2 | `routes/index.tsx` (header responsive layout) |
-| 3 | `routes/mizan.index.tsx` (empty-state branch) |
-| 4 | `dashboard/odak-karti.tsx` (compact empty variant) |
-| 5 | `mutfak/yan-panel.tsx` + `routes/workspace.tsx` |
-| 6 | `dashboard/gunluk-checklist.tsx` + `dashboard/cetele-bugun-mini.tsx` |
-| 7 | `routes/index.tsx` + muhtemelen `dashboard/brief-rings.tsx` size prop |
-
-Hepsi pure frontend. Migration/RLS/auth yok.
-
----
-
-**Sırayla 1→7 uygulayacağım. Onaylarsan başlıyorum; "şu maddeyi atla" / "şuradan başla" demek istersen söyle.**
+- Bu plan **3 boş kovaları temizleyip tek kova**ya geçer — onayın gerek
+- İlk fazda hangi detay sayfalarına ekleyelim? Önerim: `ilim/$id` + `amel/$id` + `hedef/$id` (en doğal kazanım)
+- OG meta çekme **3rd-party servis** mi yoksa **kendi server fn** mi? Önerim: kendi server fn (basit fetch + HTML parse, bağımsız, ücretsiz)
+- Onayla, Faz 1'i kuralım.

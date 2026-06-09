@@ -40,6 +40,7 @@ import { AdimListesi } from "@/components/mizan/hedef/adim-listesi";
 import { StreakIsiHaritasi } from "@/components/mizan/hedef/streak-isi-haritasi";
 import { tarihFormat } from "@/lib/cetele-tarih";
 import { toast } from "sonner";
+import { EklerPaneli } from "@/components/ekler/ekler-paneli";
 
 export const Route = createFileRoute("/mizan/hedef/$id")({
   head: () => ({
@@ -130,6 +131,10 @@ function HedefDetay() {
         <section className="space-y-3 rounded-xl border border-border bg-card p-4">
           <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Düzenle</h2>
           <DuzenleForm hedef={hedef} />
+        </section>
+
+        <section className="rounded-xl border border-border bg-card p-4">
+          <EklerPaneli baglamTuru="hedef" baglamId={hedef.id} />
         </section>
 
         <section className="flex flex-wrap gap-2">
