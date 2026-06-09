@@ -9,6 +9,7 @@ import {
   Clock,
   ChevronRight,
   Plus,
+  Paperclip,
 } from "lucide-react";
 import { HubArama } from "@/components/mizan/mutfak/hub-arama";
 import {
@@ -19,6 +20,7 @@ import {
   useBelgeEkle,
   useTabloEkle,
 } from "@/lib/mutfak-hooks";
+import { useTumEkler } from "@/lib/ekler-hooks";
 import { icerikOzet } from "@/lib/mutfak-not-icerik";
 
 export const Route = createFileRoute("/workspace/")({
@@ -35,6 +37,7 @@ function HubPage() {
   const belgeler = useBelgeler();
   const tablolar = useTablolar();
   const dosyalar = useDosyalar("/");
+  const ekler = useTumEkler();
   const navigate = useNavigate();
   const ekleBelge = useBelgeEkle();
   const ekleTablo = useTabloEkle();
@@ -103,6 +106,15 @@ function HubPage() {
       renk: "text-violet-600 dark:text-violet-300",
       bg: "bg-violet-100/70 dark:bg-violet-950/40",
       sayac: dosyalar.data?.length ? `${dosyalar.data.length} dosya` : "",
+    },
+    {
+      ad: "Kaynaklar",
+      ozet: "Tüm ekler — dosya ve linkler",
+      to: "/workspace/kaynaklar" as const,
+      icon: Paperclip,
+      renk: "text-indigo-600 dark:text-indigo-300",
+      bg: "bg-indigo-100/70 dark:bg-indigo-950/40",
+      sayac: ekler.data?.length ? `${ekler.data.length} ek` : "",
     },
     {
       ad: "Pomodoro",
