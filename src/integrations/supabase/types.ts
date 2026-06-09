@@ -760,6 +760,66 @@ export type Database = {
           },
         ]
       }
+      ekler: {
+        Row: {
+          aciklama: string | null
+          baglam_id: string | null
+          baglam_turu: string | null
+          baslik: string | null
+          boyut: number | null
+          created_at: string
+          favicon_url: string | null
+          id: string
+          mime_type: string | null
+          onizleme_url: string | null
+          siralama: number
+          site_adi: string | null
+          storage_path: string | null
+          tur: Database["public"]["Enums"]["ek_tur"]
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          aciklama?: string | null
+          baglam_id?: string | null
+          baglam_turu?: string | null
+          baslik?: string | null
+          boyut?: number | null
+          created_at?: string
+          favicon_url?: string | null
+          id?: string
+          mime_type?: string | null
+          onizleme_url?: string | null
+          siralama?: number
+          site_adi?: string | null
+          storage_path?: string | null
+          tur: Database["public"]["Enums"]["ek_tur"]
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          aciklama?: string | null
+          baglam_id?: string | null
+          baglam_turu?: string | null
+          baslik?: string | null
+          boyut?: number | null
+          created_at?: string
+          favicon_url?: string | null
+          id?: string
+          mime_type?: string | null
+          onizleme_url?: string | null
+          siralama?: number
+          site_adi?: string | null
+          storage_path?: string | null
+          tur?: Database["public"]["Enums"]["ek_tur"]
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       gorev_kategori: {
         Row: {
           ad: string
@@ -1690,6 +1750,7 @@ export type Database = {
       ders_durum: "izliyor" | "birakti" | "gecti" | "restant"
       ders_kaynak_tip: "link" | "dosya" | "resim" | "not"
       ders_sinav_tip: "vize" | "final" | "quiz" | "odev" | "proje" | "butunleme"
+      ek_tur: "dosya" | "link"
       gorev_oncelik: "dusuk" | "orta" | "yuksek"
       gundem_durum: "bekliyor" | "yapiliyor" | "yapildi" | "ertelendi"
       gundem_oncelik: "ana" | "yan"
@@ -1856,6 +1917,7 @@ export const Constants = {
       ders_durum: ["izliyor", "birakti", "gecti", "restant"],
       ders_kaynak_tip: ["link", "dosya", "resim", "not"],
       ders_sinav_tip: ["vize", "final", "quiz", "odev", "proje", "butunleme"],
+      ek_tur: ["dosya", "link"],
       gorev_oncelik: ["dusuk", "orta", "yuksek"],
       gundem_durum: ["bekliyor", "yapiliyor", "yapildi", "ertelendi"],
       gundem_oncelik: ["ana", "yan"],
