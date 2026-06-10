@@ -6,6 +6,8 @@ export type EkBaglamTuru =
   | "belge"
   | "ders"
   | "kurs"
+  | "istisare"
+  | "kisi"
   | "serbest";
 
 export interface Ek {
@@ -34,5 +36,7 @@ export const BAGLAM_ETIKET: Record<string, string> = {
   belge: "Belge",
   ders: "Ders",
   kurs: "Kurs",
+  istisare: "İstişare",
+  kisi: "Kişi",
   serbest: "Serbest",
 };
