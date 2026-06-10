@@ -295,6 +295,21 @@ export function EkEkleDialog({
     }
   }
 
+  // URL değişince debounce'lu otomatik OG çek
+  const sonCekilenRef = React.useRef<string>("");
+  React.useEffect(() => {
+    const v = url.trim();
+    if (!v) return;
+    if (!/^https?:\/\//i.test(v)) return;
+    if (v === sonCekilenRef.current) return;
+    const t = setTimeout(() => {
+      sonCekilenRef.current = v;
+      void urlBlur();
+    }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]);
+
   async function dosyaKaydet(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
