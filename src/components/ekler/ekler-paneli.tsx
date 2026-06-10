@@ -34,6 +34,8 @@ import {
 } from "@/lib/ekler-hooks";
 import { fetchOgMeta } from "@/lib/og.functions";
 import type { Ek, EkBaglamTuru } from "@/lib/ekler-tipleri";
+import { pdfThumbnailUret } from "@/lib/pdf-onizleme";
+import { PdfOnizlemeDialog } from "@/components/ekler/pdf-onizleme-dialog";
 
 function dosyaIkonu(mime?: string | null) {
   if (!mime) return FileText;
@@ -98,11 +100,41 @@ export function EklerPaneli({
 export function EkKart({ ek, gosterBaglam = false }: { ek: Ek; gosterBaglam?: boolean }) {
   const sil = useEkSil();
   const [aciliyor, setAciliyor] = React.useState(false);
+  const [pdfAcik, setPdfAcik] = React.useState(false);
+  const [thumb, setThumb] = React.useState<string | null>(null);
+  const isPdf = ek.tur === "dosya" && (ek.mime_type ?? "").includes("pdf");
+  const isImage = ek.tur === "dosya" && (ek.mime_type ?? "").startsWith("image/");
   const Ikon = ek.tur === "link" ? Link2 : dosyaIkonu(ek.mime_type);
+
+  // PDF/Görsel için signed URL'den küçük resim üret
+  React.useEffect(() => {
+    if (!ek.storage_path) return;
+    if (!isPdf && !isImage) return;
+    let iptal = false;
+    (async () => {
+      const u = await ekDosyaUrl(ek.storage_path!, 3600);
+      if (!u || iptal) return;
+      if (isImage) {
+        if (!iptal) setThumb(u);
+        return;
+      }
+      if (isPdf) {
+        const t = await pdfThumbnailUret(ek.storage_path!, u, ek.boyut);
+        if (!iptal) setThumb(t);
+      }
+    })();
+    return () => {
+      iptal = true;
+    };
+  }, [ek.storage_path, ek.boyut, isPdf, isImage]);
 
   async function ac() {
     if (ek.tur === "link" && ek.url) {
       window.open(ek.url, "_blank", "noopener");
+      return;
+    }
+    if (isPdf) {
+      setPdfAcik(true);
       return;
     }
     if (ek.tur === "dosya" && ek.storage_path) {
@@ -115,13 +147,14 @@ export function EkKart({ ek, gosterBaglam = false }: { ek: Ek; gosterBaglam?: bo
   }
 
   return (
+    <>
     <li className="group flex items-start gap-3 rounded-lg border border-border bg-card p-3">
-      {ek.tur === "link" && ek.onizleme_url ? (
+      {(ek.tur === "link" && ek.onizleme_url) || thumb ? (
         <img
-          src={ek.onizleme_url}
+          src={thumb ?? ek.onizleme_url!}
           alt=""
           loading="lazy"
-          className="h-10 w-10 shrink-0 rounded object-cover"
+          className="h-14 w-14 shrink-0 rounded border border-border object-cover"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
           }}
@@ -188,6 +221,15 @@ export function EkKart({ ek, gosterBaglam = false }: { ek: Ek; gosterBaglam?: bo
         </button>
       </div>
     </li>
+    {isPdf && ek.storage_path && (
+      <PdfOnizlemeDialog
+        storagePath={ek.storage_path}
+        baslik={ek.baslik}
+        acik={pdfAcik}
+        onOpenChange={setPdfAcik}
+      />
+    )}
+    </>
   );
 }
 
