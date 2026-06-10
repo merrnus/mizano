@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Cloud, Loader2 } from "lucide-react";
 import { useBelge, useBelgeKaydet } from "@/lib/mutfak-hooks";
 import { BelgeEditor } from "@/components/mizan/mutfak/belge-editor";
 import { BelgeOutline } from "@/components/mizan/mutfak/belge-outline";
+import { EklerPaneli } from "@/components/ekler/ekler-paneli";
 
 export const Route = createFileRoute("/workspace/belge/$id")({
   component: BelgeDetay,
@@ -129,6 +130,9 @@ function BelgeDetay() {
           {icerik !== null && (
             <BelgeEditor icerik={icerik} onDegisim={setIcerik} />
           )}
+          <section className="mt-8 border-t border-border pt-6">
+            <EklerPaneli baglamTuru="belge" baglamId={id} baslik="Ekler" />
+          </section>
         </div>
       </div>
     </div>
