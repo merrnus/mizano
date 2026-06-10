@@ -61,6 +61,7 @@ import {
   type AmelKursDurum,
 } from "@/lib/amel-tipleri";
 import { toast } from "sonner";
+import { EklerPaneli } from "@/components/ekler/ekler-paneli";
 
 export const Route = createFileRoute("/mizan/amel/$id")({
   head: () => ({ meta: [{ title: "Kurs — Mizan" }] }),
@@ -234,6 +235,9 @@ function KursDetay() {
         </TabsContent>
         <TabsContent value="kaynak" className="mt-4">
           <KaynakSekmesi kursId={kurs.id} />
+          <section className="mt-6 rounded-xl border border-border bg-card p-4">
+            <EklerPaneli baglamTuru="kurs" baglamId={kurs.id} baslik="Ek dosya ve linkler" />
+          </section>
         </TabsContent>
         <TabsContent value="not" className="mt-4">
           <NotSekmesi kursId={kurs.id} mevcut={kurs.notlar ?? ""} />
