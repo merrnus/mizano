@@ -64,6 +64,7 @@ import type { GundemDetay } from "@/lib/network-tipleri";
 import { GundemDetaySheet } from "@/components/mizan/network/gundem-detay-sheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { EklerPaneli } from "@/components/ekler/ekler-paneli";
 
 export const Route = createFileRoute("/network/istisare/$id")({
   head: () => ({
@@ -330,6 +331,10 @@ function IstisareDetay() {
       </div>
 
       <GundemDetaySheet gundem={seciliGundem} onClose={() => setSeciliGundem(null)} />
+
+      <section className="mt-6 rounded-xl border border-border bg-card p-4">
+        <EklerPaneli baglamTuru="istisare" baglamId={id} baslik="İstişare ekleri" />
+      </section>
 
       <AlertDialog open={silAcik} onOpenChange={setSilAcik}>
         <AlertDialogContent>
