@@ -64,6 +64,7 @@ import {
   type HaftaGun,
 } from "@/lib/ilim-tipleri";
 import { toast } from "sonner";
+import { EklerPaneli } from "@/components/ekler/ekler-paneli";
 
 export const Route = createFileRoute("/mizan/ilim/$id")({
   head: () => ({
@@ -134,6 +135,9 @@ function DersDetay() {
         </TabsContent>
         <TabsContent value="kaynak" className="mt-4">
           <KaynakSekmesi dersId={ders.id} />
+          <section className="mt-6 rounded-xl border border-border bg-card p-4">
+            <EklerPaneli baglamTuru="ders" baglamId={ders.id} baslik="Ek dosya ve linkler" />
+          </section>
         </TabsContent>
         <TabsContent value="saat" className="mt-4">
           <SaatSekmesi dersId={ders.id} />
