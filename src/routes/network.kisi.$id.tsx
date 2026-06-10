@@ -24,11 +24,12 @@ import {
 import { KardesProfilForm } from "@/components/mizan/network/kardes-profil-form";
 import { KardesFaaliyetTimeline } from "@/components/mizan/network/kardes-faaliyet-timeline";
 import { ManeviyatTab } from "@/components/mizan/network/maneviyat-tab";
+import { EklerPaneli } from "@/components/ekler/ekler-paneli";
 import { format, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
 
-type TabId = "profil" | "faaliyetler" | "maneviyat";
+type TabId = "profil" | "faaliyetler" | "maneviyat" | "kaynaklar";
 type Search = { kt: TabId };
 
 export const Route = createFileRoute("/network/kisi/$id")({
@@ -40,7 +41,12 @@ export const Route = createFileRoute("/network/kisi/$id")({
   }),
   validateSearch: (s: Record<string, unknown>): Search => {
     const t = s.kt;
-    if (t === "faaliyetler" || t === "maneviyat" || t === "profil") {
+    if (
+      t === "faaliyetler" ||
+      t === "maneviyat" ||
+      t === "profil" ||
+      t === "kaynaklar"
+    ) {
       return { kt: t };
     }
     return { kt: "profil" };
@@ -189,6 +195,7 @@ function KisiDetay() {
           <TabsTrigger value="profil">Profil</TabsTrigger>
           <TabsTrigger value="faaliyetler">Faaliyetler</TabsTrigger>
           <TabsTrigger value="maneviyat">Maneviyat</TabsTrigger>
+          <TabsTrigger value="kaynaklar">Kaynaklar</TabsTrigger>
         </TabsList>
         <TabsContent value="profil">
           <KardesProfilForm kisi={kisi} />
@@ -198,6 +205,11 @@ function KisiDetay() {
         </TabsContent>
         <TabsContent value="maneviyat">
           <ManeviyatTab kisiId={kisi.id} />
+        </TabsContent>
+        <TabsContent value="kaynaklar">
+          <section className="rounded-xl border border-border bg-card p-4">
+            <EklerPaneli baglamTuru="kisi" baglamId={kisi.id} baslik="Kişiye ait kaynaklar" />
+          </section>
         </TabsContent>
       </Tabs>
 
