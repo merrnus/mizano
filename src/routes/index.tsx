@@ -5,9 +5,7 @@ import { tr } from "date-fns/locale";
 import { Sun, Sunset, Moon } from "lucide-react";
 import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-hooks";
 import { haftaBaslangici } from "@/lib/cetele-tarih";
-import { OdakKarti } from "@/components/mizan/dashboard/odak-karti";
-import { GunlukChecklist } from "@/components/mizan/dashboard/gunluk-checklist";
-import { CeteleBugunMini } from "@/components/mizan/dashboard/cetele-bugun-mini";
+import { BugunAkisi } from "@/components/mizan/dashboard/bugun-akisi";
 import { BriefRings } from "@/components/mizan/dashboard/brief-rings";
 import { BugunFab } from "@/components/mizan/dashboard/bugun-fab";
 import { EtkinlikHizliDialog } from "@/components/mizan/takvim/etkinlik-hizli-dialog";
@@ -17,6 +15,7 @@ import { useDersler, useSinavlar } from "@/lib/ilim-hooks";
 import { amelYuzdesi, ilimYuzdesi } from "@/lib/istikamet-yuzde";
 import { useAuth } from "@/lib/auth-context";
 import { useNavigate } from "@tanstack/react-router";
+import { useNow, useBugunBasi } from "@/lib/use-now";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -39,25 +38,8 @@ export const Route = createFileRoute("/")({
 function AnaDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [simdi, setSimdi] = React.useState(() => new Date());
-  React.useEffect(() => {
-    const id = setInterval(() => setSimdi(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-
-  // "bugun" referansı yalnızca tarih (gün) değiştiğinde yenilensin — "simdi"
-  // her dakika yeni bir Date referansı oluyor, bu da prop drilling sırasında
-  // child component'lerde gereksiz re-init'lere yol açıyor (özellikle dialog
-  // formlarının sıfırlanması). Aşağıdaki memo, gün boyu aynı referansı tutar.
-  const bugun = React.useMemo(() => {
-    const d = new Date(simdi);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, [
-    simdi.getFullYear(),
-    simdi.getMonth(),
-    simdi.getDate(),
-  ]);
+  const simdi = useNow();
+  const bugun = useBugunBasi(simdi);
 
   const haftaBas = haftaBaslangici(simdi);
   const { data: sablonlar = [] } = useSablonlar();
@@ -163,14 +145,8 @@ function AnaDashboard() {
         />
       </header>
 
-      {/* Odak — tek kart, şu an / sıradaki etkinlik */}
-      <div className="mb-6">
-        <OdakKarti simdi={simdi} />
-      </div>
-
-      {/* Bugünün Çetelesi — birleşik checklist */}
-      <GunlukChecklist simdi={simdi} />
-      <CeteleBugunMini simdi={simdi} />
+      {/* Birleşik Bugün akışı: etkinlik + görev + ritüel tek listede */}
+      <BugunAkisi simdi={simdi} />
 
       <EtkinlikHizliDialog
         acik={etkinlikDialogAcik}
