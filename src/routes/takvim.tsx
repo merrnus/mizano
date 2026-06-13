@@ -274,7 +274,7 @@ function TakvimSayfa() {
   );
 
   return (
-    <div className="flex h-svh flex-col bg-background">
+    <div className="flex h-full flex-col bg-background">
       <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-border bg-card px-2 md:gap-2 md:px-3">
         <Button variant="ghost" size="icon" onClick={() => setYanSheet(true)} aria-label="Menü"><Menu className="h-5 w-5" /></Button>
         <Button variant="outline" size="sm" onClick={bugun} className="ml-0.5 px-2 text-xs md:px-3 md:text-sm">Bugün</Button>
