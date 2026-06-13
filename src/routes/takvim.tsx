@@ -8,7 +8,6 @@ import { tr } from "date-fns/locale";
 import {
   ChevronLeft, ChevronRight, Plus, Search, Calendar as CalIcon,
   Download, Upload, Menu, MoreHorizontal, ChevronDown,
-  LayoutDashboard, Scale, CalendarDays, Users, Briefcase,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -238,28 +237,6 @@ function TakvimSayfa() {
 
   const yanIcerik = (
     <div className="flex flex-col gap-4">
-      <nav aria-label="Modüller" className="flex flex-col gap-0.5 border-b border-border pb-3">
-        {[
-          { to: "/" as const, label: "Bugün", icon: LayoutDashboard, exact: true },
-          { to: "/mizan" as const, label: "İstikamet", icon: Scale, exact: false },
-          { to: "/takvim" as const, label: "Planlama", icon: CalendarDays, exact: false },
-          { to: "/network" as const, label: "Rehberlik", icon: Users, exact: false },
-          { to: "/workspace" as const, label: "Mutfak", icon: Briefcase, exact: false },
-        ].map((m) => (
-          <Link
-            key={m.to}
-            to={m.to}
-            onClick={() => setYanSheet(false)}
-            activeOptions={{ exact: m.exact }}
-            activeProps={{ className: "bg-accent text-foreground" }}
-            inactiveProps={{ className: "text-muted-foreground hover:text-foreground hover:bg-accent/50" }}
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors"
-          >
-            <m.icon className="h-4 w-4" />
-            {m.label}
-          </Link>
-        ))}
-      </nav>
       <button
         type="button"
         onClick={() => { yeniEtkinlik(ankara); setYanSheet(false); }}
@@ -276,7 +253,8 @@ function TakvimSayfa() {
   return (
     <div className="flex h-full flex-col bg-background">
       <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-border bg-card px-2 md:gap-2 md:px-3">
-        <Button variant="ghost" size="icon" onClick={() => setYanSheet(true)} aria-label="Menü"><Menu className="h-5 w-5" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => setYanSheet(true)} aria-label="Menü" className="md:hidden"><Menu className="h-5 w-5" /></Button>
+        <Link to="/" className="hidden md:block text-primary hover:opacity-80" aria-label="Ana sayfa"><CalIcon className="h-5 w-5" /></Link>
         <Button variant="outline" size="sm" onClick={bugun} className="ml-0.5 px-2 text-xs md:px-3 md:text-sm">Bugün</Button>
         <Button variant="ghost" size="icon" onClick={geri} aria-label="Önceki"><ChevronLeft className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" onClick={ileri} aria-label="Sonraki"><ChevronRight className="h-4 w-4" /></Button>
