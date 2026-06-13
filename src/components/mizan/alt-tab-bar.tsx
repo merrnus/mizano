@@ -16,10 +16,6 @@ const items = [
  */
 export function AltTabBar() {
   const { pathname } = useLocation();
-
-  // Takvim immersive mode: alt tab bar burada gizlenir.
-  if (pathname.startsWith("/takvim")) return null;
-
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur xl:hidden"

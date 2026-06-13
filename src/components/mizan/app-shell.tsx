@@ -56,7 +56,7 @@ function Main({ children }: { children: React.ReactNode }) {
     <main
       className={
         isTakvim
-          ? "min-w-0 min-h-0 flex-1 overflow-hidden h-svh"
+          ? "min-w-0 min-h-0 flex-1 overflow-hidden h-[calc(100svh-4rem-env(safe-area-inset-bottom))] xl:h-svh"
           : "min-w-0 flex-1 overflow-x-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] xl:pb-0"
       }
     >
