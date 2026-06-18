@@ -464,19 +464,25 @@ function EtkinlikSatir({
 
 function RitualSatir({
   oge,
-  onTamamla,
+  onEkle,
 }: {
   oge: RitualOge;
-  onTamamla: () => void;
+  onEkle: (miktar: number) => void;
 }) {
   const renk = `var(--${oge.alan})`;
+  const ikili = oge.birim === "ikili";
+  const varsayilan = oge.birim === "dakika" ? 5 : 1;
+  const [miktarStr, setMiktarStr] = React.useState("");
+
+  const ekle = (m: number) => {
+    if (!Number.isFinite(m) || m <= 0) return;
+    onEkle(m);
+    setMiktarStr("");
+  };
+
   return (
     <li className="group">
-      <button
-        type="button"
-        onClick={onTamamla}
-        className="flex w-full items-center gap-2 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-muted/40"
-      >
+      <div className="flex items-center gap-2 rounded-md px-2 py-2.5 transition-colors hover:bg-muted/40">
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
           style={{
@@ -498,23 +504,76 @@ function RitualSatir({
             >
               Ritüel
             </span>
-            <span className="tabular-nums">
-              {oge.toplam}/{oge.hedef} {BIRIM_ETIKET[oge.birim]}
-            </span>
+            {oge.bugunMiktar > 0 && (
+              <span className="tabular-nums">
+                bugün: {oge.bugunMiktar} {BIRIM_ETIKET[oge.birim]}
+              </span>
+            )}
           </span>
         </span>
-        <span
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors group-hover:scale-110"
-          style={{ borderColor: `color-mix(in oklab, ${renk} 55%, transparent)` }}
-          aria-hidden
-        >
-          <Check
-            className="h-3 w-3 opacity-0 group-hover:opacity-100"
-            strokeWidth={3}
-            style={{ color: renk }}
-          />
-        </span>
-      </button>
+        {ikili ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (oge.bugunMiktar > 0) {
+                toast.message("Bugün zaten işaretli", {
+                  description: "Silmek için Mana sayfasını kullan.",
+                });
+                return;
+              }
+              ekle(1);
+            }}
+            aria-label="İşaretle"
+            className={cn(
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+              oge.bugunMiktar > 0 ? "opacity-60" : "hover:scale-105",
+            )}
+            style={{
+              borderColor: `color-mix(in oklab, ${renk} 55%, transparent)`,
+              backgroundColor:
+                oge.bugunMiktar > 0
+                  ? `color-mix(in oklab, ${renk} 22%, transparent)`
+                  : "transparent",
+            }}
+          >
+            <Check
+              className={cn("h-4 w-4", oge.bugunMiktar > 0 ? "opacity-100" : "opacity-60")}
+              strokeWidth={3}
+              style={{ color: renk }}
+            />
+          </button>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              ekle(Number(miktarStr) || varsayilan);
+            }}
+            className="flex shrink-0 items-center gap-1"
+          >
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={miktarStr}
+              onChange={(e) => setMiktarStr(e.target.value)}
+              placeholder={String(varsayilan)}
+              aria-label={`Miktar (${BIRIM_ETIKET[oge.birim]})`}
+              className="h-8 w-14 px-1.5 text-center text-xs tabular-nums"
+            />
+            <button
+              type="submit"
+              aria-label="Ekle"
+              className="flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors hover:scale-105"
+              style={{
+                borderColor: `color-mix(in oklab, ${renk} 55%, transparent)`,
+                color: renk,
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={3} />
+            </button>
+          </form>
+        )}
+      </div>
     </li>
   );
 }
