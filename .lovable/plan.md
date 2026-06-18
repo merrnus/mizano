@@ -1,54 +1,42 @@
-# Tutarsızlık Temizliği — Tur 1
+# Bugün akışı — Mana ritüellerini "esnek miktar" satırına dönüştür
 
-Üç başlığı tek seferde toparlıyoruz: ölü dashboard bileşenleri, `mizan.mana` durumu ve `__root.tsx` meta. #4 (setInterval → useNow) ve #5 (baglam_turu normalize) ayrı tura bırakılıyor — biri davranış, diğeri veri modeli kararı.
+Bugün'deki mana ritüel satırları "hedef baskısı" olmadan davranacak. Kullanıcı sadece bugün ne yaptıysa kısa bir input ile yazar; aynı kayıt `cetele_kayit`'e gittiği için Mana sayfasındaki haftalık tablo otomatik dolar (entegrasyon korunur). Mana sayfasının kendisi (tablo + hedefler) bu turda değişmiyor.
 
-## 1) Ölü dashboard bileşenlerini sil
+## Davranış değişiklikleri (sadece `BugunAkisi`)
 
-Hiçbir yerden import edilmeyen, `BugunAkisi`'nin yerini aldığı dosyalar:
+**Şablon filtresi**
+- Eski: `alan === "mana" && hedef_tipi === "gunluk" && toplam < hedef`
+- Yeni: `alan === "mana" && hedef_tipi IN ("gunluk", "esnek")`, tamamlanma filtresi yok — şablon her gün listede durur. (`haftalik` tipi — Oruç, Teheccüd gibi — Bugün akışında değil, takvim/Mana sayfasında kalır.)
 
-- `src/components/mizan/dashboard/bugun-cetelesi.tsx`
-- `src/components/mizan/dashboard/bugunun-mufredati.tsx`
-- `src/components/mizan/dashboard/akis-modu.tsx`
-- `src/components/mizan/dashboard/amel-akis-modu.tsx`
-- `src/components/mizan/dashboard/bu-hafta-widget.tsx`
-- `src/components/mizan/dashboard/bugun-zaman-cizelgesi.tsx`
-- `src/components/mizan/dashboard/cetele-bugun-mini.tsx`
-- `src/components/mizan/dashboard/gelecek-gunler.tsx`
-- `src/components/mizan/dashboard/gunluk-checklist.tsx`
-- `src/components/mizan/dashboard/now-card.tsx`
-- `src/components/mizan/dashboard/odak-karti.tsx`
+**Satır UI**
+- "0/100 kez" sabit hedef göstergesi kaldırılır.
+- Satır sağında kompakt inline ekleyici:
+  - `sayfa` / `adet` / `dakika` birimleri: küçük sayı input (1-3 hane) + "+" butonu. Adım/varsayılan: `sayfa=1`, `adet=1`, `dakika=5`.
+  - `ikili` birim (Evvâbîn, Virdler gibi): input yerine tek "✓" butonu — bir tık = `+1`. Bugün kaydı varsa pasif ton + tekrar tıklanırsa toast'lı uyarı (silmek için Mana sayfası).
+- Sol kısım aynı (Sparkles ikon + isim + "Ritüel" rozeti).
+- Alt satırda hedef yerine yumuşak ton **"bugün: N birim"** — kayıt yoksa hiç gösterme.
 
-Silmeden hemen önce her dosya için son bir `rg` kontrolü yapılır (gerçekten 0 referans). Korunanlar: `BugunAkisi`, `BriefRings`, `BugunFab`, `EtkinlikDetaySheet`, `GorevDetaySheet`, `KategoriYonetDialog`, `KisiOzetSheet`.
+**Aksiyon**
+- `tamamla(ritual)` → "kalanı tamamla" yerine "input değerini ekle" (custom miktar veya birim varsayılanı). Hâlâ `useKayitEkle` çağrılır, `cetele_kayit` insert. Mana sayfası anında günceller (aynı query key).
+- Tek tık "tamamlandı" mantığı kalkıyor — `bitenler` listesine ritüel düşmüyor (zaten şu an da düşmüyordu çünkü hedef tamamlanınca filtre düşürüyordu).
 
-## 2) `mizan.mana` kararı: KORUNUYOR, sidebar'a ekleniyor
+## Etkilenen dosya
 
-`/mizan/mana` rotası çalışıyor, çetele sistemi hâlâ canlı, `BugunAkisi` ve `CeteleBugunMini` oraya link veriyordu. Topbar etiketi ve route var ama sol sidebar'da görünmüyor — kullanıcı doğrudan ulaşamıyor. Çözüm: silmek yerine sidebar'da `İstikamet`'in altına eklemek.
+Tek dosya: `src/components/mizan/dashboard/bugun-akisi.tsx`
+- `ritualOgeleri` memo: filtre + hedef alanlarını esnetilmiş şekle çevir, `bugunMiktar` alanı ekle.
+- `RitualSatir` component: hedef metnini çıkar, inline ekleyici input/+ buton blok eklemek. Ufak iç state (`miktar` string) tutar; submit'te ekle + temizle.
+- `tamamla` action ritüel kolu: miktar parametresi alır.
 
-- `src/components/mizan/sol-sidebar.tsx` — `Mana` (veya `Çetele`) maddesini ekle, `--mana` rengiyle.
-- Topbar etiketini olduğu gibi bırak.
+## Veritabanı / şema
 
-(Alternatif: tamamen sil. Ama çetele sistemi kullanıcının yatırımı olan veri — silmek erken. Önce görünür yap, kullanım gözlemle.)
+Değişiklik yok. `cetele_sablon` / `cetele_kayit` yapısı zaten `miktar: numeric` ile uyumlu. Mevcut başlangıç paketindeki `hedef_deger` alanları korunur — Mana sayfası onları kullanmaya devam eder, Bugün akışı görmezden gelir.
 
-## 3) `__root.tsx` meta güncelle
+## Dışarıda bırakılanlar
 
-Şu an `description` iki kez tanımlı (biri "akademi, maneviyat…", diğeri "Bismillah") — sonuncu kazanır ama kafa karıştırıcı. Temizlik:
+- Mana sayfası tablosu, hedef rozetleri, haftalık özet — hepsi aynen kalır.
+- `hedef_tipi="haftalik"` şablonlar (Oruç/Teheccüd) için Bugün'de ayrı görünüm — gerekirse sonraki turda.
+- Ritüel satırından şablon düzenleme (hedef değiştir vb.) — Mana sayfasında zaten var, eklemiyoruz.
 
-- Duplike `description` / `og:description` / `twitter:description` satırlarını tek sete indir.
-- Açıklama "akademi, maneviyat, hedefler ve kardeşler" yerine güncel kavramlarla: **mana, ilim, amel — denge ve istikamet**.
-- "Bismillah" kısa açıklamasını koru ama yalnız bir yerde.
+## Açık küçük karar
 
-Önerilen tek metin:
-- `title`: "Mizan — Denge Sistemi" (aynı)
-- `description`: "Mana, ilim, amel — hayatın üç alanında denge ve istikamet."
-- `og:description` / `twitter:description`: aynı tek satır.
-
-## Teknik notlar
-
-- Silme: `rm` ile, tek `code--exec` çağrısında batch.
-- `routeTree.gen.ts`'e dokunmuyoruz (sadece komponent silimi).
-- Build sonrası TS hatası beklenmiyor — `rg` ile sıfır referans doğrulandıktan sonra siliniyor.
-
-## Dışarıda bırakılanlar (sonraki turlar)
-
-- **#4** `mizan.index.tsx` ve `hafta-gorunumu.tsx` içindeki yerel `setInterval` → `useNow`. Küçük refactor, ayrı tur.
-- **#5** `baglam_turu` değerleri (`"kurs"`/`"ders"` vs alan adları). Veri kararı — kullanıcı onayı gerek.
+`hedef_tipi="esnek"` (örn. "Ezber") şablonu bugün her gün listede mi olsun, yoksa sadece kullanıcı ekleyince mi belirsin? **Önerim:** her gün listede dursun ama en alta; kullanım az olduğu için fazla yer kaplamaz. Onaylar mısın yoksa "sadece kayıt olunca göster" mi tercih edersin? (Onay vermezsen önerilen yolla giderim.)
