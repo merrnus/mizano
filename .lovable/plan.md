@@ -1,31 +1,54 @@
-## Sorun
+# Tutarsızlık Temizliği — Tur 1
 
-`/takvim` immersive modda: `AppShell` Topbar'ı, `AltTabBar` da alt sekme barını bu yolda gizliyor. Sonuç olarak takvim açıkken Bugün/İstikamet/Planlama/Rehberlik/Mutfak'a geçecek hiçbir görünür yol kalmıyor — kullanıcı sadece tarayıcı geri tuşuyla çıkabiliyor.
+Üç başlığı tek seferde toparlıyoruz: ölü dashboard bileşenleri, `mizan.mana` durumu ve `__root.tsx` meta. #4 (setInterval → useNow) ve #5 (baglam_turu normalize) ayrı tura bırakılıyor — biri davranış, diğeri veri modeli kararı.
 
-## Çözüm
+## 1) Ölü dashboard bileşenlerini sil
 
-Takvimin kendi header'ına (sol-üst) bir **modül seçici** ekle. Mevcut "Menu" ikonunu (şu an sadece mobilde yan paneli açıyor) tüm ekran boylarında göster ve davranışını ikiye böl:
+Hiçbir yerden import edilmeyen, `BugunAkisi`'nin yerini aldığı dosyalar:
 
-- **xl ve üzeri (sidebar zaten kapalı):** ikonun yanına ayrı bir "modüller" Popover'ı; içinde 5 link (Bugün, İstikamet, Planlama=aktif, Rehberlik, Mutfak) + ayraç + sol panel içeriği (mevcut `yanIcerik`).
-- **xl altı:** mevcut `Sheet` (yan panel) açılır; üstüne 5 modüllük yatay navigasyon şeridi eklenir, altında bugünkü `yanIcerik` (MiniTakvim + takvim listesi + yaklaşanlar) korunur.
+- `src/components/mizan/dashboard/bugun-cetelesi.tsx`
+- `src/components/mizan/dashboard/bugunun-mufredati.tsx`
+- `src/components/mizan/dashboard/akis-modu.tsx`
+- `src/components/mizan/dashboard/amel-akis-modu.tsx`
+- `src/components/mizan/dashboard/bu-hafta-widget.tsx`
+- `src/components/mizan/dashboard/bugun-zaman-cizelgesi.tsx`
+- `src/components/mizan/dashboard/cetele-bugun-mini.tsx`
+- `src/components/mizan/dashboard/gelecek-gunler.tsx`
+- `src/components/mizan/dashboard/gunluk-checklist.tsx`
+- `src/components/mizan/dashboard/now-card.tsx`
+- `src/components/mizan/dashboard/odak-karti.tsx`
 
-Böylece `AltTabBar`'ı `/takvim`'de göstermeden (immersive mod bozulmadan), kullanıcı tek tıklamayla diğer modüllere geçebilir.
+Silmeden hemen önce her dosya için son bir `rg` kontrolü yapılır (gerçekten 0 referans). Korunanlar: `BugunAkisi`, `BriefRings`, `BugunFab`, `EtkinlikDetaySheet`, `GorevDetaySheet`, `KategoriYonetDialog`, `KisiOzetSheet`.
 
-## Değişecek dosyalar
+## 2) `mizan.mana` kararı: KORUNUYOR, sidebar'a ekleniyor
 
-- `src/routes/takvim.tsx`
-  - Sol-üst `Menu` butonunun `md:hidden`'ı kaldırılır, her boyutta görünür olur.
-  - `yanIcerik` JSX'inin en üstüne bir `ModulNav` bileşeni eklenir: 5 satırlık `<Link>` listesi (ikon + etiket), aktif olan "Planlama" highlight'lı. Sheet kapanışı ile birlikte navigasyon çalışır.
-  - Masaüstü (`md:flex`) sabit `aside` da `yanIcerik`'i render ettiği için aynı modül listesi orada da otomatik görünür — ekstra Popover gerekmez.
+`/mizan/mana` rotası çalışıyor, çetele sistemi hâlâ canlı, `BugunAkisi` ve `CeteleBugunMini` oraya link veriyordu. Topbar etiketi ve route var ama sol sidebar'da görünmüyor — kullanıcı doğrudan ulaşamıyor. Çözüm: silmek yerine sidebar'da `İstikamet`'in altına eklemek.
 
-## Teknik detaylar
+- `src/components/mizan/sol-sidebar.tsx` — `Mana` (veya `Çetele`) maddesini ekle, `--mana` rengiyle.
+- Topbar etiketini olduğu gibi bırak.
 
-- Linkler `@tanstack/react-router`'dan `<Link to="..." />` ile; aktif state için `activeProps`/`activeOptions={{ exact: true }}` (özellikle `/` için).
-- `AltTabBar` ve `AppShell` davranışı değişmez — `/takvim` immersive kalır.
-- İkonlar `AltTabBar` ile birebir aynı: `LayoutDashboard, Scale, CalendarDays, Users, Briefcase`.
-- Mobil `Sheet` zaten `setYanSheet(false)` ile kapanıyor; her link tıklamasında bu çağrılır.
+(Alternatif: tamamen sil. Ama çetele sistemi kullanıcının yatırımı olan veri — silmek erken. Önce görünür yap, kullanım gözlemle.)
 
-## Kapsam dışı
+## 3) `__root.tsx` meta güncelle
 
-- `AppShell`/`AltTabBar` değişmez.
-- Takvim içi işlevsellik (etkinlik CRUD, görünüm değiştirici, ICS) dokunulmaz.
+Şu an `description` iki kez tanımlı (biri "akademi, maneviyat…", diğeri "Bismillah") — sonuncu kazanır ama kafa karıştırıcı. Temizlik:
+
+- Duplike `description` / `og:description` / `twitter:description` satırlarını tek sete indir.
+- Açıklama "akademi, maneviyat, hedefler ve kardeşler" yerine güncel kavramlarla: **mana, ilim, amel — denge ve istikamet**.
+- "Bismillah" kısa açıklamasını koru ama yalnız bir yerde.
+
+Önerilen tek metin:
+- `title`: "Mizan — Denge Sistemi" (aynı)
+- `description`: "Mana, ilim, amel — hayatın üç alanında denge ve istikamet."
+- `og:description` / `twitter:description`: aynı tek satır.
+
+## Teknik notlar
+
+- Silme: `rm` ile, tek `code--exec` çağrısında batch.
+- `routeTree.gen.ts`'e dokunmuyoruz (sadece komponent silimi).
+- Build sonrası TS hatası beklenmiyor — `rg` ile sıfır referans doğrulandıktan sonra siliniyor.
+
+## Dışarıda bırakılanlar (sonraki turlar)
+
+- **#4** `mizan.index.tsx` ve `hafta-gorunumu.tsx` içindeki yerel `setInterval` → `useNow`. Küçük refactor, ayrı tur.
+- **#5** `baglam_turu` değerleri (`"kurs"`/`"ders"` vs alan adları). Veri kararı — kullanıcı onayı gerek.

@@ -54,21 +54,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Mizan: akademi, maneviyat, hedefler ve kardeşler için tek merkezde denge ve düzen.",
+          "Mana, ilim, amel — hayatın üç alanında denge ve istikamet.",
       },
       { name: "author", content: "Mizan" },
       { property: "og:title", content: "Mizan — Denge Sistemi" },
       {
         property: "og:description",
-        content: "Hayatın tüm alanlarını tek bir denge merkezinde organize et.",
+        content: "Mana, ilim, amel — hayatın üç alanında denge ve istikamet.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Mizan — Denge Sistemi" },
-      { name: "description", content: "Bismillah" },
-      { property: "og:description", content: "Bismillah" },
-      { name: "twitter:description", content: "Bismillah" },
+      {
+        name: "twitter:description",
+        content: "Mana, ilim, amel — hayatın üç alanında denge ve istikamet.",
+      },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a9abb175-b1bf-4a2b-b946-15544fefc9a5/id-preview-86960d87--f6d42022-a47c-4984-826e-aea3ac22ae63.lovable.app-1777214580631.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a9abb175-b1bf-4a2b-b946-15544fefc9a5/id-preview-86960d87--f6d42022-a47c-4984-826e-aea3ac22ae63.lovable.app-1777214580631.png" },
     ],
