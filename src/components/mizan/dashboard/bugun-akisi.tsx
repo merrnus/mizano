@@ -366,13 +366,13 @@ function Satir({
 }: {
   oge: AkisOge;
   simdi: Date;
-  onTamamla: () => void;
+  onTamamla: (miktar?: number) => void;
   onAc: () => void;
   onSil: () => void;
 }) {
   if (oge.tip === "etkinlik") return <EtkinlikSatir oge={oge} simdi={simdi} onAc={onAc} />;
-  if (oge.tip === "ritual") return <RitualSatir oge={oge} onTamamla={onTamamla} />;
-  return <GorevSatir oge={oge} onTamamla={onTamamla} onSil={onSil} />;
+  if (oge.tip === "ritual") return <RitualSatir oge={oge} onEkle={(m) => onTamamla(m)} />;
+  return <GorevSatir oge={oge} onTamamla={() => onTamamla()} onSil={onSil} />;
 }
 
 /* -------- Etkinlik satırı -------- */
