@@ -66,8 +66,7 @@ type RitualOge = {
   id: string; // sablon.id
   baslik: string;
   alan: CeteleAlan;
-  hedef: number;
-  toplam: number;
+  bugunMiktar: number;
   birim: CeteleSablon["birim"];
   ham: CeteleSablon;
 };
@@ -158,9 +157,13 @@ export function BugunAkisi({ simdi }: { simdi: Date }) {
 
   const ritualOgeleri: RitualOge[] = React.useMemo(() => {
     return sablonlar
-      .filter((s) => s.alan === "mana" && s.hedef_tipi === "gunluk")
+      .filter(
+        (s) =>
+          s.alan === "mana" &&
+          (s.hedef_tipi === "gunluk" || s.hedef_tipi === "esnek"),
+      )
       .map((s) => {
-        const toplam = kayitlar
+        const bugunMiktar = kayitlar
           .filter((k) => k.sablon_id === s.id && k.tarih === tarihStr)
           .reduce((a, k) => a + Number(k.miktar), 0);
         return {
@@ -168,13 +171,11 @@ export function BugunAkisi({ simdi }: { simdi: Date }) {
           id: s.id,
           baslik: s.ad,
           alan: "mana" as CeteleAlan,
-          hedef: Number(s.hedef_deger),
-          toplam,
+          bugunMiktar,
           birim: s.birim,
           ham: s,
         };
-      })
-      .filter((r) => r.toplam < r.hedef);
+      });
   }, [sablonlar, kayitlar, tarihStr]);
 
   /* -------- gruplandırma & sıralama -------- */
@@ -208,7 +209,7 @@ export function BugunAkisi({ simdi }: { simdi: Date }) {
 
   /* -------- aksiyonlar -------- */
 
-  const tamamla = (o: AkisOge) => {
+  const tamamla = (o: AkisOge, miktar?: number) => {
     if (o.tip === "gorev") {
       gorevGuncelle.mutate({
         id: o.id,
@@ -216,10 +217,12 @@ export function BugunAkisi({ simdi }: { simdi: Date }) {
         tamamlanma_at: !o.tamamlandi ? new Date().toISOString() : null,
       });
     } else if (o.tip === "ritual") {
+      const m = Number(miktar);
+      if (!Number.isFinite(m) || m <= 0) return;
       kayitEkle.mutate({
         sablon_id: o.id,
         tarih: tarihStr,
-        miktar: o.hedef - o.toplam,
+        miktar: m,
       });
     }
   };
@@ -266,7 +269,7 @@ export function BugunAkisi({ simdi }: { simdi: Date }) {
                 key={`${o.tip}:${o.id}`}
                 oge={o}
                 simdi={simdi}
-                onTamamla={() => tamamla(o)}
+                onTamamla={(miktar) => tamamla(o, miktar)}
                 onAc={() => o.tip === "etkinlik" && setAcikEtkinlik(o.ham)}
                 onSil={() => o.tip === "gorev" && gorevSil.mutate(o.id)}
               />
@@ -296,7 +299,7 @@ export function BugunAkisi({ simdi }: { simdi: Date }) {
                     key={`${o.tip}:${o.id}`}
                     oge={o}
                     simdi={simdi}
-                    onTamamla={() => tamamla(o)}
+                    onTamamla={(miktar) => tamamla(o, miktar)}
                     onAc={() => o.tip === "etkinlik" && setAcikEtkinlik(o.ham)}
                     onSil={() => o.tip === "gorev" && gorevSil.mutate(o.id)}
                   />
