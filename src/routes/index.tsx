@@ -6,6 +6,7 @@ import { Sun, Sunset, Moon } from "lucide-react";
 import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-hooks";
 import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { BugunAkisi } from "@/components/mizan/dashboard/bugun-akisi";
+import { BugunProgram } from "@/components/mizan/dashboard/bugun-program";
 import { BriefRings } from "@/components/mizan/dashboard/brief-rings";
 import { BugunFab } from "@/components/mizan/dashboard/bugun-fab";
 import { EtkinlikHizliDialog } from "@/components/mizan/takvim/etkinlik-hizli-dialog";
@@ -86,6 +87,15 @@ function AnaDashboard() {
   ];
 
   const [etkinlikDialogAcik, setEtkinlikDialogAcik] = React.useState(false);
+  const [gorunum, setGorunum] = React.useState<"program" | "akis">(() => {
+    if (typeof window === "undefined") return "program";
+    return (localStorage.getItem("bugun-gorunum") as "program" | "akis") ?? "program";
+  });
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("bugun-gorunum", gorunum);
+    } catch {}
+  }, [gorunum]);
 
   const saat = simdi.getHours();
   const selamlama =
@@ -145,8 +155,30 @@ function AnaDashboard() {
         />
       </header>
 
-      {/* Birleşik Bugün akışı: etkinlik + görev + ritüel tek listede */}
-      <BugunAkisi simdi={simdi} />
+      {/* Görünüm sekmeleri */}
+      <div className="mb-3 inline-flex rounded-full border border-border bg-card/40 p-0.5 text-[11px]">
+        {(["program", "akis"] as const).map((g) => (
+          <button
+            key={g}
+            type="button"
+            onClick={() => setGorunum(g)}
+            className={
+              "rounded-full px-3 py-1 font-medium transition-colors " +
+              (gorunum === g
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground")
+            }
+          >
+            {g === "program" ? "Program" : "Akış"}
+          </button>
+        ))}
+      </div>
+
+      {gorunum === "program" ? (
+        <BugunProgram simdi={simdi} />
+      ) : (
+        <BugunAkisi simdi={simdi} />
+      )}
 
       <EtkinlikHizliDialog
         acik={etkinlikDialogAcik}

@@ -1,42 +1,85 @@
-# Bugün akışı — Mana ritüellerini "esnek miktar" satırına dönüştür
+## Amaç
 
-Bugün'deki mana ritüel satırları "hedef baskısı" olmadan davranacak. Kullanıcı sadece bugün ne yaptıysa kısa bir input ile yazar; aynı kayıt `cetele_kayit`'e gittiği için Mana sayfasındaki haftalık tablo otomatik dolar (entegrasyon korunur). Mana sayfasının kendisi (tablo + hedefler) bu turda değişmiyor.
+Ana sayfa (`/`) şu an "Akış" listesi. Bunu **saat bloklu günlük program** (Google Calendar günlük görünüm hissi + resimdeki gibi net saat şeritleri) yapmak, hem manuel program eklenebilsin hem de takvim etkinlikleri otomatik dolsun. Ayrıca takvim entegrasyon bug'ını çöz.
 
-## Davranış değişiklikleri (sadece `BugunAkisi`)
+## Resim değerlendirmesi
 
-**Şablon filtresi**
-- Eski: `alan === "mana" && hedef_tipi === "gunluk" && toplam < hedef`
-- Yeni: `alan === "mana" && hedef_tipi IN ("gunluk", "esnek")`, tamamlanma filtresi yok — şablon her gün listede durur. (`haftalik` tipi — Oruç, Teheccüd gibi — Bugün akışında değil, takvim/Mana sayfasında kalır.)
+Görsel netlik açısından iyi (kalın saat + büyük başlık), ancak birebir kopyalamak dijitalde çalışmıyor:
+- Sabit saat aralıkları (2:30–4:00, 9:00–10:00…) her günün aynı olduğunu varsayıyor → biz dinamik olmalıyız.
+- Zebra dolgu güzel ama tek renk; alan renkleri (mana/ilim/amel) kaybolur.
+- Boş saatler görünmüyor → "şimdi" nerede belli değil.
 
-**Satır UI**
-- "0/100 kez" sabit hedef göstergesi kaldırılır.
-- Satır sağında kompakt inline ekleyici:
-  - `sayfa` / `adet` / `dakika` birimleri: küçük sayı input (1-3 hane) + "+" butonu. Adım/varsayılan: `sayfa=1`, `adet=1`, `dakika=5`.
-  - `ikili` birim (Evvâbîn, Virdler gibi): input yerine tek "✓" butonu — bir tık = `+1`. Bugün kaydı varsa pasif ton + tekrar tıklanırsa toast'lı uyarı (silmek için Mana sayfası).
-- Sol kısım aynı (Sparkles ikon + isim + "Ritüel" rozeti).
-- Alt satırda hedef yerine yumuşak ton **"bugün: N birim"** — kayıt yoksa hiç gösterme.
+**Önerim:** resimdekinden ilham al ama Google Calendar tarzı **saat şeritli tek sütun** kullan; boş saatler görünsün, bloklar renkli olsun, "şimdi" çizgisi kayan olsun.
 
-**Aksiyon**
-- `tamamla(ritual)` → "kalanı tamamla" yerine "input değerini ekle" (custom miktar veya birim varsayılanı). Hâlâ `useKayitEkle` çağrılır, `cetele_kayit` insert. Mana sayfası anında günceller (aynı query key).
-- Tek tık "tamamlandı" mantığı kalkıyor — `bitenler` listesine ritüel düşmüyor (zaten şu an da düşmüyordu çünkü hedef tamamlanınca filtre düşürüyordu).
+## Yeni Ana Sayfa yapısı
 
-## Etkilenen dosya
+```text
+┌─ selamlama + halkalar (aynı) ───────────────────────┐
+├─ Bugün · [Program ▾] [Akış] ← sekme ────────────────┤
+│                                                     │
+│  05 ─────────────                                   │
+│  06 ─────────────                                   │
+│  07 ─── ┌──────────────────┐                        │
+│  08     │ 07:00–08:30      │  ← etkinlik (mana)     │
+│         │ Sabah namazı+vird│                        │
+│  09 ─── └──────────────────┘                        │
+│  10 ─── ┌───────┐                                   │
+│         │Okuma  │  10:00–11:30                      │
+│  11 ─── └───────┘                                   │
+│  12 ─── ═══ ŞİMDİ 12:14 ═════════════               │
+│  13 ─── ┌──────────────────┐                        │
+│         │ Öğle molası      │                        │
+│  14 ─── └──────────────────┘                        │
+│  ...                                                │
+│                                                     │
+│  Saat dışı (⏱︎ olmayan görev/ritüel) ─────────────  │
+│  ▢ Cevşen  · [+ ekle]                              │
+│  ▢ Manevi kitap · [+ ekle]                          │
+└─────────────────────────────────────────────────────┘
+```
 
-Tek dosya: `src/components/mizan/dashboard/bugun-akisi.tsx`
-- `ritualOgeleri` memo: filtre + hedef alanlarını esnetilmiş şekle çevir, `bugunMiktar` alanı ekle.
-- `RitualSatir` component: hedef metnini çıkar, inline ekleyici input/+ buton blok eklemek. Ufak iç state (`miktar` string) tutar; submit'te ekle + temizle.
-- `tamamla` action ritüel kolu: miktar parametresi alır.
+**Sekmeler:**
+- **Program** (varsayılan): saat şeritli günlük görünüm (yukarıdaki).
+- **Akış**: mevcut liste (kaldırmıyoruz, saat şeridi görmek istemeyenler için).
 
-## Veritabanı / şema
+**Program görünümü davranışı:**
+- 05:00–24:00 arası varsayılan pencere; kullanıcı sabaha kaydırırsa 00–05 de açılır (auto-crop: en erken bloktan en geç bloğa göre).
+- İlk render'da "şimdi" satırına scroll.
+- Boş saat şeridine tıklayınca → hızlı ekle popover'ı (başlık + süre, o saati başlangıç yapar).
+- Blok tıklaması → mevcut `EtkinlikDetaySheet`.
+- Saat dışı öğeler (saatsiz görev + ritüel) alt bantta liste olarak kalır (mevcut `Satir` bileşenleri yeniden kullanılır).
 
-Değişiklik yok. `cetele_sablon` / `cetele_kayit` yapısı zaten `miktar: numeric` ile uyumlu. Mevcut başlangıç paketindeki `hedef_deger` alanları korunur — Mana sayfası onları kullanmaya devam eder, Bugün akışı görmezden gelir.
+## Manuel program vs Takvim entegrasyonu
 
-## Dışarıda bırakılanlar
+**Tek kaynak: `takvim_etkinlik` tablosu.** Ayrı bir "program şablonu" tablosu açmak yerine mevcut takvim etkinliklerini kullanırız:
+- Ana sayfada saat şeridine tıkla → `EtkinlikHizliDialog` açılır → varsayılan takvime kaydeder → hem takvimde hem burada görünür.
+- Her gün tekrarlayan program (2:30 Teheccüd gibi) için diyalogda "her gün / hafta içi / seçili günler" kısayolu ekleriz (RRULE `FREQ=DAILY` / `BYDAY=MO,TU,...`).
+- Böylece bir kere programı gir → her gün otomatik görünür (resimdeki gibi sabit tablo hissi ama esneklik korunur).
 
-- Mana sayfası tablosu, hedef rozetleri, haftalık özet — hepsi aynen kalır.
-- `hedef_tipi="haftalik"` şablonlar (Oruç/Teheccüd) için Bugün'de ayrı görünüm — gerekirse sonraki turda.
-- Ritüel satırından şablon düzenleme (hedef değiştir vb.) — Mana sayfasında zaten var, eklemiyoruz.
+## Takvim entegrasyonu bug'ı (ayrı fix, aynı iş kalemi)
 
-## Açık küçük karar
+**Kök neden:** `bugun-akisi.tsx` eski `genisletEtkinlikleri` fonksiyonunu kullanıyor. Bu fonksiyon sadece eski `takvim_etkinlik.tekrar` enum'ına (`yok|haftalik|aylik`) bakıyor. Yeni takvim sayfası (`src/routes/takvim.tsx`) ise RRULE tabanlı `genisletListe` (src/lib/takvim/tekrar.ts) kullanıyor ve etkinlikleri `tekrar_kural` (RRULE string) alanına yazıyor. Sonuç: takvimden RRULE ile eklenen tekrarlı etkinlikler ana sayfaya düşmüyor; tek seferlik olanlar bile `takvim_id` gizli/filtreli takvime yazıldıysa görünmüyor olabilir.
 
-`hedef_tipi="esnek"` (örn. "Ezber") şablonu bugün her gün listede mi olsun, yoksa sadece kullanıcı ekleyince mi belirsin? **Önerim:** her gün listede dursun ama en alta; kullanım az olduğu için fazla yer kaplamaz. Onaylar mısın yoksa "sadece kayıt olunca göster" mi tercih edersin? (Onay vermezsen önerilen yolla giderim.)
+**Düzeltme:**
+1. `bugun-akisi.tsx` içindeki import'u değiştir: `genisletEtkinlikleri` → `genisletListe` (`@/lib/takvim/tekrar`).
+2. Aynı çağrıyı takvim sayfasındaki gibi yap: `genisletListe(etkinlikler, gunBas, gunSon)`.
+3. `useTakvimler()` ile aktif takvimleri çek, `gorunur=false` olanları filtrele (opsiyonel — kullanıcı takvim gizlemişse ana sayfada da gizle).
+4. Eski `genisletEtkinlikleri` fonksiyonunu şimdilik dokunma (başka yerde import var mı hızlı kontrol edilir, yoksa sonraki iterasyonda kaldırılır).
+
+## Etkilenen dosyalar
+
+- `src/routes/index.tsx` — sekme + program bileşeni yerleşimi.
+- `src/components/mizan/dashboard/bugun-akisi.tsx` — `genisletListe`'ye geçiş (bug fix).
+- Yeni: `src/components/mizan/dashboard/bugun-program.tsx` — saat şeridi görünümü (`GunSutun` mantığından esinlenilebilir ama basitleştirilmiş, tek gün).
+- `src/components/mizan/takvim/etkinlik-hizli-dialog.tsx` — "her gün / hafta içi" RRULE kısayolları (yoksa küçük eklenti).
+
+## Kapsam dışı (bu turda yok)
+
+- Takvim çakışma çözümü / yan yana kolonlar (tek sütun yeter, çakışan bloklar dikey yığılır).
+- Sürükle-bırak taşıma (v2).
+- Program şablonu (haftalık farklı program) — RRULE yeter.
+
+## Açık soru
+
+1. Sekmeler mi yoksa **Program tek görünüm** olsun (Akış'ı tamamen kaldır)? Ben "sekme + Program varsayılan" öneriyorum, ama Akış'ı tamamen kaldırmak da temiz olur.
+2. Saat şeridi yoğunluğu: **her saat 48px** (kompakt) mı, **60px** (rahat) mı?

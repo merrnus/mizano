@@ -28,7 +28,8 @@ import {
   useHaftaKayitlari,
   useKayitEkle,
 } from "@/lib/cetele-hooks";
-import { useEtkinlikler, genisletEtkinlikleri } from "@/lib/takvim/hooks";
+import { useEtkinlikler } from "@/lib/takvim/hooks";
+import { genisletListe } from "@/lib/takvim/tekrar";
 import { haftaBaslangici, tarihFormat } from "@/lib/cetele-tarih";
 import { BIRIM_ETIKET, type CeteleAlan, type CeteleSablon } from "@/lib/cetele-tipleri";
 import type { TakvimEtkinlik } from "@/lib/takvim/tipler";
@@ -113,7 +114,7 @@ export function BugunAkisi({ simdi }: { simdi: Date }) {
   /* -------- veri normalize -------- */
 
   const etkinlikOgeleri: EtkinlikOge[] = React.useMemo(() => {
-    const olaylar = genisletEtkinlikleri(etkinlikler, gunBas, gunSon).filter((o) =>
+    const olaylar = genisletListe(etkinlikler, gunBas, gunSon).filter((o) =>
       isSameDay(o.olayBaslangic, simdi),
     );
     const t = simdi.getTime();
