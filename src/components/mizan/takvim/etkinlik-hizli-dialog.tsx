@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEtkinlikEkle } from "@/lib/takvim/hooks";
 import { ALAN_ETIKET, type CeteleAlan } from "@/lib/cetele-tipleri";
+import { TEKRAR_SECENEK } from "@/lib/takvim/tekrar";
 
 type Props = {
   acik: boolean;
@@ -27,6 +28,7 @@ export function EtkinlikHizliDialog({ acik, onOpenChange, varsayilanBaslangic }:
   const [bit, setBit] = React.useState("10:00");
   const [konum, setKonum] = React.useState("");
   const [alan, setAlan] = React.useState<CeteleAlan>("kisisel");
+  const [tekrarId, setTekrarId] = React.useState<string>("yok");
 
   React.useEffect(() => {
     if (acik) {
@@ -34,6 +36,7 @@ export function EtkinlikHizliDialog({ acik, onOpenChange, varsayilanBaslangic }:
       setBaslik(""); setAciklama(""); setTumGun(false);
       setTarih(format(r, "yyyy-MM-dd")); setBas("09:00"); setBit("10:00");
       setKonum(""); setAlan("kisisel");
+      setTekrarId("yok");
     }
   }, [acik, varsayilanBaslangic]);
 
@@ -41,9 +44,10 @@ export function EtkinlikHizliDialog({ acik, onOpenChange, varsayilanBaslangic }:
     if (!baslik.trim()) return;
     const baslangic = tumGun ? new Date(`${tarih}T00:00:00`).toISOString() : new Date(`${tarih}T${bas}:00`).toISOString();
     const bitis = tumGun ? null : new Date(`${tarih}T${bit}:00`).toISOString();
+    const kural = TEKRAR_SECENEK.find((s) => s.id === tekrarId)?.kural ?? null;
     await ekle.mutateAsync({
       baslik, aciklama: aciklama || null, baslangic, bitis, tum_gun: tumGun,
-      konum: konum || null, alan, tekrar: "yok",
+      konum: konum || null, alan, tekrar: "yok", tekrar_kural: kural,
     });
     onOpenChange(false);
   };
@@ -72,6 +76,17 @@ export function EtkinlikHizliDialog({ acik, onOpenChange, varsayilanBaslangic }:
               <SelectContent>
                 {(Object.keys(ALAN_ETIKET) as CeteleAlan[]).map((k) => (
                   <SelectItem key={k} value={k}>{ALAN_ETIKET[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Tekrar</Label>
+            <Select value={tekrarId} onValueChange={setTekrarId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {TEKRAR_SECENEK.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.etiket}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
