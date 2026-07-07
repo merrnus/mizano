@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Check, Clock, MapPin, Plus, Sparkles } from "lucide-react";
+import { Check, Clock, LocateFixed, MapPin, Plus, Sparkles } from "lucide-react";
 import { format, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ import {
   useHaftaKayitlari,
   useKayitEkle,
 } from "@/lib/cetele-hooks";
-import { useEtkinlikler } from "@/lib/takvim/hooks";
+import { useEtkinlikler, useEtkinlikGuncelle } from "@/lib/takvim/hooks";
 import { genisletListe } from "@/lib/takvim/tekrar";
 import { haftaBaslangici, tarihFormat } from "@/lib/cetele-tarih";
 import { BIRIM_ETIKET, type CeteleSablon } from "@/lib/cetele-tipleri";
@@ -95,6 +95,111 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
   const tumGunOlaylar = olaylar.filter((o) => o.tum_gun);
   const saatliOlaylar = olaylar.filter((o) => !o.tum_gun);
 
+  // Çakışma sütunlama: her olay için column index ve toplam column sayısı
+  const yerlesim = React.useMemo(() => {
+    const items = [...saatliOlaylar]
+      .map((o) => {
+        const bas = o.olayBaslangic.getHours() * 60 + o.olayBaslangic.getMinutes();
+        const bit =
+          o.olayBitis.getHours() * 60 + o.olayBitis.getMinutes() || bas + 60;
+        return { o, bas, bit };
+      })
+      .sort((a, b) => a.bas - b.bas || a.bit - b.bit);
+
+    const map = new Map<string, { col: number; toplam: number }>();
+    let grup: typeof items = [];
+    let grupBit = -1;
+
+    const flush = () => {
+      if (grup.length === 0) return;
+      const kolonlar: number[] = []; // her sütunun son bitiş dk'sı
+      const cols: number[] = [];
+      for (const it of grup) {
+        let placed = -1;
+        for (let i = 0; i < kolonlar.length; i++) {
+          if (kolonlar[i] <= it.bas) {
+            placed = i;
+            kolonlar[i] = it.bit;
+            break;
+          }
+        }
+        if (placed === -1) {
+          placed = kolonlar.length;
+          kolonlar.push(it.bit);
+        }
+        cols.push(placed);
+      }
+      const toplam = kolonlar.length;
+      grup.forEach((it, i) => map.set(it.o.id, { col: cols[i], toplam }));
+      grup = [];
+      grupBit = -1;
+    };
+
+    for (const it of items) {
+      if (grup.length === 0 || it.bas < grupBit) {
+        grup.push(it);
+        grupBit = Math.max(grupBit, it.bit);
+      } else {
+        flush();
+        grup.push(it);
+        grupBit = it.bit;
+      }
+    }
+    flush();
+    return map;
+  }, [saatliOlaylar]);
+
+  const guncelleEtkinlik = useEtkinlikGuncelle();
+  const [surukleId, setSurukleId] = React.useState<string | null>(null);
+  const slotRef = React.useRef<HTMLDivElement>(null);
+
+  const dropDakika = (clientY: number) => {
+    const el = slotRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const y = clientY - rect.top;
+    const dkFromBas = Math.max(0, (y / SAAT_PX) * 60);
+    const snap = Math.round(dkFromBas / 15) * 15;
+    return basSaat * 60 + snap;
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData("text/plain") || surukleId;
+    setSurukleId(null);
+    if (!id) return;
+    const olay = saatliOlaylar.find((o) => o.id === id);
+    if (!olay) return;
+    const yeniBasDk = dropDakika(e.clientY);
+    if (yeniBasDk == null) return;
+    const eskiBas = new Date(olay.baslangic);
+    const eskiBit = olay.bitis ? new Date(olay.bitis) : null;
+    const sureMs = eskiBit ? eskiBit.getTime() - eskiBas.getTime() : 60 * 60 * 1000;
+    const yeniBas = new Date(gunBas);
+    yeniBas.setMinutes(yeniBasDk);
+    if (yeniBas.getTime() === eskiBas.getTime()) return;
+    const tekrarli =
+      (olay.tekrar && olay.tekrar !== "yok") || !!olay.tekrar_kural;
+    if (tekrarli) {
+      toast.error("Tekrarlı etkinlik sürüklenemez", {
+        description: "Takvim sayfasından düzenleyebilirsin.",
+      });
+      return;
+    }
+    const yeniBit = new Date(yeniBas.getTime() + sureMs);
+    guncelleEtkinlik.mutate(
+      {
+        id: olay.id,
+        baslangic: yeniBas.toISOString(),
+        bitis: yeniBit.toISOString(),
+      },
+      {
+        onSuccess: () => toast.success(`${format(yeniBas, "HH:mm")}'e taşındı`),
+        onError: (err: any) => toast.error(err?.message ?? "Güncellenemedi"),
+      },
+    );
+  };
+
   const saatDiziGoster = (offset: number) => {
     const s = basSaat + offset;
     return `${String(s).padStart(2, "0")}:00`;
@@ -125,6 +230,20 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
           >
             Takvim →
           </Link>
+          {nowGorunur && (
+            <button
+              type="button"
+              onClick={() => {
+                const el = scrollRef.current;
+                if (el) el.scrollTo({ top: Math.max(0, dkToTop(nowDk, basSaat) - 120), behavior: "smooth" });
+              }}
+              className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Şimdiye kaydır"
+            >
+              <LocateFixed className="h-3 w-3" />
+              Şimdi
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -184,7 +303,14 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
           </div>
 
           {/* Slot alanı */}
-          <div className="relative">
+          <div
+            className="relative"
+            ref={slotRef}
+            onDragOver={(e) => {
+              if (surukleId) e.preventDefault();
+            }}
+            onDrop={handleDrop}
+          >
             {Array.from({ length: toplamSaat }, (_, i) => {
               const saat = basSaat + i;
               return (
@@ -193,9 +319,13 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
                   type="button"
                   onClick={() => slotTikla(saat, 0)}
                   style={{ height: SAAT_PX }}
-                  className="block w-full border-b border-border/40 text-left transition-colors hover:bg-muted/30"
+                  className="group block w-full border-b border-border/40 text-left transition-colors hover:bg-muted/30"
                   aria-label={`${saatDiziGoster(i)} slotuna etkinlik ekle`}
-                />
+                >
+                  <span className="pointer-events-none ml-2 mt-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground/50 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Plus className="h-3 w-3" />
+                  </span>
+                </button>
               );
             })}
 
@@ -225,21 +355,38 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
               const bitmis = o.olayBitis.getTime() <= simdi.getTime();
               const suan =
                 o.olayBaslangic.getTime() <= simdi.getTime() && !bitmis;
+              const y = yerlesim.get(o.id) ?? { col: 0, toplam: 1 };
+              const gap = 2;
+              const genislikPct = 100 / y.toplam;
+              const leftPct = y.col * genislikPct;
+              const tekrarli =
+                (o.tekrar && o.tekrar !== "yok") || !!o.tekrar_kural;
               return (
                 <button
                   key={o.id}
                   type="button"
+                  draggable={!tekrarli}
+                  onDragStart={(e) => {
+                    setSurukleId(o.id);
+                    e.dataTransfer.setData("text/plain", o.id);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragEnd={() => setSurukleId(null)}
                   onClick={(e) => {
                     e.stopPropagation();
                     setAcikEtkinlik(o);
                   }}
                   className={cn(
-                    "absolute left-1 right-1 z-10 overflow-hidden rounded-md px-1.5 py-1 text-left text-[11px] shadow-sm ring-1 transition-all hover:z-30 hover:shadow-md",
+                    "absolute z-10 overflow-hidden rounded-md px-1.5 py-1 text-left text-[11px] shadow-sm ring-1 transition-all hover:z-30 hover:shadow-md",
                     bitmis && "opacity-60",
+                    surukleId === o.id && "opacity-40",
+                    !tekrarli && "cursor-grab active:cursor-grabbing",
                   )}
                   style={{
                     top,
                     height: h,
+                    left: `calc(${leftPct}% + 4px)`,
+                    width: `calc(${genislikPct}% - ${gap + 4}px)`,
                     background: `color-mix(in oklab, ${renk} 18%, transparent)`,
                     boxShadow: `inset 3px 0 0 ${renk}`,
                     color: `color-mix(in oklab, ${renk} 92%, var(--foreground))`,
