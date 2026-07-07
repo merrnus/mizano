@@ -477,13 +477,12 @@ function SaatDisi({
       s.alan === "mana" &&
       (s.hedef_tipi === "gunluk" || s.hedef_tipi === "esnek"),
   );
-  if (saatsizGorevler.length === 0 && rituelSablonlar.length === 0) return null;
-
   return (
     <div className="mt-2 border-t border-border/50 pt-2">
       <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         Saat dışı
       </p>
+      <HizliGorevEkle tarihStr={tarihStr} />
       <ul className="flex flex-col divide-y divide-border/30">
         {saatsizGorevler.map((g) => (
           <SaatsizGorev key={g.id} gorev={g} />
@@ -503,6 +502,36 @@ function SaatDisi({
         })}
       </ul>
     </div>
+  );
+}
+
+function HizliGorevEkle({ tarihStr }: { tarihStr: string }) {
+  const ekle = useGunlukGorevEkle();
+  const [baslik, setBaslik] = React.useState("");
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const b = baslik.trim();
+        if (!b) return;
+        ekle.mutate(
+          { baslik: b, tarih: tarihStr, saat: null },
+          {
+            onSuccess: () => setBaslik(""),
+            onError: (err: any) => toast.error(err?.message ?? "Eklenemedi"),
+          },
+        );
+      }}
+      className="mb-1 flex items-center gap-1 px-2"
+    >
+      <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+      <Input
+        value={baslik}
+        onChange={(e) => setBaslik(e.target.value)}
+        placeholder="Hızlı görev ekle…"
+        className="h-7 border-0 bg-transparent px-1 text-xs shadow-none focus-visible:ring-0"
+      />
+    </form>
   );
 }
 
