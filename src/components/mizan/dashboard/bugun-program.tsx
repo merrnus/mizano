@@ -92,6 +92,22 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Klavye: "T" → şimdiye kaydır
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (e.key === "t" || e.key === "T") {
+        const el = scrollRef.current;
+        if (el && nowGorunur) {
+          el.scrollTo({ top: Math.max(0, dkToTop(nowDk, basSaat) - 120), behavior: "smooth" });
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [nowDk, basSaat, nowGorunur]);
+
   const tumGunOlaylar = olaylar.filter((o) => o.tum_gun);
   const saatliOlaylar = olaylar.filter((o) => !o.tum_gun);
 
