@@ -461,6 +461,84 @@ export function BugunProgram({
 
 /* -------- Saat dışı grubu -------- */
 
+function SimdiSiradaki({
+  simdi,
+  aktif,
+  sradaki,
+  saatliVar,
+}: {
+  simdi: Date;
+  aktif: EtkinlikOlay | undefined;
+  sradaki: EtkinlikOlay | undefined;
+  saatliVar: boolean;
+}) {
+  if (aktif) {
+    const renk = `var(--${aktif.alan})`;
+    const toplamMs = aktif.olayBitis.getTime() - aktif.olayBaslangic.getTime();
+    const gecenMs = simdi.getTime() - aktif.olayBaslangic.getTime();
+    const yuzde = Math.max(0, Math.min(100, (gecenMs / toplamMs) * 100));
+    const kalanDk = Math.max(0, Math.round((aktif.olayBitis.getTime() - simdi.getTime()) / 60000));
+    return (
+      <div
+        className="mb-2 rounded-xl border border-border/50 bg-background/40 p-2.5"
+        style={{ boxShadow: `inset 3px 0 0 ${renk}` }}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Şimdi · {format(simdi, "HH:mm")}
+            </p>
+            <p className="mt-0.5 truncate text-sm font-semibold">{aktif.baslik}</p>
+          </div>
+          <span
+            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums"
+            style={{
+              background: `color-mix(in oklab, ${renk} 18%, transparent)`,
+              color: `color-mix(in oklab, ${renk} 92%, var(--foreground))`,
+            }}
+          >
+            {kalanDk} dk
+          </span>
+        </div>
+        <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${yuzde}%`, background: renk }}
+          />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-border/40 bg-background/30 px-2.5 py-2">
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Şimdi · {format(simdi, "HH:mm")}
+        </p>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+          {saatliVar ? "Şu an boş" : "Bugün programın boş"}
+        </p>
+      </div>
+      {sradaki && (
+        <div className="flex min-w-0 items-center gap-1.5 text-right">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Sıradaki
+            </p>
+            <p className="truncate text-xs font-semibold">
+              <span className="tabular-nums text-muted-foreground">
+                {format(sradaki.olayBaslangic, "HH:mm")}
+              </span>{" "}
+              · {sradaki.baslik}
+            </p>
+          </div>
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SaatDisi({
   tarihStr,
   gorevler,
