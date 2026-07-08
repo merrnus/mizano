@@ -1,7 +1,7 @@
 import * as React from "react";
-import { Link } from "@tanstack/react-router";
-import { Check, Clock, LocateFixed, MapPin, Plus, X } from "lucide-react";
+import { Check, ChevronRight, Clock, LocateFixed, MapPin, Plus, X } from "lucide-react";
 import { format, isSameDay } from "date-fns";
+import { GorunumSegment } from "@/routes/index";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -19,14 +19,22 @@ import { EtkinlikDetaySheet } from "./etkinlik-detay-sheet";
 import { EtkinlikHizliDialog } from "@/components/mizan/takvim/etkinlik-hizli-dialog";
 
 const SAAT_PX = 52;
-const MIN_SAAT = 5; // varsayılan pencere: 05:00 - 24:00
-const MAX_SAAT = 24;
+const VARSAYILAN_BAS = 8; // gün boşsa: 08:00
+const VARSAYILAN_BIT = 20; // gün boşsa: 20:00
 
 function dkToTop(dk: number, basSaat: number) {
   return ((dk - basSaat * 60) / 60) * SAAT_PX;
 }
 
-export function BugunProgram({ simdi }: { simdi: Date }) {
+export function BugunProgram({
+  simdi,
+  gorunum,
+  onGorunumDegis,
+}: {
+  simdi: Date;
+  gorunum: "program" | "akis";
+  onGorunumDegis: (g: "program" | "akis") => void;
+}) {
   const tarihStr = tarihFormat(simdi);
   const gunBas = React.useMemo(() => {
     const d = new Date(simdi);
@@ -49,19 +57,29 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
     [etkinlikler, gunBas, gunSon, simdi],
   );
 
-  // Zaman penceresi: erken/gece etkinlikleri de kapsa
+  // Zaman penceresi: etkinliklere göre daral (± 1 saat), boş günde 08–20.
+  // "Şimdi" saatinin ±1 saati de her zaman görünür.
   const [basSaat, bitSaat] = React.useMemo(() => {
-    let bas = MIN_SAAT;
-    let bit = MAX_SAAT;
+    const saatliVar = olaylar.some((o) => !o.tum_gun);
+    const nowH = simdi.getHours();
+    if (!saatliVar) {
+      const bas = Math.min(VARSAYILAN_BAS, Math.max(0, nowH - 1));
+      const bit = Math.max(VARSAYILAN_BIT, Math.min(24, nowH + 2));
+      return [bas, bit];
+    }
+    let bas = 24;
+    let bit = 0;
     for (const o of olaylar) {
       if (o.tum_gun) continue;
       const s = o.olayBaslangic.getHours();
       const e = o.olayBitis.getHours() + (o.olayBitis.getMinutes() > 0 ? 1 : 0);
-      if (s < bas) bas = Math.max(0, s);
-      if (e > bit) bit = Math.min(24, e);
+      if (s < bas) bas = s;
+      if (e > bit) bit = e;
     }
+    bas = Math.max(0, Math.min(bas - 1, nowH - 1, VARSAYILAN_BAS));
+    bit = Math.min(24, Math.max(bit + 1, nowH + 2, VARSAYILAN_BIT));
     return [bas, bit];
-  }, [olaylar]);
+  }, [olaylar, simdi]);
   const toplamSaat = bitSaat - basSaat;
 
   const [acikEtkinlik, setAcikEtkinlik] =
@@ -101,6 +119,16 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
 
   const tumGunOlaylar = olaylar.filter((o) => o.tum_gun);
   const saatliOlaylar = olaylar.filter((o) => !o.tum_gun);
+
+  // "Şimdi / Sıradaki" özeti
+  const aktif = saatliOlaylar.find(
+    (o) =>
+      o.olayBaslangic.getTime() <= simdi.getTime() &&
+      o.olayBitis.getTime() > simdi.getTime(),
+  );
+  const sradaki = saatliOlaylar
+    .filter((o) => o.olayBaslangic.getTime() > simdi.getTime())
+    .sort((a, b) => a.olayBaslangic.getTime() - b.olayBaslangic.getTime())[0];
 
   // Çakışma sütunlama: her olay için column index ve toplam column sayısı
   const yerlesim = React.useMemo(() => {
@@ -223,47 +251,34 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
 
   return (
     <section className="rounded-2xl border border-border/60 bg-card/40 p-2 sm:p-3">
-      <header className="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Bugün
-          </span>
-          <h2 className="text-sm font-semibold tracking-tight">Program</h2>
-        </div>
-        <div className="flex items-center gap-1">
-          <Link
-            to="/takvim"
-            className="rounded-full px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            Takvim →
-          </Link>
-          {nowGorunur && (
-            <button
-              type="button"
-              onClick={() => {
-                const el = scrollRef.current;
-                if (el) el.scrollTo({ top: Math.max(0, dkToTop(nowDk, basSaat) - 120), behavior: "smooth" });
-              }}
-              className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Şimdiye kaydır"
-            >
-              <LocateFixed className="h-3 w-3" />
-              Şimdi
-            </button>
-          )}
+      <header className="flex items-center justify-between gap-2 px-1 pb-2 pt-1">
+        <GorunumSegment gorunum={gorunum} onDegis={onGorunumDegis} />
+        {nowGorunur && (
           <button
             type="button"
             onClick={() => {
-              setHizliSaat(undefined);
-              setHizliAcik(true);
+              const el = scrollRef.current;
+              if (el)
+                el.scrollTo({
+                  top: Math.max(0, dkToTop(nowDk, basSaat) - 120),
+                  behavior: "smooth",
+                });
             }}
-            className="inline-flex items-center gap-1 rounded-full bg-foreground px-2.5 py-1 text-[11px] font-medium text-background transition-transform hover:scale-105"
+            className="inline-flex items-center gap-1 rounded-full border border-border/60 px-2 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Şimdiye kaydır"
           >
-            <Plus className="h-3 w-3" />
-            Ekle
+            <LocateFixed className="h-3 w-3" />
+            Şimdi
           </button>
-        </div>
+        )}
       </header>
+
+      <SimdiSiradaki
+        simdi={simdi}
+        aktif={aktif}
+        sradaki={sradaki}
+        saatliVar={saatliOlaylar.length > 0}
+      />
 
       {tumGunOlaylar.length > 0 && (
         <div className="mb-1 flex flex-wrap gap-1 border-b border-border/40 px-2 pb-2">
