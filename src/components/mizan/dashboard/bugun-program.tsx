@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Check, ChevronRight, Clock, LocateFixed, MapPin, Plus, X } from "lucide-react";
 import { format, isSameDay } from "date-fns";
-import { GorunumSegment } from "@/routes/index";
+import { GorunumSegment } from "./gorunum-segment";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
