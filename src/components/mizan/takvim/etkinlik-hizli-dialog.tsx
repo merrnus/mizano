@@ -20,12 +20,16 @@ type Props = {
 export function EtkinlikHizliDialog({ acik, onOpenChange, varsayilanBaslangic }: Props) {
   const ekle = useEtkinlikEkle();
   const ref = varsayilanBaslangic ?? new Date();
+  const ilkBas = varsayilanBaslangic ? format(varsayilanBaslangic, "HH:mm") : "09:00";
+  const ilkBit = varsayilanBaslangic
+    ? format(new Date(varsayilanBaslangic.getTime() + 60 * 60 * 1000), "HH:mm")
+    : "10:00";
   const [baslik, setBaslik] = React.useState("");
   const [aciklama, setAciklama] = React.useState("");
   const [tumGun, setTumGun] = React.useState(false);
   const [tarih, setTarih] = React.useState(format(ref, "yyyy-MM-dd"));
-  const [bas, setBas] = React.useState("09:00");
-  const [bit, setBit] = React.useState("10:00");
+  const [bas, setBas] = React.useState(ilkBas);
+  const [bit, setBit] = React.useState(ilkBit);
   const [konum, setKonum] = React.useState("");
   const [alan, setAlan] = React.useState<CeteleAlan>("kisisel");
   const [tekrarId, setTekrarId] = React.useState<string>("yok");
@@ -33,8 +37,12 @@ export function EtkinlikHizliDialog({ acik, onOpenChange, varsayilanBaslangic }:
   React.useEffect(() => {
     if (acik) {
       const r = varsayilanBaslangic ?? new Date();
+      const b = varsayilanBaslangic ? format(varsayilanBaslangic, "HH:mm") : "09:00";
+      const e = varsayilanBaslangic
+        ? format(new Date(varsayilanBaslangic.getTime() + 60 * 60 * 1000), "HH:mm")
+        : "10:00";
       setBaslik(""); setAciklama(""); setTumGun(false);
-      setTarih(format(r, "yyyy-MM-dd")); setBas("09:00"); setBit("10:00");
+      setTarih(format(r, "yyyy-MM-dd")); setBas(b); setBit(e);
       setKonum(""); setAlan("kisisel");
       setTekrarId("yok");
     }
