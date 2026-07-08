@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Check, Clock, LocateFixed, MapPin, Plus, Sparkles } from "lucide-react";
+import { Check, Clock, LocateFixed, MapPin, Plus, X } from "lucide-react";
 import { format, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -10,15 +10,9 @@ import {
   useGunlukGorevGuncelle,
   useGunlukGorevEkle,
 } from "@/lib/gunluk-gorev";
-import {
-  useSablonlar,
-  useHaftaKayitlari,
-  useKayitEkle,
-} from "@/lib/cetele-hooks";
 import { useEtkinlikler, useEtkinlikGuncelle } from "@/lib/takvim/hooks";
 import { genisletListe } from "@/lib/takvim/tekrar";
-import { haftaBaslangici, tarihFormat } from "@/lib/cetele-tarih";
-import { BIRIM_ETIKET, type CeteleSablon } from "@/lib/cetele-tipleri";
+import { tarihFormat } from "@/lib/cetele-tarih";
 import type { EtkinlikOlay, TakvimEtkinlik } from "@/lib/takvim/tipler";
 import { EtkinlikDetaySheet } from "./etkinlik-detay-sheet";
 import { EtkinlikHizliDialog } from "@/components/mizan/takvim/etkinlik-hizli-dialog";
@@ -43,12 +37,8 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
     d.setHours(23, 59, 59, 999);
     return d;
   }, [gunBas]);
-  const haftaBas = haftaBaslangici(simdi);
-
   const { data: etkinlikler = [] } = useEtkinlikler(gunBas, gunSon);
   const { data: gorevler = [] } = useBugunGorevler(simdi);
-  const { data: sablonlar = [] } = useSablonlar();
-  const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
 
   const olaylar: EtkinlikOlay[] = React.useMemo(
     () =>
@@ -437,13 +427,8 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
         </div>
       </div>
 
-      {/* Saat dışı: görev + ritüel */}
-      <SaatDisi
-        tarihStr={tarihStr}
-        gorevler={gorevler}
-        sablonlar={sablonlar}
-        kayitlar={kayitlar}
-      />
+      {/* Saat dışı: sadece manuel görevler */}
+      <SaatDisi tarihStr={tarihStr} gorevler={gorevler} />
 
       <EtkinlikDetaySheet
         etkinlik={acikEtkinlik}
