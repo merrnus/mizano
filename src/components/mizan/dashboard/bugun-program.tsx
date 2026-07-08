@@ -9,6 +9,7 @@ import {
   useBugunGorevler,
   useGunlukGorevGuncelle,
   useGunlukGorevEkle,
+  useGunlukGorevSil,
 } from "@/lib/gunluk-gorev";
 import { useEtkinlikler, useEtkinlikGuncelle } from "@/lib/takvim/hooks";
 import { genisletListe } from "@/lib/takvim/tekrar";
