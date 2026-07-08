@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { Check, Clock, LocateFixed, MapPin, Plus, Sparkles } from "lucide-react";
+import { Check, Clock, LocateFixed, MapPin, Plus, X } from "lucide-react";
 import { format, isSameDay } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -9,16 +9,11 @@ import {
   useBugunGorevler,
   useGunlukGorevGuncelle,
   useGunlukGorevEkle,
+  useGunlukGorevSil,
 } from "@/lib/gunluk-gorev";
-import {
-  useSablonlar,
-  useHaftaKayitlari,
-  useKayitEkle,
-} from "@/lib/cetele-hooks";
 import { useEtkinlikler, useEtkinlikGuncelle } from "@/lib/takvim/hooks";
 import { genisletListe } from "@/lib/takvim/tekrar";
-import { haftaBaslangici, tarihFormat } from "@/lib/cetele-tarih";
-import { BIRIM_ETIKET, type CeteleSablon } from "@/lib/cetele-tipleri";
+import { tarihFormat } from "@/lib/cetele-tarih";
 import type { EtkinlikOlay, TakvimEtkinlik } from "@/lib/takvim/tipler";
 import { EtkinlikDetaySheet } from "./etkinlik-detay-sheet";
 import { EtkinlikHizliDialog } from "@/components/mizan/takvim/etkinlik-hizli-dialog";
@@ -43,12 +38,8 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
     d.setHours(23, 59, 59, 999);
     return d;
   }, [gunBas]);
-  const haftaBas = haftaBaslangici(simdi);
-
   const { data: etkinlikler = [] } = useEtkinlikler(gunBas, gunSon);
   const { data: gorevler = [] } = useBugunGorevler(simdi);
-  const { data: sablonlar = [] } = useSablonlar();
-  const { data: kayitlar = [] } = useHaftaKayitlari(haftaBas);
 
   const olaylar: EtkinlikOlay[] = React.useMemo(
     () =>
@@ -437,13 +428,8 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
         </div>
       </div>
 
-      {/* Saat dışı: görev + ritüel */}
-      <SaatDisi
-        tarihStr={tarihStr}
-        gorevler={gorevler}
-        sablonlar={sablonlar}
-        kayitlar={kayitlar}
-      />
+      {/* Saat dışı: sadece manuel görevler */}
+      <SaatDisi tarihStr={tarihStr} gorevler={gorevler} />
 
       <EtkinlikDetaySheet
         etkinlik={acikEtkinlik}
@@ -463,44 +449,35 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
 function SaatDisi({
   tarihStr,
   gorevler,
-  sablonlar,
-  kayitlar,
 }: {
   tarihStr: string;
   gorevler: ReturnType<typeof useBugunGorevler>["data"];
-  sablonlar: CeteleSablon[];
-  kayitlar: ReturnType<typeof useHaftaKayitlari>["data"];
 }) {
   const saatsizGorevler = (gorevler ?? []).filter((g) => !g.saat);
-  const rituelSablonlar = sablonlar.filter(
-    (s) =>
-      s.alan === "mana" &&
-      (s.hedef_tipi === "gunluk" || s.hedef_tipi === "esnek"),
-  );
   return (
     <div className="mt-2 border-t border-border/50 pt-2">
-      <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        Saat dışı
-      </p>
+      <div className="mb-1 flex items-center justify-between px-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Saat dışı
+        </p>
+        {saatsizGorevler.length > 0 && (
+          <span className="text-[10px] tabular-nums text-muted-foreground">
+            {saatsizGorevler.filter((g) => g.tamamlandi).length}/
+            {saatsizGorevler.length}
+          </span>
+        )}
+      </div>
       <HizliGorevEkle tarihStr={tarihStr} />
       <ul className="flex flex-col divide-y divide-border/30">
         {saatsizGorevler.map((g) => (
           <SaatsizGorev key={g.id} gorev={g} />
         ))}
-        {rituelSablonlar.map((s) => {
-          const bugunMiktar = (kayitlar ?? [])
-            .filter((k) => k.sablon_id === s.id && k.tarih === tarihStr)
-            .reduce((a, k) => a + Number(k.miktar), 0);
-          return (
-            <RitualMini
-              key={s.id}
-              sablon={s}
-              bugunMiktar={bugunMiktar}
-              tarihStr={tarihStr}
-            />
-          );
-        })}
       </ul>
+      {saatsizGorevler.length === 0 && (
+        <p className="px-2 py-2 text-[11px] text-muted-foreground/70">
+          Saat dışı görev yok.
+        </p>
+      )}
     </div>
   );
 }
@@ -541,8 +518,9 @@ function SaatsizGorev({
   gorev: NonNullable<ReturnType<typeof useBugunGorevler>["data"]>[number];
 }) {
   const guncelle = useGunlukGorevGuncelle();
+  const sil = useGunlukGorevSil();
   return (
-    <li className="flex items-center gap-2 px-2 py-2">
+    <li className="group flex items-center gap-2 px-2 py-2">
       <button
         type="button"
         role="checkbox"
@@ -565,105 +543,20 @@ function SaatsizGorev({
       </button>
       <span
         className={cn(
-          "truncate text-sm",
+          "flex-1 truncate text-sm",
           gorev.tamamlandi && "text-muted-foreground line-through",
         )}
       >
         {gorev.baslik}
       </span>
-    </li>
-  );
-}
-
-function RitualMini({
-  sablon,
-  bugunMiktar,
-  tarihStr,
-}: {
-  sablon: CeteleSablon;
-  bugunMiktar: number;
-  tarihStr: string;
-}) {
-  const kayitEkle = useKayitEkle();
-  const renk = `var(--mana)`;
-  const ikili = sablon.birim === "ikili";
-  const varsayilan = sablon.birim === "dakika" ? 5 : 1;
-  const [miktarStr, setMiktarStr] = React.useState("");
-
-  const ekle = (m: number) => {
-    if (!Number.isFinite(m) || m <= 0) return;
-    kayitEkle.mutate({ sablon_id: sablon.id, tarih: tarihStr, miktar: m });
-    setMiktarStr("");
-  };
-
-  return (
-    <li className="flex items-center gap-2 px-2 py-2">
-      <span
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-        style={{
-          background: `color-mix(in oklab, ${renk} 12%, transparent)`,
-        }}
+      <button
+        type="button"
+        onClick={() => sil.mutate(gorev.id)}
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-destructive group-hover:opacity-100"
+        aria-label="Görevi sil"
       >
-        <Sparkles className="h-3.5 w-3.5" style={{ color: renk }} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">{sablon.ad}</span>
-        {bugunMiktar > 0 && (
-          <span className="text-[10px] tabular-nums text-muted-foreground">
-            bugün: {bugunMiktar} {BIRIM_ETIKET[sablon.birim]}
-          </span>
-        )}
-      </span>
-      {ikili ? (
-        <button
-          type="button"
-          onClick={() => {
-            if (bugunMiktar > 0) {
-              toast.message("Bugün zaten işaretli");
-              return;
-            }
-            ekle(1);
-          }}
-          className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-full border-2",
-            bugunMiktar > 0 && "opacity-60",
-          )}
-          style={{
-            borderColor: `color-mix(in oklab, ${renk} 55%, transparent)`,
-            color: renk,
-          }}
-        >
-          <Check className="h-3.5 w-3.5" strokeWidth={3} />
-        </button>
-      ) : (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            ekle(Number(miktarStr) || varsayilan);
-          }}
-          className="flex shrink-0 items-center gap-1"
-        >
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            value={miktarStr}
-            onChange={(e) => setMiktarStr(e.target.value)}
-            placeholder={String(varsayilan)}
-            className="h-7 w-12 px-1 text-center text-xs tabular-nums"
-          />
-          <button
-            type="submit"
-            className="flex h-7 w-7 items-center justify-center rounded-full border-2"
-            style={{
-              borderColor: `color-mix(in oklab, ${renk} 55%, transparent)`,
-              color: renk,
-            }}
-          >
-            <Plus className="h-3 w-3" strokeWidth={3} />
-          </button>
-        </form>
-      )}
+        <X className="h-3.5 w-3.5" />
+      </button>
     </li>
   );
 }

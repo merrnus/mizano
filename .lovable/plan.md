@@ -1,27 +1,29 @@
-## Bitirilecek işler
+## Amaç
+Bugün → Program görünümündeki "Saat dışı" bölümünü tamamen manuel hale getir. Mana ritüelleri ve otomatik iliştirmeler kaldırılsın; yalnızca kullanıcının eklediği saatsiz `gunluk_gorev` kayıtları görünsün.
 
-Program görünümü çalışıyor; kalan cilalar:
+## Değişiklik: `src/components/mizan/dashboard/bugun-program.tsx`
 
-### 1) Saatsiz görev için hızlı ekle
-`SaatDisi` başlığının yanına küçük "+ görev" satırı. Enter ile `useGunlukGorevEkle` çağırır (saat=null, tarih=bugün).
+1. **Ritüel entegrasyonunu kaldır**
+   - `useBugunManaRituelleri` (veya benzeri mana hook'u) importu ve çağrısı silinir.
+   - "Saat dışı" listesinde ritüel satırları ve inline miktar girişi kaldırılır.
+   - İlgili yardımcı state / mutation'lar (ritüel tamamla vb.) temizlenir.
 
-### 2) Sürükle-bırak ile saat değiştirme
-`saatliOlaylar` bloklarına `draggable`. Slot alanına `onDragOver`/`onDrop`: drop Y → dakika (15dk snap). `updateEtkinlik` ile `baslangic`/`bitis` güncelle (süre korunur). Tekrarlı olayda sadece o gün / tüm seri sorusu için basit onay (`confirm`) — ilk sürümde "sadece bu olay değil, ana kayıt" güncellenir; tekrarlı ise uyarı toast ile geri al.
+2. **Saatsiz veri kaynağı = sadece `gunluk_gorev`**
+   - Bugünün görevlerinden `saat === null` olanlar filtrelenir.
+   - Her satır: checkbox (tamamla/geri al) + başlık + sil butonu.
+   - Boşsa ince bir "Saat dışı görev yok" ipucu gösterilir.
 
-### 3) Çakışma yönetimi (yan yana)
-Aynı zaman aralığında birden çok blok varsa iki/üç sütuna böl. Basit greedy: olayları başlangıç saatine göre sırala, çakışan grupları bul, her gruptaki bloğa `left: (i/n)*100%`, `width: (1/n)*100% - gap` ver.
+3. **Hızlı ekleme korunur ve öne çıkar**
+   - Mevcut `HizliGorevEkle` bileşeni "Saat dışı" başlığının hemen altında kalır (Enter ile ekler, `saat=null`).
 
-### 4) Küçük UX
-- Boş slot hover'ında hafif "+" ikonu.
-- "Şimdi" butonu: header'a bir buton, tıklayınca now satırına scroll.
-- Klavye: `T` bugüne dön (zaten bugün ama scroll now).
+4. **Başlık sadeleşir**
+   - "Saat dışı" başlığı yanındaki ritüel sayacı / rozetleri kaldırılır; sadece görev sayısı (opsiyonel) gösterilir.
 
-### Dosyalar
-- düzenle: `src/components/mizan/dashboard/bugun-program.tsx`
-- gerekirse yardımcı: `src/lib/takvim/hooks.ts` içindeki `useEtkinlikGuncelle` (varsa) kullanılacak; yoksa mevcut update fonksiyonuna bakılıp aynı desen izlenecek.
+## Etkilenmeyen alanlar
+- Saatli program bloğu, sürükle-bırak, çakışma sütunlaması, "Şimdi" butonu, `T` kısayolu — aynı kalır.
+- Mana sayfası ve ritüel kayıt akışı değişmez; ritüeller yalnızca Mana sekmesinde takip edilir.
+- Akış (feed) görünümü değişmez.
 
-### Kapsam dışı
-- Rezervasyon/uyarı bildirimleri
-- Çoklu takvim renk filtresi (takvim sayfasında zaten var)
-
-Onaylarsan sırayla uygularım.
+## Doğrulama
+- `tsgo` ile tip kontrolü.
+- Preview'da: saatsiz görev ekle → listede görünür, tamamla → üstü çizilir, sil → kaybolur, ritüel satırı görünmez.
