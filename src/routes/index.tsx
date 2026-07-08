@@ -3,6 +3,7 @@ import * as React from "react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { Sun, Sunset, Moon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useSablonlar, useHaftaKayitlari, haftaSablonOzet } from "@/lib/cetele-hooks";
 import { haftaBaslangici } from "@/lib/cetele-tarih";
 import { BugunAkisi } from "@/components/mizan/dashboard/bugun-akisi";
@@ -127,14 +128,14 @@ function AnaDashboard() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-40 sm:px-6 sm:py-8 sm:pb-28">
       {/* App-bar: selamlama — mobilde halkalar alta düşer, lg+ ayrı bölümde büyür */}
-      <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
             {format(simdi, "EEEE, d MMMM", { locale: tr })}
           </p>
-          <h1 className="mt-1 inline-flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
+          <h1 className="mt-0.5 inline-flex items-center gap-2 text-lg font-semibold tracking-tight sm:text-xl">
             <ZamanIkon
-              className="h-5 w-5 shrink-0 sm:h-6 sm:w-6"
+              className="h-4 w-4 shrink-0 sm:h-5 sm:w-5"
               style={{ color: zamanIkonRenk }}
               aria-hidden="true"
             />
@@ -151,33 +152,18 @@ function AnaDashboard() {
               to: a === "mana" ? "/mizan/mana" : a === "ilim" ? "/mizan/ilim" : "/mizan/amel",
             })
           }
-          className="grid w-full grid-cols-3 gap-1 sm:inline-flex sm:w-auto"
+          className="inline-flex shrink-0 items-center gap-0.5"
+          kompakt
         />
       </header>
 
-      {/* Görünüm sekmeleri */}
-      <div className="mb-3 inline-flex rounded-full border border-border bg-card/40 p-0.5 text-[11px]">
-        {(["program", "akis"] as const).map((g) => (
-          <button
-            key={g}
-            type="button"
-            onClick={() => setGorunum(g)}
-            className={
-              "rounded-full px-3 py-1 font-medium transition-colors " +
-              (gorunum === g
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:text-foreground")
-            }
-          >
-            {g === "program" ? "Program" : "Akış"}
-          </button>
-        ))}
-      </div>
-
       {gorunum === "program" ? (
-        <BugunProgram simdi={simdi} />
+        <BugunProgram simdi={simdi} gorunum={gorunum} onGorunumDegis={setGorunum} />
       ) : (
-        <BugunAkisi simdi={simdi} />
+        <>
+          <GorunumSegment gorunum={gorunum} onDegis={setGorunum} />
+          <BugunAkisi simdi={simdi} />
+        </>
       )}
 
       <EtkinlikHizliDialog
@@ -187,6 +173,41 @@ function AnaDashboard() {
       />
 
       <BugunFab onEtkinlik={() => setEtkinlikDialogAcik(true)} />
+    </div>
+  );
+}
+
+export function GorunumSegment({
+  gorunum,
+  onDegis,
+  className,
+}: {
+  gorunum: "program" | "akis";
+  onDegis: (g: "program" | "akis") => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center rounded-full border border-border/60 bg-card/40 p-0.5 text-[11px]",
+        className,
+      )}
+    >
+      {(["program", "akis"] as const).map((g) => (
+        <button
+          key={g}
+          type="button"
+          onClick={() => onDegis(g)}
+          className={
+            "rounded-full px-2.5 py-0.5 font-medium transition-colors " +
+            (gorunum === g
+              ? "bg-foreground text-background"
+              : "text-muted-foreground hover:text-foreground")
+          }
+        >
+          {g === "program" ? "Program" : "Akış"}
+        </button>
+      ))}
     </div>
   );
 }
