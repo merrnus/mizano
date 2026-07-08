@@ -448,44 +448,35 @@ export function BugunProgram({ simdi }: { simdi: Date }) {
 function SaatDisi({
   tarihStr,
   gorevler,
-  sablonlar,
-  kayitlar,
 }: {
   tarihStr: string;
   gorevler: ReturnType<typeof useBugunGorevler>["data"];
-  sablonlar: CeteleSablon[];
-  kayitlar: ReturnType<typeof useHaftaKayitlari>["data"];
 }) {
   const saatsizGorevler = (gorevler ?? []).filter((g) => !g.saat);
-  const rituelSablonlar = sablonlar.filter(
-    (s) =>
-      s.alan === "mana" &&
-      (s.hedef_tipi === "gunluk" || s.hedef_tipi === "esnek"),
-  );
   return (
     <div className="mt-2 border-t border-border/50 pt-2">
-      <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        Saat dışı
-      </p>
+      <div className="mb-1 flex items-center justify-between px-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Saat dışı
+        </p>
+        {saatsizGorevler.length > 0 && (
+          <span className="text-[10px] tabular-nums text-muted-foreground">
+            {saatsizGorevler.filter((g) => g.tamamlandi).length}/
+            {saatsizGorevler.length}
+          </span>
+        )}
+      </div>
       <HizliGorevEkle tarihStr={tarihStr} />
       <ul className="flex flex-col divide-y divide-border/30">
         {saatsizGorevler.map((g) => (
           <SaatsizGorev key={g.id} gorev={g} />
         ))}
-        {rituelSablonlar.map((s) => {
-          const bugunMiktar = (kayitlar ?? [])
-            .filter((k) => k.sablon_id === s.id && k.tarih === tarihStr)
-            .reduce((a, k) => a + Number(k.miktar), 0);
-          return (
-            <RitualMini
-              key={s.id}
-              sablon={s}
-              bugunMiktar={bugunMiktar}
-              tarihStr={tarihStr}
-            />
-          );
-        })}
       </ul>
+      {saatsizGorevler.length === 0 && (
+        <p className="px-2 py-2 text-[11px] text-muted-foreground/70">
+          Saat dışı görev yok.
+        </p>
+      )}
     </div>
   );
 }
