@@ -41,7 +41,7 @@ export function BugunFab({ onEtkinlik }: Props) {
         />
       )}
 
-      <div className="pointer-events-none fixed bottom-20 right-4 z-40 sm:bottom-6 sm:right-6">
+      <div className="pointer-events-none fixed bottom-24 right-4 z-40 sm:bottom-6 sm:right-6">
         {/* mini-FAB'lar */}
         <div
           className={cn(
